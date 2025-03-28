@@ -1,41 +1,38 @@
 module.exports = (sequelize, DataTypes) => {
 	return sequelize.define('character_equipment', {
 		id: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			primaryKey: true,
 		},
 		head: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		body: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		leg: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		mainhand: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		offhand: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		trinket: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 		belt: {
-			type: DataTypes.STRING,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
-		backpack: {
-			type: DataTypes.STRING,
-			allowNull: false,
-		},
+		backpack: type: Sequelize.INTEGER,
 	}, {
 		timestamps: false,
 	});

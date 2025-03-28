@@ -1,37 +1,37 @@
 module.exports = (sequelize, DataTypes) => {
 	return sequelize.define('weapon_lib', {
-		item_id: DataTypes.INTEGER,
+		item_id: Sequelize.INTEGER,
 		slot: {
-			type: DataTypes.String,
+			type: Sequelize.STRING,
 			allowNull: false,
 		},
 		base_damage: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},
 		scaling: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},
 		graze: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},
 		hit_mod: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},
 		cooldown: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},
 		weight: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			defaultValue: 0,
 			allowNull: false,
 		},

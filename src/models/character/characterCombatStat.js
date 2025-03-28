@@ -1,13 +1,13 @@
 module.exports = (sequelize, DataTypes) => {
-	return sequelize.define('skill_lib', {
-		skill_id: {
+	return sequelize.define('character_combat_stat', {
+		id: {
 			type: Sequelize.INTEGER,
 			primaryKey: true,
 		},
-		type: {
+		fullname: {
 			type: Sequelize.STRING,
 			allowNull: false,
-		},
+		}
 	}, {
 		timestamps: false,
 	});

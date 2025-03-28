@@ -1,11 +1,11 @@
 module.exports = (sequelize, DataTypes) => {
 	return sequelize.define('currency_shop', {
 		name: {
-			type: DataTypes.STRING,
+			type: Sequelize.STRING,
 			unique: true,
 		},
 		cost: {
-			type: DataTypes.INTEGER,
+			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
 	}, {

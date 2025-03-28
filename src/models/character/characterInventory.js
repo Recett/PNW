@@ -1,22 +1,17 @@
 module.exports = (sequelize, DataTypes) => {
-	return sequelize.define('character_skill', {
+	return sequelize.define('character_item', {
 		character_id: {
 			type: Sequelize.INTEGER,
 			primaryKey: true,
 		},
-		skill_id: {
+		item_id: {
 			type: Sequelize.INTEGER,
 			primaryKey: true,
 		},
-		lv: {
+		amount: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
-			defaultValue: 0,
-		},
-		xp: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-			defaultValue: 0,
+			defaultValue: 1,
 		},
 	}, {
 		timestamps: false,
