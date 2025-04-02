@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('town project')
+		.setName('town-project')
 		.setDescription('Invest in a project'),
 	async execute(interaction) {
 		let characterId = await ia.client.characterUtil.characterId(ia.user.id);

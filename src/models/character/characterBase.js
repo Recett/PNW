@@ -31,7 +31,7 @@ module.exports = (sequelize) => {
 		maxHp: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
-		},		
+		},
 		currentStamina: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
@@ -39,7 +39,7 @@ module.exports = (sequelize) => {
 		maxStamina: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
-		}
+		},
 		str: {
 			type: Sequelize.INTEGER,
 			allowNull: false,

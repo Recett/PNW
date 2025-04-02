@@ -32,7 +32,7 @@ module.exports = (sequelize) => {
 			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
-		backpack: type: Sequelize.INTEGER,
+		backpack: Sequelize.INTEGER,
 	}, {
 		timestamps: false,
 	});

@@ -1,3 +1,4 @@
+require("module-alias/register");
 const Discord = require("discord.js");
 const fs = require('node:fs');
 const path = require('node:path');
@@ -17,7 +18,7 @@ const client = new Discord.Client({
 });
 
 client.characterUtil = require('./utility/characterUtility.js');
-client.eventUtil = require("./utility/eventUtil.js");
+client.eventUtil = require("./utility/eventUtility.js");
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);

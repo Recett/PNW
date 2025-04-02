@@ -1,11 +1,10 @@
 const Discord = require('discord.js');
-const name = 'createEvent';
-const EventBase = require('@/models/character/eventResolution.js');
+const EventBase = require('@/models/event/eventResolution.js');
 
 module.exports = {
 	authority: 'moderators',
 	data: new Discord.SlashCommandSubcommandBuilder()
-		.setName(name)
+		.setName('create-event')
 		.setDescription('Create a event'),
 	async execute(interaction) {
 		const modal = new Discord.ModalBuilder()
