@@ -1,8 +1,8 @@
 const Discord = require("discord.js");
-const User = require("@/models/character/user.js");
-const CharacterBase = require("@/models/character/characterBase.js");
-const CharacterSkill = require("@/models/character/characterSkill.js");
-const CharacterEquipment = require("@/models/character/characterEquipment.js");
+const User = require("@models/user.js");
+const CharacterBase = require("@models/character/characterBase.js");
+const CharacterSkill = require("@models/character/characterSkill.js");
+const CharacterEquipment = require("@models/character/characterEquipment.js");
 
 let characterId = async (userId) => {
   return await User.findOne({

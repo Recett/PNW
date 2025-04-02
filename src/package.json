@@ -6,14 +6,24 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Recett",
+  "license": "Apache-2.0",
   "description": "",
   "dependencies": {
-    "discord.js": "^14.18.0"
+    "discord.js": "^14.18.0",
+    "module-alias": "^2.2.3",
+    "sequelize": "^6.37.6",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
     "eslint": "^9.23.0"
+  },
+  "_moduleAliases": {
+    "@root": ".",
+    "@": "./",
+    "@models": "./models",
+    "@utility": "./utility",
+    "@events": "./events"
   }
 }

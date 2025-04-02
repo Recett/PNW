@@ -1,7 +1,29 @@
 {
+  "name": "personal3",
+  "version": "1.0.0",
+  "main": "./src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Recett",
+  "license": "Apache-2.0",
+  "description": "",
   "dependencies": {
+    "dependencies": {
     "discord.js": "^14.18.0",
     "sequelize": "^6.37.6",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.23.0",
+    "eslint": "^9.23.0"
+  },
+  "_moduleAliases": {
+    "@root": ".",
+    "@": "./src",
+    "@models": "./src/models",
+    "@utility": "./src/utility",
+    "@events": "./src/Events"
   }
 }
