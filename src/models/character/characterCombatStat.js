@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
 	return sequelize.define('character_combat_stat', {
 		id: {
 			type: Sequelize.INTEGER,

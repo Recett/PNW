@@ -13,7 +13,7 @@ let characterId = async (userId) => {
   });
 };
 
-let characterId = async (characterId) => {
+let character_base = async (characterId) => {
   return await CharacterBase.findOne({
     where: {
       character_id: characterId,

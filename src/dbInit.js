@@ -1,27 +1,28 @@
-	const Sequelize = require('sequelize');
+const Sequelize = require('sequelize');
 
 const sequelize = new Sequelize('database', 'username', 'password', {
 	host: 'localhost',
-	dialect: 'postgres',
+	dialect: 'sqlite',
 	logging: false,
 	storage: 'database.sqlite',
 });
 
-const CurrencyShop = require('./models/CurrencyShop.js')(sequelize, Sequelize.DataTypes);
-require('./models/Users.js')(sequelize, Sequelize.DataTypes);
-require('./models/UserItems.js')(sequelize, Sequelize.DataTypes);
+require('./models/character/characterBase.js')(sequelize);
+require('./models/character/characterCombatStat.js')(sequelize);
+require('./models/character/characterEquipment.js')(sequelize);
+require('./models/character/characterInventory.js')(sequelize);
+require('./models/character/characterSkill.js')(sequelize);
+
+require('./models/event/eventBase.js')(sequelize);
+require('./models/event/eventFlag.js')(sequelize);
+require('./models/event/eventTag.js')(sequelize);
+require('./models/event/eventResolution.js')(sequelize);
+
+require('./models/itemLib/armorLib.js')(sequelize);
+require('./models/event/itemLib.js')(sequelize);
+require('./models/event/weaponLib.js')(sequelize);
+
+require('./models/skillLib/skillLib.js')(sequelize);
+
 
 const force = process.argv.includes('--force') || process.argv.includes('-f');
-
-sequelize.sync({ force }).then(async () => {
-	const shop = [
-		CurrencyShop.upsert({ name: 'Tea', cost: 1 }),
-		CurrencyShop.upsert({ name: 'Coffee', cost: 2 }),
-		CurrencyShop.upsert({ name: 'Cake', cost: 5 }),
-	];
-
-	await Promise.all(shop);
-	console.log('Database synced');
-
-	sequelize.close();
-}).catch(console.error);

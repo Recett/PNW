@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
 	return sequelize.define('armor_lib', {
 		item_id: {
 			type: Sequelize.INTEGER,

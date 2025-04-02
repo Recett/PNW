@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
 	return sequelize.define('skill_lib', {
 		skill_id: {
 			type: Sequelize.INTEGER,

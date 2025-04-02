@@ -1,4 +1,4 @@
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
 	return sequelize.define('event_tag', {
 		event_id: {
 			type: Sequelize.STRING,
