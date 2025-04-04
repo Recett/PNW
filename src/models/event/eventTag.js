@@ -1,3 +1,4 @@
+const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('event_tag', {
 		event_id: {
@@ -8,7 +9,7 @@ module.exports = (sequelize) => {
 			type: Sequelize.STRING,
 			primaryKey: true,
 		},
-		tier: Sequelize.Integer,
+		tier: Sequelize.INTEGER,
 	}, {
 		timestamps: false,
 	});

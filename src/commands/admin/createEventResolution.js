@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const EventResolution = require('@/models/event/eventResolution.js');
+const EventResolution = require('@models/event/eventResolution.js');
 
 module.exports = {
 	authority: 'moderators',
@@ -8,7 +8,7 @@ module.exports = {
 		.setDescription('Create a event'),
 	async execute(interaction) {
 		const modal = new Discord.ModalBuilder()
-			.setTitle(ia.options.getString('name', true))
+			.setTitle(interaction.options.getString('name', true))
 			.addComponents(
 				new Discord.ActionRowBuilder().addComponents(
 					new Discord.TextInputBuilder()

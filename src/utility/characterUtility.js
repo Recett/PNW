@@ -1,36 +1,23 @@
 const Discord = require("discord.js");
-const User = require("@models/user.js");
-const CharacterBase = require("@models/character/characterBase.js");
-const CharacterSkill = require("@models/character/characterSkill.js");
-const CharacterEquipment = require("@models/character/characterEquipment.js");
+const { CharacterBase, CharacterSkill, CharacterEquipment } = require('@root/dbObject.js');
 
-let getCharacterId = async (userId) => {
-	return await User.findOne({
-		attributes: 'character_id',
-		where: {
-			user_id: userId,
-		},
-	});
-};
-
-let getCharacterBase = async (characterId) => {
+let getCharacterBase = async (userId) => {
 	return await CharacterBase.findOne({
 		where: {
-			character_id: characterId,
+			character_id: userId,
 		},
 	});
 };
 
-let getCharacterEquipment = async (characterId) => {
+let getCharacterEquipment = async (userId) => {
 	return await Character.findOne({
 		where: {
-			character_id: characterId,
+			character_id: userId,
 		},
 	});
 };
 
 module.exports = {
-	getCharacterId,
 	getCharacterBase,
 	getCharacterEquipment,
 };

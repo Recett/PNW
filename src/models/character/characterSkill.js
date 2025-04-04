@@ -1,3 +1,4 @@
+const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('character_skill', {
 		character_id: {
@@ -14,6 +15,11 @@ module.exports = (sequelize) => {
 			defaultValue: 0,
 		},
 		xp: {
+			type: Sequelize.INTEGER,
+			allowNull: false,
+			defaultValue: 0,
+		},
+		aptitude: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
 			defaultValue: 0,

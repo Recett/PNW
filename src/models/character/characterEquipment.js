@@ -1,6 +1,7 @@
+const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('character_equipment', {
-		id: {
+		character_id: {
 			type: Sequelize.INTEGER,
 			primaryKey: true,
 		},

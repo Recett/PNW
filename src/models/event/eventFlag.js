@@ -1,22 +1,23 @@
+const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
-	return sequelize.define('event_Flag', {
+	return sequelize.define('event_flag', {
 		event_id: {
-			type: Sequelize.String,
+			type: Sequelize.STRING,
 			primaryKey: true,
 		},
 		flag: {
-			type: Sequelize.String,
+			type: Sequelize.STRING,
 			primaryKey: true,
 		},
 		// resolution_id = 0 mean the flag will be modified instantly upon receiving the event
 		resolution_id: {
-			type: Sequelize.String,
+			type: Sequelize.STRING,
 			defaultValue: 0,
 			primaryKey: true,
 		},
-		set: Sequelize.Integer,
-		add: Sequelize.Integer,
-		external: Sequelize.Boolean,
+		set: Sequelize.INTEGER,
+		add: Sequelize.INTEGER,
+		external: Sequelize.BOOLEAN,
 	}, {
 		timestamps: false,
 	});

@@ -18,11 +18,11 @@ require('./models/event/eventFlag.js')(sequelize);
 require('./models/event/eventTag.js')(sequelize);
 require('./models/event/eventResolution.js')(sequelize);
 
-require('./models/itemLib/armorLib.js')(sequelize);
-require('./models/event/itemLib.js')(sequelize);
-require('./models/event/weaponLib.js')(sequelize);
+require('./models/item/armorLib.js')(sequelize);
+require('./models/item/itemLib.js')(sequelize);
+require('./models/item/weaponLib.js')(sequelize);
 
-require('./models/skillLib/skillLib.js')(sequelize);
+require('./models/skill/skillLib.js')(sequelize);
 
 
 const force = process.argv.includes('--force') || process.argv.includes('-f');

@@ -5,8 +5,7 @@ module.exports = {
 		.setName('stat')
 		.setDescription('Check your stat'),
 	async execute(interaction) {
-		let characterId = await ia.client.characterUtil.characterId(ia.user.id);
-		let characterBase = await ia.client.characterUtil.characterBase(characterId);
+		let characterBase = await ia.client.characterUtil.characterBase(ia.user.id);
 		let characterCombatStat = await ia.client.characterUtil.characterId(ia.user.id);
 		await ia.embed
 	        .setTitle(characterBase.fullmame)

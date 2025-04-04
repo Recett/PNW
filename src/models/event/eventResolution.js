@@ -1,5 +1,6 @@
+const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
-	return sequelize.define('event_tag', {
+	return sequelize.define('event_resolution', {
 		event_id: {
 			type: Sequelize.STRING,
 			primaryKey: true,
@@ -9,6 +10,7 @@ module.exports = (sequelize) => {
 			primaryKey: true,
 		},
 		resolution_text: Sequelize.STRING,
+		required_flag: Sequelize.STRING,
 		child_event_id: Sequelize.STRING,
 		tier: Sequelize.INTEGER,
 	}, {

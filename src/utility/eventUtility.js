@@ -1,7 +1,4 @@
-const EventBase = require('@/models/event/eventBase.js');
-const EventFlag = require('@/models/event/eventFlag.js');
-const EventTag = require('@/models/event/eventTag.js');
-const EventResolution = require('@/models/event/eventResolution.js');
+const { EventBase, EventFlag, EventTag, EventResolution } = require('@root/dbObject.js');
 
 let getEventBase = async (eventId) => {
 	return await EventBase.findOne({

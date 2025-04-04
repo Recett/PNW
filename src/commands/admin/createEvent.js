@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const EventBase = require('@/models/event/eventResolution.js');
+const EventBase = require('@models/event/eventBase.js');
 
 module.exports = {
 	authority: 'moderators',
@@ -8,7 +8,8 @@ module.exports = {
 		.setDescription('Create a event'),
 	async execute(interaction) {
 		const modal = new Discord.ModalBuilder()
-			.setTitle(ia.options.getString('name', true))
+			.setCustomId('create-event')
+			.setTitle('Create Event')
 			.addComponents(
 				new Discord.ActionRowBuilder().addComponents(
 					new Discord.TextInputBuilder()
@@ -16,7 +17,7 @@ module.exports = {
 						.setLabel('Event Id')
 						.setStyle(Discord.TextInputStyle.Paragraph)
 						.setMaxLength(512)
-						.setPlaceholder('Give some background or lore of the camp here.'),
+						.setPlaceholder('Event Id'),
 				),
 				new Discord.ActionRowBuilder().addComponents(
 					new Discord.TextInputBuilder()
@@ -24,7 +25,7 @@ module.exports = {
 						.setLabel('Event Text')
 						.setStyle(Discord.TextInputStyle.Paragraph)
 						.setMaxLength(512)
-						.setPlaceholder('DM note and rules of the camp.'),
+						.setPlaceholder('Event Text'),
 				),
 				new Discord.ActionRowBuilder().addComponents(
 					new Discord.TextInputBuilder()
@@ -32,26 +33,32 @@ module.exports = {
 						.setLabel('Child Event ID')
 						.setStyle(Discord.TextInputStyle.Paragraph)
 						.setMaxLength(512)
-						.setPlaceholder('DM note and rules of the camp.'),
+						.setPlaceholder('Child Event ID in case there is no resolution'),
 				),
 			);
 
 		await interaction.showModal(modal);
 
-		const msia = await interaction.awaitModalSubmit({ time: 300000, filter: (i) => i.customId == `${ia.cid}=moreInfo` }).catch(() => {
-			interaction.reply('Timeout. Creation failed.');
-			throw new Error('Timeout');
+		client.on(Events.InteractionCreate, interaction => {
+			if (!interaction.isModalSubmit()) return;
+
+			// Get the data entered by the user
+			const favoriteColor = interaction.fields.getTextInputValue('favoriteColorInput');
+			const hobbies = interaction.fields.getTextInputValue('hobbiesInput');
+			console.log({ favoriteColor, hobbies });
 		});
 
-		msia.deferReply();
+/*		msia.deferReply();
 
 		const eventId = msia.fields.getTextInputValue('eventId') ?? '';
 		const eventText = msia.fields.getTextInputValue('eventText') ?? '';
 		const defaultChildId = msia.fields.getTextInputValue('defaultChildId') ?? '';
-		const eventBase = await ia.client.eventUtil.getEventBase(eventId);
+		const eventBase = await interaction.client.eventUtil.getEventBase(eventId);
+		console.log('1');
 
 		try {
 			if (eventBase != null) {
+				console.log('2');
 				// equivalent to: INSERT INTO tags (name, description, username) values (?, ?, ?);
 				const newEvent = await EventBase.create({
 					eventId: eventId,
@@ -59,6 +66,7 @@ module.exports = {
 					defaultChildId: defaultChildId,
 				});
 				return interaction.reply(`Event ${newEvent.eventId} added.`);
+				console.log('3');
 			}
 			else {
 				// equivalent to: INSERT INTO tags (name, description, username) values (?, ?, ?);
@@ -67,6 +75,7 @@ module.exports = {
 				if (affectedRows > 0) {
 					return interaction.reply(`Event ${newEvent.eventId} was edited.`);
 				}
+				console.log('4');
 			}
 		}
 		catch (error) {
@@ -75,6 +84,6 @@ module.exports = {
 			}
 
 			return interaction.reply('Something went wrong with adding a tag.');
-		}
+		}*/
 	},
 };
