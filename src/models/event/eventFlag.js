@@ -5,19 +5,22 @@ module.exports = (sequelize) => {
 			type: Sequelize.STRING,
 			primaryKey: true,
 		},
+		// resolution_id = 0 mean the flag will be modified instantly upon receiving the event
+		resolution_id: {
+			type: Sequelize.STRING,
+			primaryKey: true,
+		},
 		flag: {
 			type: Sequelize.STRING,
 			primaryKey: true,
 		},
-		// resolution_id = 0 mean the flag will be modified instantly upon receiving the event
-		resolution_id: {
-			type: Sequelize.STRING,
-			defaultValue: 0,
-			primaryKey: true,
-		},
-		set: Sequelize.INTEGER,
-		add: Sequelize.INTEGER,
+		amount: Sequelize.INTEGER,
+		method: Sequelize.STRING,
 		external: Sequelize.BOOLEAN,
+		global: {
+			type: Sequelize.BOOLEAN,
+			defaultValue: false,
+		},
 	}, {
 		timestamps: false,
 	});

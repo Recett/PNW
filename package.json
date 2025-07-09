@@ -24,6 +24,7 @@
     "@": "./src",
     "@models": "./src/models",
     "@utility": "./src/utility",
-    "@events": "./src/Events"
+    "@events": "./src/Events",
+    "@data": "./src/Data"
   }
 }

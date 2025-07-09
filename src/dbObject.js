@@ -1,4 +1,5 @@
 const Sequelize = require('sequelize');
+const gamecon = require('@root/Data/gamecon.json');
 
 const sequelize = new Sequelize('database', 'username', 'password', {
 	host: 'localhost',
@@ -11,27 +12,89 @@ const EventBase = require('@/models/event/eventBase.js')(sequelize);
 const EventFlag = require('@/models/event/eventFlag.js')(sequelize);
 const EventTag = require('@/models/event/eventTag.js')(sequelize);
 const EventResolution = require('@/models/event/eventResolution.js')(sequelize);
+const EventResolutionCheck = require('@/models/event/eventResolutionCheck.js')(sequelize);
+const CharacterBase = require('@models/character/characterBase.js')(sequelize);
+const CharacterSkill = require('@models/character/characterSkill.js')(sequelize);
+const CharacterItem = require('@models/character/characterItem.js')(sequelize);
+const CharacterEquipment = require('@models/character/characterEquipment.js')(sequelize);
+const ArtLib = require('@models/skill/artLib.js')(sequelize);
+const SkillLib = require('@models/skill/skillLib.js')(sequelize);
+const ItemLib = require('@models/item/itemLib.js')(sequelize);
+const WeaponLib = require('@models/item/weaponLib.js')(sequelize);
+const ArmorLib = require('@models/item/armorLib.js')(sequelize);
+const LocationBase = require('@models/location/locationBase.js')(sequelize);
+const LocationCluster = require('@models/location/locationCluster.js')(sequelize);
+const LocationLink = require('@models/location/locationLink.js')(sequelize);
+const LocationContain = require('@models/location/locationContain.js')(sequelize);
+const MonsterAttackStat = require('@models/location/monsterAttackStat.js')(sequelize);
+const MonsterBaseStat = require('@models/location/monsterBaseStat.js')(sequelize);
+const ObjectBase = require('@models/location/objectBase.js')(sequelize);
+const NPCBase = require('@models/npc/npcBase.js')(sequelize);
 
+
+// **CharacterItem
+CharacterItem.belongsTo(ItemLib, { foreignKey: 'item_id', as: 'item' });
+
+Reflect.defineProperty(CharacterBase.prototype, 'addItem', {
+	value: async item => {
+		const characterItem = await CharacterInventory.findOne({
+			where: { character_id: this.character_id, item_id: item.id },
+		});
+
+		if (characterItem) {
+			characterItem.amount += 1;
+			return characterItem.save();
+		}
+
+		return CharacterInventory.create({ character_id: this.character_id, item_id: item.id, amount: 1 });
+	},
+});
+
+Reflect.defineProperty(CharacterBase.prototype, 'getInventory', {
+	value: () => {
+		return CharacterInventory.findAll({
+			where: { user_id: this.user_id },
+			include: ['item'],
+		});
+	},
+});
+
+Reflect.defineProperty(CharacterEquipment.prototype, 'equipItem', {
+	value: async item => {
+		/*
+		const characterItem = await CharacterInventory.findOne({
+			where: { character_id: this.character_id, item_id: item.id },
+		});
+		*/
+		const itemLib = await ItemLib.findByPk(item.id);
+		let slot = null;
+		if (itemLib.type === 'armor') {
+			const armorLib = await ArmorLib.findByPk(item.id);
+			slot = armorLib.slot;
+		}
+		else if (itemLib.type === 'weapon') {
+			slot = 'hand';
+		}
+
+		return CharacterEquipment.upsert({ character_id: this.character_id, item_id: item.id, slot: slot });
+	},
+});
+
+Reflect.defineProperty(CharacterBase.prototype, 'getItems', {
+	value: () => {
+		return UserItems.findAll({
+			where: { user_id: this.user_id },
+			include: ['item'],
+		});
+	},
+});
+
+// **Event
 EventBase.hasMany(EventFlag, { foreignKey: 'event_id', as: 'flag' });
 EventBase.hasMany(EventTag, { foreignKey: 'event_id', as: 'tag' });
 EventBase.hasMany(EventResolution, { foreignKey: 'event_id', as: 'resolution' });
 
-/*Reflect.defineProperty(Users.prototype, 'addItem', {
-	value: async item => {
-		const userItem = await UserItems.findOne({
-			where: { user_id: this.user_id, item_id: item.id },
-		});
-
-		if (userItem) {
-			userItem.amount += 1;
-			return userItem.save();
-		}
-
-		return UserItems.create({ user_id: this.user_id, item_id: item.id, amount: 1 });
-	},
-});*/
-
-Reflect.defineProperty(EventBase.prototype, 'getFlags', {
+Reflect.defineProperty(EventBase.prototype, 'getEventFlags', {
 	value: () => {
 		return EventBase.findAll({
 			where: { event_id: this.event_id },
@@ -40,7 +103,7 @@ Reflect.defineProperty(EventBase.prototype, 'getFlags', {
 	},
 });
 
-Reflect.defineProperty(EventBase.prototype, 'getTags', {
+Reflect.defineProperty(EventBase.prototype, 'getEventTags', {
 	value: () => {
 		return EventBase.findAll({
 			where: { event_id: this.event_id },
@@ -53,72 +116,64 @@ Reflect.defineProperty(EventBase.prototype, 'getResolutions', {
 	value: () => {
 		return EventBase.findAll({
 			where: { event_id: this.event_id },
-			include: ['tag'],
+			include: ['resolution'],
 		});
 	},
 });
 
-const CharacterBase = require("@models/character/characterBase.js");
-const CharacterSkill = require("@models/character/characterSkill.js");
-const CharacterInventory = require("@models/character/characterInventory.js");
-const CharacterEquipment = require("@models/character/characterEquipment.js");
-const SkillLib = require("@models/skill/skillLib.js");
-const ItemLib = require("@models/item/itemLib.js");
-const WeaponLib = require("@models/item/weaponLib.js");
-const ArmorLib = require("@models/item/armorLib.js");
+// **LocationContain
+LocationContain.belongsTo(ObjectBase, { foreignKey: 'object_id', as: 'object' });
 
-/*CharacterSkill.belongsTo(SkillLib, { foreignKey: 'skill_id', as: 'skill' });
-CharacterInventory.belongsTo(ItemLib, { foreignKey: 'item_id', as: 'item' });
-CharacterEquipment.belongsTo(ItemLib, { foreignKey: 'head', as: 'head' });
-CharacterEquipment.belongsTo(ItemLib, { foreignKey: 'body', as: 'body' });
-CharacterEquipment.belongsTo(ItemLib, { foreignKey: 'leg', as: 'leg' });
-CharacterEquipment.belongsTo(ItemLib, { foreignKey: 'mainhand', as: 'mainhand' });
-CharacterEquipment.belongsTo(ItemLib, { foreignKey: 'offhand', as: 'offhand' });*/
-
-/*Reflect.defineProperty(Users.prototype, 'addItem', {
-	value: async item => {
-		const userItem = await UserItems.findOne({
-			where: { user_id: this.user_id, item_id: item.id },
-		});
-
-		if (userItem) {
-			userItem.amount += 1;
-			return userItem.save();
-		}
-
-		return UserItems.create({ user_id: this.user_id, item_id: item.id, amount: 1 });
-	},
-});*/
-
-/*Reflect.defineProperty(CharacterBase.prototype, 'getSkill', {
+Reflect.defineProperty(LocationBase.prototype, 'getObjects', {
 	value: () => {
-		return CharacterSkill.findAll({
-			where: { user_id: this.user_id },
-			include: ['skill'],
+		return LocationContain.findAll({
+			where: { location_id: this.location_id },
+			include: ['object'],
+			type: gamecon.OBJECT,
 		});
 	},
 });
 
-Reflect.defineProperty(CharacterBase.prototype, 'getInventory', {
+Reflect.defineProperty(LocationBase.prototype, 'getNPC', {
 	value: () => {
-		return CharacterInventory.findAll({
-			where: { user_id: this.user_id },
-			include: ['item'],
+		return LocationContain.findAll({
+			where: { location_id: this.location_id },
+			include: ['object'],
+			type: gamecon.NPC,
 		});
 	},
-});*/
+});
 
-module.exports = { EventBase, 
-	EventTag, 
-	EventResolution, 
-	EventFlag, 
-	CharacterBase, 
-	CharacterSkill, 
-	CharacterInventory, 
-	CharacterEquipment, 
-	SkillLib, 
-	ItemLib,
+Reflect.defineProperty(LocationBase.prototype, 'getEnemies', {
+	value: () => {
+		return LocationContain.findAll({
+			where: { location_id: this.location_id },
+			include: ['object'],
+			type: gamecon.NPC,
+		});
+	},
+});
+
+module.exports = { EventBase,
+	EventTag,
+	EventResolution,
+	EventResolutionCheck,
+	EventFlag,
+	CharacterBase,
+	CharacterSkill,
+	CharacterItem,
+	CharacterEquipment,
+	SkillLib,
 	ItemLib,
 	WeaponLib,
 	ArmorLib,
+	LocationBase,
+	ArtLib,
+	LocationContain,
+	LocationCluster,
+	LocationLink,
+	MonsterAttackStat,
+	MonsterBaseStat,
+	NPCBase,
+	ObjectBase,
 };

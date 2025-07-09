@@ -2,7 +2,7 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('character_base', {
 		id: {
-			type: Sequelize.INTEGER,
+			type: Sequelize.STRING,
 			primaryKey: true,
 		},
 		fullname: {
@@ -14,6 +14,27 @@ module.exports = (sequelize) => {
 		nickname: Sequelize.STRING,
 		avatar: {
 			type: Sequelize.STRING,
+		},
+		age: {
+			type: Sequelize.INTEGER,
+		},
+		gender: {
+			type: Sequelize.STRING,
+		},
+		gold: {
+			type: Sequelize.INTEGER,
+		},
+		str: {
+			type: Sequelize.INTEGER,
+		},
+		dex: {
+			type: Sequelize.INTEGER,
+		},
+		agi: {
+			type: Sequelize.INTEGER,
+		},
+		con: {
+			type: Sequelize.INTEGER,
 		},
 		currentHp: {
 			type: Sequelize.INTEGER,
@@ -27,16 +48,10 @@ module.exports = (sequelize) => {
 		maxStamina: {
 			type: Sequelize.INTEGER,
 		},
-		str: {
+		free_point: {
 			type: Sequelize.INTEGER,
 		},
-		dex: {
-			type: Sequelize.INTEGER,
-		},
-		agi: {
-			type: Sequelize.INTEGER,
-		},
-		con: {
+		xp: {
 			type: Sequelize.INTEGER,
 		}
 	}, {

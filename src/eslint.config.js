@@ -31,7 +31,7 @@ module.exports = [
 			'no-var': 'error',
 			'no-undef': 'off',
 			'object-curly-spacing': ['error', 'always'],
-			'prefer-const': 'error',
+			'prefer-const': 'off',
 			quotes: ['error', 'single'],
 			semi: ['error', 'always'],
 			'space-before-blocks': 'error',

@@ -2,38 +2,17 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('character_equipment', {
 		character_id: {
-			type: Sequelize.INTEGER,
+			type: Sequelize.STRING,
 			primaryKey: true,
 		},
-		head: {
+		item_id: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
 		},
-		body: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
+		slot: {
+			type: Sequelize.STRING,
 		},
-		leg: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-		},
-		mainhand: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-		},
-		offhand: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-		},
-		trinket: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-		},
-		belt: {
-			type: Sequelize.INTEGER,
-			allowNull: false,
-		},
-		backpack: Sequelize.INTEGER,
+		// Slots can be: head, body, leg, mainhand, offhand,
 	}, {
 		timestamps: false,
 	});
