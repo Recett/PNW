@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="System"?>
+<table>
+    <database></database>
+    <name>event_bases</name>
+    <ddl>CREATE TABLE `event_bases` (`id` VARCHAR(255) UNIQUE PRIMARY KEY, `title` VARCHAR(255) NOT NULL, `avatar` VARCHAR(255) NOT NULL, `illustration` VARCHAR(255) NOT NULL, `text` VARCHAR(255), `default_child_event_id` VARCHAR(255), `choose_placeholder` VARCHAR(255), `hidden` TINYINT(1), `check` TINYINT(1), `npc` VARCHAR(255));</ddl>
+    <columns>
+        <column>
+            <name>id</name>
+            <type>VARCHAR</type>
+            <constraints>
+                <constraint>
+                    <type>UNIQUE</type>
+                    <definition>UNIQUE </definition>
+                </constraint>
+                <constraint>
+                    <type>PRIMARY KEY</type>
+                    <definition>PRIMARY KEY</definition>
+                </constraint>
+            </constraints>
+        </column>
+        <column>
+            <name>title</name>
+            <type>VARCHAR</type>
+            <constraints>
+                <constraint>
+                    <type>NOT NULL</type>
+                    <definition>NOT NULL</definition>
+                </constraint>
+            </constraints>
+        </column>
+        <column>
+            <name>avatar</name>
+            <type>VARCHAR</type>
+            <constraints>
+                <constraint>
+                    <type>NOT NULL</type>
+                    <definition>NOT NULL</definition>
+                </constraint>
+            </constraints>
+        </column>
+        <column>
+            <name>illustration</name>
+            <type>VARCHAR</type>
+            <constraints>
+                <constraint>
+                    <type>NOT NULL</type>
+                    <definition>NOT NULL</definition>
+                </constraint>
+            </constraints>
+        </column>
+        <column>
+            <name>text</name>
+            <type>VARCHAR</type>
+        </column>
+        <column>
+            <name>default_child_event_id</name>
+            <type>VARCHAR</type>
+        </column>
+        <column>
+            <name>choose_placeholder</name>
+            <type>VARCHAR</type>
+        </column>
+        <column>
+            <name>hidden</name>
+            <type>TINYINT</type>
+        </column>
+        <column>
+            <name>check</name>
+            <type>TINYINT</type>
+        </column>
+        <column>
+            <name>npc</name>
+            <type>VARCHAR</type>
+        </column>
+    </columns>
+    <rows>
+    </rows>
+</table>

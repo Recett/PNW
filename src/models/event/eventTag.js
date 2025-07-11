@@ -4,10 +4,12 @@ module.exports = (sequelize) => {
 		event_id: {
 			type: Sequelize.STRING,
 			primaryKey: true,
+			unique: false,
 		},
 		tag: {
 			type: Sequelize.STRING,
 			primaryKey: true,
+			unique: false,
 		},
 		tier: Sequelize.INTEGER,
 	}, {

@@ -1,0 +1,32 @@
+{
+    "developerMode": [
+        "Con ếch đang làm việc. Đừng có mà láo nháo!",
+        "Không tiếp khách.",
+        "Miễn làm phiền.",
+        "Cho cục kẹo này. Ra chỗ khác chơi."],
+    "developer": [
+        "Định khai hoả bom nguyên tử đó à?",
+        "Nghịch, mậy!",
+        "Kìa cái tay cái tay cái tay.",
+        "Chúc mừng bạn đã quay trúng ô Xộ Khám.",
+        "Chúc bạn nat 1 cả đời.",
+        "Đồ con Mùi! Sờ nhầm chỗ rồi!"],
+    "owner": [
+        "Tính làm phản à?",
+        "Nghịch, mậy!",
+        "Kìa cái tay cái tay cái tay.",
+        "Nút xoá server đấy. Đừng có ấn."],
+    "administrators": [
+        "Táy máy nào. Khổ quá.",
+        "Chơi pháp đao mất màu đấy.",
+        "Ê, dùng phép sai level là tự huỷ đấy."],
+    "moderators": [
+        "Tránh cái pháp đao ra coi.",
+        "Lộn bot rồi.",
+        "Lộn lệnh rồi.",
+        "Không có phận sự, đi ra"],
+    "special": [
+        "Không có phận sự, đi ra.",
+        "Đế giày chưa đủ cao.",
+        "Ê, dùng phép sai level là tự huỷ đấy."]
+}

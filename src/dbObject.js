@@ -30,6 +30,19 @@ const MonsterAttackStat = require('@models/location/monsterAttackStat.js')(seque
 const MonsterBaseStat = require('@models/location/monsterBaseStat.js')(sequelize);
 const ObjectBase = require('@models/location/objectBase.js')(sequelize);
 const NPCBase = require('@models/npc/npcBase.js')(sequelize);
+const CharacterThread = require('@models/character/characterThread.js')(sequelize);
+const CronLog = require('@models/utility/cronLog.js')(sequelize);
+const CharacterArte = require('@models/character/characterArte.js')(sequelize);
+const CharacterAttackStat = require('@models/character/characterAttackStat.js')(sequelize);
+const CharacterCombatStat = require('@models/character/characterCombatStat.js')(sequelize);
+const CharacterRelation = require('@models/character/characterRelation.js')(sequelize);
+const CharacterSetting = require('@models/character/characterSetting.js')(sequelize);
+const CharacterStatus = require('@models/character/characterStatus.js')(sequelize);
+const GlobalFlag = require('@models/global/globalFlag.js')(sequelize);
+const QuestLib = require('@models/global/questLib.js')(sequelize);
+const EventCheck = require('@models/event/eventCheck.js')(sequelize);
+const NpcStock = require('@models/npc/npcStock.js')(sequelize);
+const MonsterAbility = require('@models/location/monsterAbility.js')(sequelize);
 
 
 // **CharacterItem
@@ -159,21 +172,34 @@ module.exports = { EventBase,
 	EventResolution,
 	EventResolutionCheck,
 	EventFlag,
+	EventCheck,
 	CharacterBase,
 	CharacterSkill,
 	CharacterItem,
 	CharacterEquipment,
+	CharacterArte,
+	CharacterAttackStat,
+	CharacterCombatStat,
+	CharacterRelation,
+	CharacterSetting,
+	CharacterStatus,
 	SkillLib,
 	ItemLib,
 	WeaponLib,
 	ArmorLib,
 	LocationBase,
-	ArtLib,
 	LocationContain,
 	LocationCluster,
 	LocationLink,
 	MonsterAttackStat,
 	MonsterBaseStat,
-	NPCBase,
+	MonsterAbility,
 	ObjectBase,
+	NPCBase,
+	NpcStock,
+	ArtLib,
+	GlobalFlag,
+	QuestLib,
+	CharacterThread,
+	CronLog,
 };

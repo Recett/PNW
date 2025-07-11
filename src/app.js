@@ -1,7 +1,6 @@
 const { Op } = require('sequelize');
 const { Client, codeBlock, Collection, Events, GatewayIntentBits } = require('discord.js');
 const { Users, CurrencyShop } = require('./dbObject.js');
-const Sequelize = require('sequelize');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 const currency = new Collection();

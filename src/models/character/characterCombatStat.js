@@ -10,6 +10,16 @@ module.exports = (sequelize) => {
 			allowNull: false,
 			defaultValue: 0,
 		},
+		defense_percent: {
+			type: Sequelize.INTEGER,
+			allowNull: false,
+			defaultValue: 0,
+		},
+		crit_resistance: {
+			type: Sequelize.INTEGER,
+			allowNull: false,
+			defaultValue: 0,
+		},
 		evade: {
 			type: Sequelize.INTEGER,
 			allowNull: false,
