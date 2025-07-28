@@ -1,6 +1,6 @@
-const { SlashCommandBuilder, InteractionContextType } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
 const characterUtil = require('@utility/characterUtility.js');
-const { CharacterEquipment, CharacterCombatStat, CharacterAttackStat } = require('@root/dbObject.js');
+const { CharacterCombatStat, CharacterAttackStat } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -12,50 +12,62 @@ module.exports = {
 		const userId = interaction.user.id;
 		const character = await characterUtil.getCharacterBase(userId);
 		if (!character) {
-			return interaction.reply({ content: 'Character not found.', ephemeral: true });
+			return interaction.reply({ content: 'Character not found.', flags: MessageFlags.Ephemeral });
 		}
 
 		// Gather base stats
 		const stats = [
-			`HP: ${character.currentHp}/${character.maxHp}`,
-			`Stamina: ${character.currentStamina}/${character.maxStamina}`,
-			`STR: ${character.str}`,
-			`DEX: ${character.dex}`,
-			`AGI: ${character.agi}`,
-			`CON: ${character.con}`,
-			`Gender: ${character.gender}`,
-			`Age: ${character.age}`
+			`HP: ${character.currentHp ?? '-'} / ${character.maxHp ?? '-'}`,
+			`Stamina: ${character.currentStamina ?? '-'} / ${character.maxStamina ?? '-'}`,
+			`STR: ${character.str ?? '-'}`,
+			`DEX: ${character.dex ?? '-'}`,
+			`AGI: ${character.agi ?? '-'}`,
+			`CON: ${character.con ?? '-'}`,
 		];
 
-		// Get combat stats
-		const combatStats = await CharacterCombatStat.findAll({ where: { character_id: userId } });
-		let combatList = combatStats.length > 0
-			? combatStats.map(stat => `- ${stat.stat_name || stat.name}: ${stat.value}`).join('\n')
-			: 'None';
+		// Get summarized combat stats
+		const combat = await CharacterCombatStat.findOne({ where: { character_id: userId } });
+		const combatFields = combat
+			? [
+				`Defense: ${combat.defense ?? '-'}`,
+				`Speed: ${combat.speed ?? '-'}`,
+				`Evade: ${combat.evade ?? '-'}`,
+				`Current Weight: ${combat.currentWeight ?? '-'}`,
+				`Max Weight: ${combat.maxWeight ?? '-'}`
+			]
+			: ['None'];
 
-		// Get attack stats
-		const attackStats = await CharacterAttackStat.findAll({ where: { character_id: userId } });
-		let attackList = attackStats.length > 0
-			? attackStats.map(stat => `- ${stat.attack_name || stat.name}: ${stat.value}`).join('\n')
-			: 'None';
+		// Get summarized attack stats
+		const attack = await CharacterAttackStat.findOne({ where: { character_id: userId } });
+		const attackFields = attack
+			? [
+				`Attack: ${attack.attack ?? '-'}`,
+				`Accuracy: ${attack.accuracy ?? '-'}`,
+				`Critical: ${attack.critical ?? '-'}`
+			]
+			: ['None'];
 
-		// Get equipped items
-		const equipment = await CharacterEquipment.findAll({
+		// Get equipped items with names
+		const { CharacterItem, ItemLib } = require('@root/dbObject.js');
+		const equippedItems = await CharacterItem.findAll({
 			where: { character_id: userId, equipped: true },
+			include: [{ model: ItemLib, as: 'item' }]
 		});
-		let equipList = equipment.length > 0
-			? equipment.map(eq => `- ${eq.item_name || eq.itemId || eq.item_id}`).join('\n')
+		const equipList = equippedItems.length > 0
+			? equippedItems.map(eq => `- ${eq.item ? eq.item.name : eq.item_id}`).join('\n')
 			: 'None';
 
+		const avatarUrl = character.avatar || interaction.user.displayAvatarURL({ dynamic: true });
 		const embed = {
 			title: `${character.name}'s Stats`,
 			description: stats.join('\n'),
+			thumbnail: { url: avatarUrl },
 			fields: [
-				{ name: 'Combat Stats', value: combatList },
-				{ name: 'Attack Stats', value: attackList },
+				{ name: 'Combat Stats', value: combatFields.join('\n') },
+				{ name: 'Attack Stats', value: attackFields.join('\n') },
 				{ name: 'Equipped Items', value: equipList }
 			]
 		};
-		await interaction.reply({ embeds: [embed], ephemeral: true });
+		await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	},
 };

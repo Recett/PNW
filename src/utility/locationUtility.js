@@ -1,10 +1,35 @@
+const { ObjectBase, CharacterBase, NPCBase } = require('@root/dbObject.js');
+const { Op } = require('sequelize');
+/**
+ * Get all objects, PCs, NPCs, and enemies for a location, returning resolved model instances.
+ * @param {number|string} locationId
+ * @returns {Promise<{objects: Array, pcs: Array, npcs: Array, enemies: Array}>}
+ */
+async function getLocationContents(locationId) {
+	let objectsList = (await getObjects(locationId)) || [];
+	let pcsList = (await getPCs(locationId)) || [];
+	let npcsList = (await getNPCs(locationId)) || [];
+	let enemiesList = (await getEnemies(locationId)) || [];
+
+	const objectsId = objectsList.map(obj => obj.object_id).filter(object_id => object_id != null);
+	const pcsId = pcsList.map(pc => pc.object_id).filter(object_id => object_id != null);
+	const npcsId = npcsList.map(npc => npc.object_id).filter(object_id => object_id != null);
+	const enemiesId = enemiesList.map(enemy => enemy.object_id).filter(object_id => object_id != null);
+
+	let objects = objectsId.length > 0 ? await ObjectBase.findAll({ where: { id: { [Op.in]: objectsId } } }) : [];
+	let pcs = pcsId.length > 0 ? await CharacterBase.findAll({ where: { id: { [Op.in]: pcsId } } }) : [];
+	let npcs = npcsId.length > 0 ? await NPCBase.findAll({ where: { id: { [Op.in]: npcsId } } }) : [];
+	let enemies = enemiesId.length > 0 ? await NPCBase.findAll({ where: { id: { [Op.in]: enemiesId } } }) : [];
+
+	return { objects, pcs, npcs, enemies };
+}
 const { LocationBase, LocationContain } = require('@root/dbObject.js');
 const gamecon = require('@root/Data/gamecon.json');
 
 let getLocationBase = async (locationId) => {
 	return await LocationBase.findOne({
 		where: {
-			location_Id: locationId,
+			id: locationId,
 		},
 	});
 };
@@ -25,8 +50,9 @@ let getLocationByChannel = async (channelId) => {
 	});
 };
 
-let getObjectsInLocation = async (locationId) => {
+let getObjects = async (locationId) => {
 	return await LocationContain.findAll({
+		attributes: ['object_id'],
 		where: {
 			location_id: locationId,
 			type: gamecon.OBJECT,
@@ -34,8 +60,9 @@ let getObjectsInLocation = async (locationId) => {
 	});
 };
 
-let getPCsInLocation = async (locationId) => {
+let getPCs = async (locationId) => {
 	return await LocationContain.findAll({
+		attributes: ['object_id'],
 		where: {
 			location_id: locationId,
 			type: gamecon.PC,
@@ -43,7 +70,7 @@ let getPCsInLocation = async (locationId) => {
 	});
 };
 
-let getNPCsInLocation = async (locationId) => {
+let getNPCs = async (locationId) => {
 	return await LocationContain.findAll({
 		where: {
 			location_id: locationId,
@@ -52,8 +79,9 @@ let getNPCsInLocation = async (locationId) => {
 	});
 };
 
-let getEnemiesInLocation = async (locationId) => {
+let getEnemies = async (locationId) => {
 	return await LocationContain.findAll({
+		attributes: ['object_id'],
 		where: {
 			location_id: locationId,
 			type: gamecon.ENEMY,
@@ -140,12 +168,13 @@ module.exports = {
 	getLocationBase,
 	getLocationByName,
 	getLocationByChannel,
-	getObjectsInLocation,
-	getPCsInLocation,
-	getNPCsInLocation,
-	getEnemiesInLocation,
+	getObjects,
+	getPCs,
+	getNPCs,
+	getEnemies,
 	getLinkedLocations,
 	getLinkedLocationsByChannel,
 	getLocationinCluster,
 	addLocationToCluster,
+	getLocationContents,
 };

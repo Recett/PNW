@@ -81,11 +81,11 @@ module.exports = {
 		const url = interaction.options.getString('url');
 		const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
 		if (!match) {
-			return interaction.reply({ content: 'Invalid Google Sheet URL.', ephemeral: true });
+			return interaction.reply({ content: 'Invalid Google Sheet URL.', flags: MessageFlags.Ephemeral });
 		}
 		const sheetId = match[1];
 
-		await interaction.reply({ content: 'Importing data from Google Sheet...', ephemeral: true });
+		await interaction.reply({ content: 'Importing data from Google Sheet...', flags: MessageFlags.Ephemeral });
 
 		async function doImport(auth) {
 			const sheets = google.sheets({ version: 'v4', auth });

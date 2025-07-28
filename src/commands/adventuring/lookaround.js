@@ -1,6 +1,5 @@
-const { SlashCommandBuilder, InteractionContextType, EmbedBuilder } = require('discord.js');
-const { LocationBase } = require('@root/dbObject.js');
-const gamecon = require('@root/Data/gamecon.json');
+const { SlashCommandBuilder, InteractionContextType, EmbedBuilder, MessageFlags } = require('discord.js');
+const { Op } = require('sequelize');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -9,19 +8,19 @@ module.exports = {
 		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {
-		// Get current location
-		let currentLocationId = await interaction.client.characterUtil.getCharacterCurrentLocationId(interaction.user.id);
-		let currentLocation = await interaction.client.locationUtil.getLocationBase(currentLocationId);
+		// Get location by channelId
+		const channelId = interaction.channelId;
+		let currentLocation = await interaction.client.locationUtil.getLocationByChannel(channelId);
 		if (!currentLocation) {
-			return interaction.reply({ content: 'You are not in any location.', ephemeral: true });
+			return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
 		}
+
 
 		let title = `${currentLocation.name}`;
 		let description = `${currentLocation.description}`;
-		let objects = (await currentLocation.getObjects()) || [];
-		let pcs = (await currentLocation.getPCs()) || [];
-		let npcs = (await currentLocation.getNPCs()) || [];
-		let enemies = (await currentLocation.getEnemies()) || [];
+
+		const locationUtil = interaction.client.locationUtil;
+		const { objects, pcs, npcs, enemies } = await locationUtil.getLocationContents(currentLocation.id);
 
 		if (objects.length > 0) {
 			description += `\n\n**Objects:** ${objects.map(obj => obj.name).join(', ')}`;
@@ -30,7 +29,17 @@ module.exports = {
 			description += `\n\n**Characters:** ${pcs.map(pc => pc.user_id ? `<@${pc.user_id}>` : pc.name).join(', ')}`;
 		}
 		if (npcs.length > 0) {
-			description += `\n\n**NPCs:** ${npcs.map(npc => npc.name).join(', ')}`;
+			// Get all known flags for this character
+			const { CharacterFlag } = require('@root/dbObject.js');
+			const userId = interaction.user.id;
+			const flags = await CharacterFlag.findAll({ where: { character_id: userId } });
+			const flagMap = {};
+			flags.forEach(f => { flagMap[f.flag] = f.value; });
+			description += `\n\n**NPCs:** ${npcs.map(npc => {
+				const knownFlag = flagMap[`${npc.id}_known`];
+				console.log(`NPC ${npc.id} known flag: ${knownFlag}`);
+				return (!knownFlag || knownFlag === false || knownFlag === 0) && npc.unknown_name ? npc.unknown_name : npc.name;
+			}).join(', ')}`;
 		}
 		if (enemies.length > 0) {
 			description += `\n\n**Enemies:** ${enemies.map(enemy => enemy.name).join(', ')}`;
@@ -39,6 +48,6 @@ module.exports = {
 		const embed = new EmbedBuilder()
 			.setTitle(title)
 			.setDescription(description);
-		await interaction.reply({ embeds: [embed] });
+		await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	},
 };

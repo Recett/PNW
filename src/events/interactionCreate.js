@@ -38,7 +38,7 @@ function checkBotPermission(ia, command) {
 			content:
 				"Cannot execute the command because the bot lacks the following permissions:\n" +
 				`\`${ia.guild.members.me.permissions.missing(Discord.PermissionsBitField.resolve(command.botPermissions))}\``,
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 		return false;
 	}*/

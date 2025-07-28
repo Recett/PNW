@@ -7,23 +7,18 @@ module.exports = (sequelize) => {
 		},
 		type: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		name: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		level: {
 			type: Sequelize.INTEGER,
-			allowNull: false,
 		},
 		stat: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		effect: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 	}, {
 		timestamps: false,

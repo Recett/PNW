@@ -3,7 +3,6 @@ module.exports = (sequelize) => {
 	return sequelize.define('character_attack_stat', {
 		character_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
 		},
 		item_id: {
 			type: Sequelize.INTEGER,

@@ -33,7 +33,7 @@ module.exports = {
 		if (lock !== null) updates.lock = lock;
 
 		if (Object.keys(updates).length === 0) {
-			return interaction.reply({ content: 'No fields to update.', ephemeral: true });
+			return interaction.reply({ content: 'No fields to update.', flags: MessageFlags.Ephemeral });
 		}
 
 		// Find and update the location by channel id
@@ -42,9 +42,9 @@ module.exports = {
 		});
 
 		if (updatedRows === 0) {
-			return interaction.reply({ content: 'No location found for this channel.', ephemeral: true });
+			return interaction.reply({ content: 'No location found for this channel.', flags: MessageFlags.Ephemeral });
 		}
 
-		await interaction.reply({ content: 'Location updated successfully.', ephemeral: true });
+		await interaction.reply({ content: 'Location updated successfully.', flags: MessageFlags.Ephemeral });
 	},
 };

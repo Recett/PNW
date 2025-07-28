@@ -18,7 +18,7 @@ module.exports = {
 		const collectorFilter = i => i.user.id === interaction.user.id;
 		let eventBase = await interaction.client.eventUtil.getEventBase(eventId);
 		if (!eventId) {
-			return interaction.reply({ content: 'Please provide a valid event ID.', ephemeral: true });
+			return interaction.reply({ content: 'Please provide a valid event ID.', flags: MessageFlags.Ephemeral });
 		};
 		// Add resolution to description
 		do {
@@ -34,7 +34,7 @@ module.exports = {
 					eventBase = childEvent;
 				}
 				else {
-					return interaction.followUp({ content: 'No further child event found.', ephemeral: true });
+					return interaction.followUp({ content: 'No further child event found.', flags: MessageFlags.Ephemeral });
 				}
 			}
 		}

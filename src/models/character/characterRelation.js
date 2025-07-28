@@ -3,8 +3,6 @@ module.exports = (sequelize) => {
 	return sequelize.define('character_relation', {
 		character_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
-			unique: false,
 		},
 		npc_id: {
 			type: Sequelize.STRING,

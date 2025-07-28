@@ -7,12 +7,22 @@ module.exports = (sequelize) => {
 		// The source of the check, e.g., 'flag', 'location', 'attribute', 'object', etc.
 		check_source: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		// The type of check, e.g., 'EQUAL', 'NOT_EQUAL', 'GREATER', 'LESSER' etc.
 		check_type: {
 			type: Sequelize.STRING,
-			allowNull: false,
+		},
+		check_value: {
+			type: Sequelize.STRING,
+		},
+		roll: {
+			type: Sequelize.BOOLEAN,
+		},
+		difficulty_mod: {
+			type: Sequelize.BOOLEAN,
+		},
+		target: {
+			type: Sequelize.INTEGER,
 		},
 		event_if_true: {
 			type: Sequelize.STRING,

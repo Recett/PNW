@@ -7,24 +7,24 @@ module.exports = (sequelize) => {
 		},
 		fullname: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		name: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		unknown_name: Sequelize.STRING,
 		avatar: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		npc_type: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		start_event: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		status:  Sequelize.STRING,
 	}, {

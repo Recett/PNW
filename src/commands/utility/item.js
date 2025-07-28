@@ -25,7 +25,7 @@ module.exports = {
 				limit: 25,
 			});
 			if (!matches || matches.length === 0) {
-				await interaction.reply({ content: `No item found with the name '${itemName}'.`, ephemeral: true });
+				await interaction.reply({ content: `No item found with the name '${itemName}'.`, flags: MessageFlags.Ephemeral });
 				return;
 			}
 
@@ -40,7 +40,7 @@ module.exports = {
 			await interaction.reply({
 				content: 'No exact item found. Please select from similar items below:',
 				components: [row],
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 
 			const collector = interaction.channel.createMessageComponentCollector({
@@ -53,7 +53,7 @@ module.exports = {
 				const selectedId = i.values[0];
 				const selectedItem = await ItemLib.findByPk(selectedId);
 				if (!selectedItem) {
-					await i.reply({ content: 'Item not found.', ephemeral: true });
+					await i.reply({ content: 'Item not found.', flags: MessageFlags.Ephemeral });
 					return;
 				}
 				const embed = {
@@ -73,7 +73,7 @@ module.exports = {
 					);
 					components.push(equipButton);
 				}
-				await i.reply({ embeds: [embed], ephemeral: true, components });
+				await i.reply({ embeds: [embed], flags: MessageFlags.Ephemeral, components });
 				if (components.length) {
 					const buttonCollector = i.channel.createMessageComponentCollector({
 						componentType: ComponentType.Button,
@@ -85,12 +85,12 @@ module.exports = {
 							const userId = btnI.user.id;
 							const character = await characterUtility.getCharacterBase(userId);
 							if (!character) {
-								await btnI.reply({ content: 'No character found for your account.', ephemeral: true });
+								await btnI.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
 								buttonCollector.stop();
 								return;
 							}
 							await characterUtility.equipCharacterItem(character.character_id, selectedItem.id, selectedItem.type);
-							await btnI.reply({ content: `You have equipped ${selectedItem.name}.`, ephemeral: true });
+							await btnI.reply({ content: `You have equipped ${selectedItem.name}.`, flags: MessageFlags.Ephemeral });
 							buttonCollector.stop();
 						}
 					});
@@ -116,7 +116,7 @@ module.exports = {
 			);
 			components.push(equipButton);
 		}
-		await interaction.reply({ embeds: [embed], ephemeral: true, components });
+		await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral, components });
 
 		if (components.length) {
 			const collector = interaction.channel.createMessageComponentCollector({
@@ -129,12 +129,12 @@ module.exports = {
 					const userId = i.user.id;
 					const character = await characterUtility.getCharacterBase(userId);
 					if (!character) {
-						await i.reply({ content: 'No character found for your account.', ephemeral: true });
+						await i.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
 						collector.stop();
 						return;
 					}
 					await characterUtility.equipCharacterItem(character.character_id, item.id, item.type);
-					await i.reply({ content: `You have equipped ${item.name}.`, ephemeral: true });
+					await i.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 					collector.stop();
 				}
 			});

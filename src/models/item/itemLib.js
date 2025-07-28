@@ -1,6 +1,10 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('item_lib', {
+		id: {
+			type: Sequelize.STRING,
+			primaryKey: true,
+		},
 		name: {
 			type: Sequelize.STRING,
 			allowNull: false,
@@ -15,7 +19,6 @@ module.exports = (sequelize) => {
 		},
 		tag: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 	}, {
 		timestamps: false,

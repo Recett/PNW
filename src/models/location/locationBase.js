@@ -11,11 +11,9 @@ module.exports = (sequelize) => {
 		},
 		description: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		type: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		role: Sequelize.STRING,
 		lock: Sequelize.BOOLEAN,

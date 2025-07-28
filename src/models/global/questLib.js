@@ -11,19 +11,15 @@ module.exports = (sequelize) => {
 		},
 		description: {
 			type: Sequelize.TEXT,
-			allowNull: false,
 		},
 		type: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		completion: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		completion_flag: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 	}, {
 		timestamps: false,

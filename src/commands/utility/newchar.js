@@ -14,9 +14,9 @@ module.exports = {
 		let flags = {};
 		while (continueChain && currentEventId) {
 			// Run the event and get the result (embed and next event id)
-			const result = await eventUtil.handleEvent(currentEventId, interaction, flags, userId, true);
+			const result = await eventUtil.handleEvent(currentEventId, interaction, userId, true);
 			if (result && result.embed) {
-				await interaction.reply({ embeds: [result.embed], ephemeral: true });
+				await interaction.reply({ embeds: [result.embed], flags: MessageFlags.Ephemeral });
 			}
 			// Decide next event: if handleEvent returns nextEventId, continue; else, break
 			if (result && result.nextEventId) {
@@ -84,6 +84,6 @@ module.exports = {
 				{ name: 'Attack', value: attackStat ? `ATK: ${attackStat.attack}, ACC: ${attackStat.accuracy}, CRIT: ${attackStat.critical}` : 'N/A', inline: false }
 			)
 			.setColor(0x00AE86);
-		await interaction.followUp({ embeds: [statEmbed], ephemeral: true });
+		await interaction.followUp({ embeds: [statEmbed], flags: MessageFlags.Ephemeral });
 	},
 };

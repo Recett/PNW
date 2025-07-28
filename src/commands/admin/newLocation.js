@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType, EmbedBuilder, MessageFlags } = require('discord.js');
 const { LocationBase } = require('@root/dbObject.js');
 
 // Helper to create a role
@@ -37,6 +37,9 @@ module.exports = {
 		const channelName = name.split(/ +/).join('-').toLowerCase();
 		let role, channel;
 		try {
+			// Initial reply to avoid editReply before reply
+			await interaction.reply({ content: 'Creating location...', flags: MessageFlags.Ephemeral });
+
 			// Create role
 			role = await createLocationRole(guild, name);
 
@@ -52,9 +55,6 @@ module.exports = {
 
 			// Set permissions for the new role
 			await channel.permissionOverwrites.create(role, tlg.permissions.textRole);
-
-			// Initial reply to avoid editReply before reply
-			await interaction.reply({ content: 'Creating location...', ephemeral: true });
 		}
 		catch (error) {
 			// Cleanup if role was created but something failed
@@ -63,11 +63,11 @@ module.exports = {
 			}
 			interaction.client.error(error);
 			if (interaction.replied) {
-				await interaction.editReply('...oops, seems like there is an error. Creation incomplete.');
+				await interaction.editReply({ content: '...oops, seems like there is an error. Creation incomplete.', flags: MessageFlags.Ephemeral });
 				return interaction.followUp(`\u0060\u0060\u0060\n${error}\n\u0060\u0060\u0060`);
 			}
 			else {
-				return interaction.reply({ content: '...oops, seems like there is an error. Creation incomplete.' });
+				return interaction.reply({ content: '...oops, seems like there is an error. Creation incomplete.', flags: MessageFlags.Ephemeral });
 			}
 		}
 
@@ -84,6 +84,6 @@ module.exports = {
 			.setTitle(name)
 			.setDescription('Location creation completed. Here are the initial details of the camp:');
 
-		await interaction.editReply({ embeds: [embed] });
+		await interaction.editReply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 	},
 };

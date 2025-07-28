@@ -3,14 +3,11 @@ module.exports = (sequelize) => {
 	return sequelize.define('location_contain', {
 		location_id: {
 			type: Sequelize.INTEGER,
-			primaryKey: true,
-			unique: false,
+			allowNull: false,
 		},
 		object_id: {
 			type: Sequelize.STRING,
 			allowNull: false,
-			primaryKey: true,
-			unique: false,
 		},
 		type: {
 			type: Sequelize.STRING,
@@ -18,7 +15,6 @@ module.exports = (sequelize) => {
 		},
 		amount: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 	}, {
 		timestamps: false,

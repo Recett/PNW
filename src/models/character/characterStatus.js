@@ -3,13 +3,9 @@ module.exports = (sequelize) => {
 	return sequelize.define('character_status', {
 		character_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
-			unique: false,
 		},
 		status: {
 			type: Sequelize.STRING,
-			primaryKey: true,
-			unique: false,
 		},
 		// This field is used to store the type of status, e.g., 'debuff', 'buff', 'effect', 'combat-only', 'adventure-only', etc.
 		// It helps in categorizing the status effects and can be used for filtering or applying

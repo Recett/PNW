@@ -8,11 +8,11 @@ const { CharacterSetting } = require('@root/dbObject.js');
  * @returns {Promise<void>}
  */
 async function setCharacterSetting(characterId, setting, value) {
-    await CharacterSetting.upsert({
-        character_id: characterId,
-        setting: setting,
-        value: String(value),
-    });
+	await CharacterSetting.upsert({
+		character_id: characterId,
+		setting: setting,
+		value: String(value),
+	});
 }
 
 /**
@@ -22,16 +22,16 @@ async function setCharacterSetting(characterId, setting, value) {
  * @returns {Promise<string|null>} The value or null if not set
  */
 async function getCharacterSetting(characterId, setting) {
-    const record = await CharacterSetting.findOne({
-        where: {
-            character_id: characterId,
-            setting: setting,
-        }
-    });
-    return record ? record.value : null;
+	const record = await CharacterSetting.findOne({
+		where: {
+			character_id: characterId,
+			setting: setting,
+		}
+	});
+	return record ? record.value : null;
 }
 
 module.exports = {
-    setCharacterSetting,
-    getCharacterSetting,
+	setCharacterSetting,
+	getCharacterSetting,
 };

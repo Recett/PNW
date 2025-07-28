@@ -1,13 +1,13 @@
-const Sequelize = require('sequelize');
+const { Sequelize } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
-
-const sequelize = new Sequelize('database', 'username', 'password', {
-	host: 'localhost',
+const sequelize = new Sequelize({
 	dialect: 'sqlite',
 	logging: false,
 	storage: 'database.sqlite',
 });
 
+const CharacterFlag = require('@models/character/characterFlag.js')(sequelize);
+const CharacterQuest = require('@models/character/characterQuest.js')(sequelize);
 const EventBase = require('@/models/event/eventBase.js')(sequelize);
 const EventFlag = require('@/models/event/eventFlag.js')(sequelize);
 const EventTag = require('@/models/event/eventTag.js')(sequelize);
@@ -167,39 +167,42 @@ Reflect.defineProperty(LocationBase.prototype, 'getEnemies', {
 	},
 });
 
-module.exports = { EventBase,
-	EventTag,
-	EventResolution,
-	EventResolutionCheck,
-	EventFlag,
-	EventCheck,
-	CharacterBase,
-	CharacterSkill,
-	CharacterItem,
-	CharacterEquipment,
+module.exports = {
+	ArtLib,
+	ArmorLib,
 	CharacterArte,
 	CharacterAttackStat,
+	CharacterBase,
 	CharacterCombatStat,
+	CharacterEquipment,
+	CharacterFlag,
+	CharacterItem,
+	CharacterQuest,
 	CharacterRelation,
 	CharacterSetting,
+	CharacterSkill,
 	CharacterStatus,
-	SkillLib,
-	ItemLib,
-	WeaponLib,
-	ArmorLib,
-	LocationBase,
-	LocationContain,
-	LocationCluster,
-	LocationLink,
-	MonsterAttackStat,
-	MonsterBaseStat,
-	MonsterAbility,
-	ObjectBase,
-	NPCBase,
-	NpcStock,
-	ArtLib,
-	GlobalFlag,
-	QuestLib,
 	CharacterThread,
 	CronLog,
+	EventBase,
+	EventCheck,
+	EventFlag,
+	EventResolution,
+	EventResolutionCheck,
+	EventTag,
+	GlobalFlag,
+	ItemLib,
+	LocationBase,
+	LocationCluster,
+	LocationContain,
+	LocationLink,
+	MonsterAbility,
+	MonsterAttackStat,
+	MonsterBaseStat,
+	NPCBase,
+	NpcStock,
+	ObjectBase,
+	QuestLib,
+	SkillLib,
+	WeaponLib,
 };

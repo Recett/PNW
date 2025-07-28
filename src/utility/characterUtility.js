@@ -1,18 +1,10 @@
-const { CharacterBase, CharacterSkill, LocationContain, CharacterFlag } = require('@root/dbObject.js');
+const { CharacterBase, CharacterSkill, LocationContain, CharacterFlag, CharacterItem, ItemLib, WeaponLib, ArmorLib } = require('@root/dbObject.js');
 const gamecon = require('@root/Data/gamecon.json');
 
 let getCharacterBase = async (userId) => {
 	return await CharacterBase.findOne({
 		where: {
-			character_id: userId,
-		},
-	});
-};
-
-let getCharacterEquipment = async (userId) => {
-	return await Character.findOne({
-		where: {
-			character_id: userId,
+			id: userId,
 		},
 	});
 };
@@ -31,24 +23,22 @@ let calculateCombatStat = async (characterId) => {
 	const character = await getCharacterBase(characterId);
 	if (!character) return 0;
 
-	// For this example, treat CON as the base defense stat
-	const stat = 'con';
-	let baseStat = character[stat] || 0;
-	let skillBonus = 0;
+	let hp = 100 + (character.con || 0) * 20; // Base HP + CON bonus
 
-	const skills = await CharacterSkill.findAll({
-		where: {
-			character_id: characterId,
-		},
+	// Update maxHp in CharacterBase
+	await CharacterBase.update({ maxHp: hp }, { where: { id: characterId } });
+
+	// Calculate defense as the sum of all equipped items' defense stat
+	let defense = 0;
+	const equippedItems = await CharacterItem.findAll({
+		where: { character_id: characterId, equipped: true },
+		include: [{ model: ItemLib, as: 'item' }],
 	});
-
-	skills.forEach(skill => {
-		if (skill.stat === stat) {
-			skillBonus += skill.value;
+	for (const eq of equippedItems) {
+		if (eq.item && typeof eq.item.defense === 'number') {
+			defense += eq.item.defense;
 		}
-	});
-
-	const defense = baseStat + skillBonus;
+	}
 
 	// Overweight penalty: lower agi by twice the overweight amount
 	let agi = character.agi || 0;
@@ -81,7 +71,7 @@ let calculateCombatStat = async (characterId) => {
 let calculateAttackStat = async (characterId) => {
 	const { CharacterAttackStat } = require('@root/dbObject.js');
 	// Get character base
-	const character = await CharacterBase.findOne({ where: { character_id: characterId } });
+	const character = await CharacterBase.findOne({ where: { id: characterId } });
 	if (!character) return 0;
 	const str = character.str || 0;
 	const dex = character.dex || 0;
@@ -97,8 +87,8 @@ let calculateAttackStat = async (characterId) => {
 	if (equippedWeapon) {
 		const weapon = await WeaponLib.findByPk(equippedWeapon.item_id);
 		if (weapon) {
-			attack = (weapon.base_damage || 0) + Math.floor((weapon.scaling || 0) * str);
-			accuracy = Math.floor(dex * (weapon.hit_mod || 0) / 100);
+			attack = (weapon.base_damage || 0) + Math.floor((weapon.scaling / 100 || 0) * str);
+			accuracy = Math.floor(dex * (weapon.hit_mod / 100 || 0) / 100);
 			item_id = weapon.id;
 		}
 	}
@@ -290,7 +280,6 @@ let updateCharacterWeight = async (characterId) => {
 
 module.exports = {
 	getCharacterBase,
-	getCharacterEquipment,
 	getCharacterCurrentLocationId,
 	calculateCombatStat,
 	updateCharacterFlag,

@@ -2,12 +2,11 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize) => {
 	return sequelize.define('armor_lib', {
 		item_id: {
-			type: Sequelize.INTEGER,
+			type: Sequelize.STRING,
 			primaryKey: true,
 		},
 		slot: {
 			type: Sequelize.STRING,
-			allowNull: false,
 		},
 		defense: {
 			type: Sequelize.INTEGER,

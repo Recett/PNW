@@ -3,13 +3,9 @@ module.exports = (sequelize) => {
 	return sequelize.define('event_resolution', {
 		event_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
-			unique: false,
 		},
 		resolution_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
-			unique: false,
 		},
 		resolution_text: Sequelize.STRING,
 		required_flag: Sequelize.BOOLEAN,

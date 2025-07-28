@@ -16,13 +16,13 @@ module.exports = {
 		if (!text) {
 			const desc = await getCharacterSetting(characterId, 'description');
 			if (desc) {
-				await interaction.reply({ content: `Your current character description:\n${desc}`, ephemeral: true });
+				await interaction.reply({ content: `Your current character description:\n${desc}`, flags: MessageFlags.Ephemeral });
 			} else {
-				await interaction.reply({ content: 'You have not set a character description yet. Use `/describe text:<your description>` to set one.', ephemeral: true });
+				await interaction.reply({ content: 'You have not set a character description yet. Use `/describe text:<your description>` to set one.', flags: MessageFlags.Ephemeral });
 			}
 			return;
 		}
 		await setCharacterSetting(characterId, 'description', text);
-		await interaction.reply({ content: 'Your character description has been updated!', ephemeral: true });
+		await interaction.reply({ content: 'Your character description has been updated!', flags: MessageFlags.Ephemeral });
 	},
 };

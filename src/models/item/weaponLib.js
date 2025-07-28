@@ -19,11 +19,6 @@ module.exports = (sequelize) => {
 			defaultValue: 0,
 			allowNull: false,
 		},
-		graze: {
-			type: Sequelize.INTEGER,
-			defaultValue: 0,
-			allowNull: false,
-		},
 		hit_mod: {
 			type: Sequelize.INTEGER,
 			defaultValue: 0,

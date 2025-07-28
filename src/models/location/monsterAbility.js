@@ -9,11 +9,11 @@ module.exports = (sequelize) => {
 		},
 		monster_id: {
 			type: Sequelize.INTEGER,
-			allowNull: false,
+			allowNull: true,
 		},
 		name: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		description: {
 			type: Sequelize.STRING,

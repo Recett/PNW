@@ -22,19 +22,19 @@ module.exports = {
 						image: { url: currentAvatar },
 						color: 0x00bfff,
 					}],
-					ephemeral: true,
+					flags: MessageFlags.Ephemeral,
 				});
 			} else {
-				await interaction.reply({ content: 'You have not set a character avatar yet. Use `/avatar url:<your_image_url>` to set one.', ephemeral: true });
+				await interaction.reply({ content: 'You have not set a character avatar yet. Use `/avatar url:<your_image_url>` to set one.', flags: MessageFlags.Ephemeral });
 			}
 			return;
 		}
 		// Optionally: Validate URL is a valid image URL (basic check)
 		if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
-			await interaction.reply({ content: 'Please provide a valid image URL (jpg, jpeg, png, gif, webp).', ephemeral: true });
+			await interaction.reply({ content: 'Please provide a valid image URL (jpg, jpeg, png, gif, webp).', flags: MessageFlags.Ephemeral });
 			return;
 		}
 		await setCharacterSetting(characterId, 'avatar', url);
-		await interaction.reply({ content: `Your character avatar has been set!`, ephemeral: true });
+		await interaction.reply({ content: `Your character avatar has been set!`, flags: MessageFlags.Ephemeral });
 	},
 };

@@ -7,11 +7,11 @@ module.exports = (sequelize) => {
 		},
 		skill_name: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 		type: {
 			type: Sequelize.STRING,
-			allowNull: false,
+			allowNull: true,
 		},
 	}, {
 		timestamps: false,

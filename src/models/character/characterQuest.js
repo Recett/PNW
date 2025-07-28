@@ -3,7 +3,6 @@ module.exports = (sequelize) => {
 	return sequelize.define('character_quest', {
 		character_id: {
 			type: Sequelize.STRING,
-			primaryKey: true,
 		},
 		quest_id: {
 			type: Sequelize.INTEGER,

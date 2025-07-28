@@ -11,13 +11,13 @@ module.exports = {
 		// Find the character for this user using utility
 		const character = await characterUtility.getCharacterBase(userId);
 		if (!character) {
-			await interaction.reply({ content: 'No character found for your account.', ephemeral: true });
+			await interaction.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
 			return;
 		}
 		// Get inventory items using utility
 		const inventory = await characterUtility.getCharacterInventory(character.character_id);
 		if (!inventory || inventory.length === 0) {
-			await interaction.reply({ content: 'Your inventory is empty.', ephemeral: true });
+			await interaction.reply({ content: 'Your inventory is empty.', flags: MessageFlags.Ephemeral });
 			return;
 		}
 		// Build inventory list
@@ -30,7 +30,7 @@ module.exports = {
 				title: `${character.name}'s Inventory`,
 				description: inventoryList,
 			}],
-			ephemeral: true,
+			flags: MessageFlags.Ephemeral,
 		});
 	},
 };
