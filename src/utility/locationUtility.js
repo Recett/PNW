@@ -1,5 +1,6 @@
-const { ObjectBase, CharacterBase, NPCBase } = require('@root/dbObject.js');
+const { ObjectBase, CharacterBase, NPCBase, LocationBase, LocationContain, LocationLink, LocationCluster } = require('@root/dbObject.js');
 const { Op } = require('sequelize');
+const gamecon = require('@root/Data/gamecon.json');
 /**
  * Get all objects, PCs, NPCs, and enemies for a location, returning resolved model instances.
  * @param {number|string} locationId
@@ -23,8 +24,7 @@ async function getLocationContents(locationId) {
 
 	return { objects, pcs, npcs, enemies };
 }
-const { LocationBase, LocationContain } = require('@root/dbObject.js');
-const gamecon = require('@root/Data/gamecon.json');
+// ...imports moved to top...
 
 let getLocationBase = async (locationId) => {
 	return await LocationBase.findOne({
@@ -164,6 +164,45 @@ let addLocationToCluster = async (locationIdA, locationIdB) => {
 	return false;
 };
 
+/**
+ * Update user roles when moving between locations.
+ * Removes the role of the old location and adds the role of the new location.
+ * @param {Object} params - { guild, memberId, oldLocationId, newLocationId }
+ */
+async function updateLocationRoles({ guild, memberId, newLocationId }) {
+	const member = await guild.members.fetch(memberId);
+	// Load old location from LocationContain
+	const contain = await LocationContain.findOne({ where: { object_id: memberId } });
+	const prevLocationId = contain ? contain.location_id : null;
+	// Remove old location role
+	if (prevLocationId) {
+		const oldLoc = await LocationBase.findOne({ where: { id: prevLocationId } });
+		if (oldLoc && oldLoc.role) {
+			try {
+				await member.roles.remove(oldLoc.role);
+			} catch (err) {
+				// Ignore if role not present or error
+			}
+		}
+	}
+	// Add new location role
+	if (newLocationId) {
+		const newLoc = await LocationBase.findOne({ where: { id: newLocationId } });
+		if (newLoc && newLoc.role) {
+			try {
+				await member.roles.add(newLoc.role);
+			} catch (err) {
+				// Ignore if role not present or error
+			}
+		}
+		// Update LocationContain for the character
+		await LocationContain.update(
+			{ location_id: newLocationId },
+			{ where: { object_id: memberId } }
+		);
+	}
+}
+
 module.exports = {
 	getLocationBase,
 	getLocationByName,
@@ -177,4 +216,5 @@ module.exports = {
 	getLocationinCluster,
 	addLocationToCluster,
 	getLocationContents,
+	updateLocationRoles,
 };

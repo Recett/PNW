@@ -17,7 +17,6 @@ module.exports = {
 		const channelId = interaction.channelId;
 		const locationUtil = interaction.client.locationUtil;
 		let currentLocation = await locationUtil.getLocationByChannel(channelId);
-		console.log('Current location for channel', channelId, currentLocation);
 		if (!currentLocation) {
 			return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
 		}
@@ -27,11 +26,13 @@ module.exports = {
 		const linkedIds = links.map(l => l.linked_location_id);
 
 		// Get cluster locations
-		const currentLoc = await LocationCluster.findOne({ where: { id: currentLocation.id } });
+		const currentLoc = await LocationCluster.findOne({ where: { location_id: currentLocation.id } });
 		let clusterIds = [];
-		if (currentLoc && currentLoc.cluster_id) {
-			const clusterLocs = await LocationCluster.findAll({ where: { cluster_id: currentLoc.cluster_id } });
-			clusterIds = clusterLocs.map(l => l.id).filter(id => id !== currentLocation.id);
+		if (currentLoc && currentLoc.id) {
+			const clusterLocs = await LocationCluster.findAll({ where: { id: currentLoc.id } });
+			clusterIds = clusterLocs
+				.map(l => l.location_id)
+				.filter(location_id => location_id != currentLocation.id);
 		}
 
 		// Combine and deduplicate
@@ -60,8 +61,14 @@ module.exports = {
 		});
 		collector.on('collect', async i => {
 			const selectedId = i.values[0];
+			// Move role update logic to locationUtility
+			await interaction.client.locationUtil.updateLocationRoles({
+				guild: interaction.guild,
+				memberId: userId,
+				newLocationId: selectedId
+			});
 			await CharacterBase.update({ location_id: selectedId }, { where: { id: userId } });
-			await i.reply({ content: `You have moved to the new location.`, flags: MessageFlags.Ephemeral });
+			await i.reply({ content: 'You have moved to the new location.', flags: MessageFlags.Ephemeral });
 		});
 	},
 };

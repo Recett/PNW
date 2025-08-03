@@ -23,14 +23,18 @@ module.exports = {
 			con: 10,
 		});
 
-		// Move character to location id 1
-		const { LocationContain } = require('@root/dbObject.js');
-		const gamecon = require('@root/Data/gamecon.json');
-		await LocationContain.create({
-			location_id: 1,
-			object_id: userId,
-			type: gamecon.PC,
-		});
+		// Move character to the first location in the database using locationUtil
+		const locationUtil = interaction.client.locationUtil;
+		const firstLocation = await locationUtil.getLocationBase(
+			(await locationUtil.getLocationBase(await locationUtil.getLocationBase(1) ? 1 : undefined))?.id || 1
+		);
+		if (firstLocation) {
+			await locationUtil.updateLocationRoles({
+				guild: interaction.guild,
+				memberId: userId,
+				newLocationId: firstLocation.id
+			});
+		}
 
 		// Give the character three items: Sword_1, Armor_1, Leg_1, and equip them
 		const { CharacterItem } = require('@root/dbObject.js');
@@ -49,10 +53,17 @@ module.exports = {
 		await characterUtil.calculateCombatStat(userId);
 		await characterUtil.calculateAttackStat(userId);
 
-		// Set currentHp to maxHp after calculation
+		// Set currentHp and currentStamina to maxHp and maxStamina after calculation
 		const updatedChar = await CharacterBase.findOne({ where: { id: userId } });
+		const updateFields = {};
 		if (updatedChar && updatedChar.maxHp != null) {
-			await CharacterBase.update({ currentHp: updatedChar.maxHp }, { where: { id: userId } });
+			updateFields.currentHp = updatedChar.maxHp;
+		}
+		if (updatedChar && updatedChar.maxStamina != null) {
+			updateFields.currentStamina = updatedChar.maxStamina;
+		}
+		if (Object.keys(updateFields).length > 0) {
+			await CharacterBase.update(updateFields, { where: { id: userId } });
 		}
 
 		await interaction.reply({ content: 'Test character created, given and equipped Sword_1, Armor_1, Leg_1. Stats calculated.', flags: MessageFlags.Ephemeral });

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const characterUtility = require('../../utility/characterUtility');
 
 module.exports = {
@@ -15,7 +15,7 @@ module.exports = {
 			return;
 		}
 		// Get inventory items using utility
-		const inventory = await characterUtility.getCharacterInventory(character.character_id);
+		const inventory = await characterUtility.getCharacterInventory(character.id);
 		if (!inventory || inventory.length === 0) {
 			await interaction.reply({ content: 'Your inventory is empty.', flags: MessageFlags.Ephemeral });
 			return;

@@ -24,9 +24,11 @@ let calculateCombatStat = async (characterId) => {
 	if (!character) return 0;
 
 	let hp = 100 + (character.con || 0) * 20; // Base HP + CON bonus
+	let stamina = 20 + (character.con || 0) * 4; // Base HP + CON bonus
 
 	// Update maxHp in CharacterBase
 	await CharacterBase.update({ maxHp: hp }, { where: { id: characterId } });
+	await CharacterBase.update({ maxStamina: stamina }, { where: { id: characterId } });
 
 	// Calculate defense as the sum of all equipped items' defense stat
 	let defense = 0;

@@ -57,7 +57,15 @@ module.exports = {
 			? equippedItems.map(eq => `- ${eq.item ? eq.item.name : eq.item_id}`).join('\n')
 			: 'None';
 
-		const avatarUrl = character.avatar || interaction.user.displayAvatarURL({ dynamic: true });
+		// Load avatar from CharacterSetting DB if available
+		let avatarUrl;
+		const { CharacterSetting } = require('@root/dbObject.js');
+		const charSetting = await CharacterSetting.findOne({ where: { character_id: userId, setting: 'avatar' } });
+		if (charSetting && charSetting.value) {
+			avatarUrl = charSetting.value;
+		} else {
+			avatarUrl = interaction.user.displayAvatarURL({ dynamic: true });
+		}
 		const embed = {
 			title: `${character.name}'s Stats`,
 			description: stats.join('\n'),

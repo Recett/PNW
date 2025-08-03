@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, ComponentType, ButtonBuilder } = require('discord.js');
+const { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, ComponentType, ButtonBuilder, MessageFlags } = require('discord.js');
 const { ItemLib } = require('@root/dbObject.js');
 const { Op } = require('sequelize');
 const characterUtility = require('../../utility/characterUtility');
@@ -107,38 +107,47 @@ module.exports = {
 			],
 		};
 		const components = [];
+		const actionRow = new ActionRowBuilder();
 		if (item.type === 'Weapon' || item.type === 'Armor') {
-			const equipButton = new ActionRowBuilder().addComponents(
+			actionRow.addComponents(
 				new ButtonBuilder()
 					.setCustomId(`equip_item_${item.id}`)
 					.setLabel('Equip')
-					.setStyle('Primary'),
+					.setStyle('Primary')
 			);
-			components.push(equipButton);
 		}
+		// Add Dismiss button
+		actionRow.addComponents(
+			new ButtonBuilder()
+				.setCustomId(`dismiss_item_${item.id}`)
+				.setLabel('Dismiss')
+				.setStyle('Secondary')
+		);
+		components.push(actionRow);
 		await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral, components });
 
-		if (components.length) {
-			const collector = interaction.channel.createMessageComponentCollector({
-				componentType: ComponentType.Button,
-				time: 60_000,
-				filter: i => i.user.id === interaction.user.id,
-			});
-			collector.on('collect', async i => {
-				if (i.customId === `equip_item_${item.id}`) {
-					const userId = i.user.id;
-					const character = await characterUtility.getCharacterBase(userId);
-					if (!character) {
-						await i.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
-						collector.stop();
-						return;
-					}
-					await characterUtility.equipCharacterItem(character.character_id, item.id, item.type);
-					await i.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
+		const collector = interaction.channel.createMessageComponentCollector({
+			componentType: ComponentType.Button,
+			time: 60_000,
+			filter: i => i.user.id === interaction.user.id,
+		});
+		collector.on('collect', async i => {
+			if (i.customId === `equip_item_${item.id}`) {
+				const userId = i.user.id;
+				const character = await characterUtility.getCharacterBase(userId);
+				if (!character) {
+					await i.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
 					collector.stop();
+					return;
 				}
-			});
-		}
+				await characterUtility.equipCharacterItem(character.id, item.id, item.type);
+				await i.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
+				collector.stop();
+			} else if (i.customId === `dismiss_item_${item.id}`) {
+				await i.message.delete();
+				collector.stop();
+			}
+		});
 
 	},
 };
