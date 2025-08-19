@@ -25,14 +25,12 @@ module.exports = {
 
 		// Move character to the first location in the database using locationUtil
 		const locationUtil = interaction.client.locationUtil;
-		const firstLocation = await locationUtil.getLocationBase(
-			(await locationUtil.getLocationBase(await locationUtil.getLocationBase(1) ? 1 : undefined))?.id || 1
-		);
+		const firstLocation = await locationUtil.getLocationBase(1);
 		if (firstLocation) {
 			await locationUtil.updateLocationRoles({
 				guild: interaction.guild,
 				memberId: userId,
-				newLocationId: firstLocation.id
+				newLocationId: firstLocation.id,
 			});
 		}
 

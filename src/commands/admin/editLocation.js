@@ -2,7 +2,7 @@
 // Command to edit location data for the current channel
 
 const { SlashCommandBuilder } = require('discord.js');
-const LocationBase = require('../../models/location/locationBase');
+const { LocationBase } = require('../../dbObject');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -38,7 +38,7 @@ module.exports = {
 
 		// Find and update the location by channel id
 		const [updatedRows] = await LocationBase.update(updates, {
-			where: { channel: channelId }
+			where: { channel: channelId },
 		});
 
 		if (updatedRows === 0) {

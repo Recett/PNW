@@ -1,171 +1,146 @@
 const { Sequelize } = require('sequelize');
-const gamecon = require('@root/Data/gamecon.json');
 const sequelize = new Sequelize({
 	dialect: 'sqlite',
 	logging: false,
 	storage: 'database.sqlite',
 });
 
-const CharacterFlag = require('@models/character/characterFlag.js')(sequelize);
-const CharacterQuest = require('@models/character/characterQuest.js')(sequelize);
-const EventBase = require('@/models/event/eventBase.js')(sequelize);
-const EventFlag = require('@/models/event/eventFlag.js')(sequelize);
-const EventTag = require('@/models/event/eventTag.js')(sequelize);
-const EventResolution = require('@/models/event/eventResolution.js')(sequelize);
-const EventResolutionCheck = require('@/models/event/eventResolutionCheck.js')(sequelize);
-const CharacterBase = require('@models/character/characterBase.js')(sequelize);
-const CharacterSkill = require('@models/character/characterSkill.js')(sequelize);
-const CharacterItem = require('@models/character/characterItem.js')(sequelize);
-const CharacterEquipment = require('@models/character/characterEquipment.js')(sequelize);
-const ArtLib = require('@models/skill/artLib.js')(sequelize);
-const SkillLib = require('@models/skill/skillLib.js')(sequelize);
-const ItemLib = require('@models/item/itemLib.js')(sequelize);
-const WeaponLib = require('@models/item/weaponLib.js')(sequelize);
-const ArmorLib = require('@models/item/armorLib.js')(sequelize);
-const LocationBase = require('@models/location/locationBase.js')(sequelize);
-const LocationCluster = require('@models/location/locationCluster.js')(sequelize);
-const LocationLink = require('@models/location/locationLink.js')(sequelize);
-const LocationContain = require('@models/location/locationContain.js')(sequelize);
-const MonsterAttackStat = require('@models/location/monsterAttackStat.js')(sequelize);
-const MonsterBaseStat = require('@models/location/monsterBaseStat.js')(sequelize);
-const ObjectBase = require('@models/location/objectBase.js')(sequelize);
-const NPCBase = require('@models/npc/npcBase.js')(sequelize);
-const CharacterThread = require('@models/character/characterThread.js')(sequelize);
-const CronLog = require('@models/utility/cronLog.js')(sequelize);
-const CharacterArte = require('@models/character/characterArte.js')(sequelize);
-const CharacterAttackStat = require('@models/character/characterAttackStat.js')(sequelize);
-const CharacterCombatStat = require('@models/character/characterCombatStat.js')(sequelize);
-const CharacterRelation = require('@models/character/characterRelation.js')(sequelize);
-const CharacterSetting = require('@models/character/characterSetting.js')(sequelize);
-const CharacterStatus = require('@models/character/characterStatus.js')(sequelize);
-const GlobalFlag = require('@models/global/globalFlag.js')(sequelize);
-const QuestLib = require('@models/global/questLib.js')(sequelize);
-const EventCheck = require('@models/event/eventCheck.js')(sequelize);
-const NpcStock = require('@models/npc/npcStock.js')(sequelize);
-const MonsterAbility = require('@models/location/monsterAbility.js')(sequelize);
+const characterModels = require('./models/character/characterModel.js');
+const CharacterBase = characterModels.characterBase(sequelize);
+const CharacterArte = characterModels.characterArte(sequelize);
+const CharacterCombatStat = characterModels.characterCombatStat(sequelize);
+const CharacterAttackStat = characterModels.characterAttackStat(sequelize);
+const CharacterEquipment = characterModels.characterEquipment(sequelize);
+const CharacterFlag = characterModels.characterFlag(sequelize);
+const CharacterItem = characterModels.characterItem(sequelize);
+const CharacterQuest = characterModels.characterQuest(sequelize);
+const CharacterRelation = characterModels.characterRelation(sequelize);
+const CharacterSetting = characterModels.characterSetting(sequelize);
+const CharacterSkill = characterModels.characterSkill(sequelize);
+const CharacterStatus = characterModels.characterStatus(sequelize);
+const CharacterThread = characterModels.characterThread(sequelize);
 
+// Character relationships
+CharacterBase.hasMany(CharacterItem, { foreignKey: 'character_id', as: 'items' });
+CharacterItem.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-// **CharacterItem
-CharacterItem.belongsTo(ItemLib, { foreignKey: 'item_id', as: 'item' });
+CharacterBase.hasMany(CharacterQuest, { foreignKey: 'character_id', as: 'quests' });
+CharacterQuest.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(CharacterBase.prototype, 'addItem', {
-	value: async item => {
-		const characterItem = await CharacterInventory.findOne({
-			where: { character_id: this.character_id, item_id: item.id },
-		});
+CharacterBase.hasMany(CharacterRelation, { foreignKey: 'character_id', as: 'relations' });
+CharacterRelation.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-		if (characterItem) {
-			characterItem.amount += 1;
-			return characterItem.save();
-		}
+CharacterBase.hasMany(CharacterSkill, { foreignKey: 'character_id', as: 'skills' });
+CharacterSkill.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-		return CharacterInventory.create({ character_id: this.character_id, item_id: item.id, amount: 1 });
-	},
-});
+CharacterBase.hasMany(CharacterStatus, { foreignKey: 'character_id', as: 'statuses' });
+CharacterStatus.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(CharacterBase.prototype, 'getInventory', {
-	value: () => {
-		return CharacterInventory.findAll({
-			where: { user_id: this.user_id },
-			include: ['item'],
-		});
-	},
-});
+CharacterBase.hasMany(CharacterArte, { foreignKey: 'character_id', as: 'artes' });
+CharacterArte.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(CharacterEquipment.prototype, 'equipItem', {
-	value: async item => {
-		/*
-		const characterItem = await CharacterInventory.findOne({
-			where: { character_id: this.character_id, item_id: item.id },
-		});
-		*/
-		const itemLib = await ItemLib.findByPk(item.id);
-		let slot = null;
-		if (itemLib.type === 'armor') {
-			const armorLib = await ArmorLib.findByPk(item.id);
-			slot = armorLib.slot;
-		}
-		else if (itemLib.type === 'weapon') {
-			slot = 'hand';
-		}
+CharacterBase.hasMany(CharacterCombatStat, { foreignKey: 'character_id', as: 'combatStats' });
+CharacterCombatStat.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-		return CharacterEquipment.upsert({ character_id: this.character_id, item_id: item.id, slot: slot });
-	},
-});
+CharacterBase.hasMany(CharacterAttackStat, { foreignKey: 'character_id', as: 'attackStats' });
+CharacterAttackStat.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(CharacterBase.prototype, 'getItems', {
-	value: () => {
-		return UserItems.findAll({
-			where: { user_id: this.user_id },
-			include: ['item'],
-		});
-	},
-});
+CharacterBase.hasMany(CharacterEquipment, { foreignKey: 'character_id', as: 'equipment' });
+CharacterEquipment.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-// **Event
-EventBase.hasMany(EventFlag, { foreignKey: 'event_id', as: 'flag' });
-EventBase.hasMany(EventTag, { foreignKey: 'event_id', as: 'tag' });
-EventBase.hasMany(EventResolution, { foreignKey: 'event_id', as: 'resolution' });
+CharacterBase.hasMany(CharacterFlag, { foreignKey: 'character_id', as: 'flags' });
+CharacterFlag.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(EventBase.prototype, 'getEventFlags', {
-	value: () => {
-		return EventBase.findAll({
-			where: { event_id: this.event_id },
-			include: ['flag'],
-		});
-	},
-});
+CharacterBase.hasMany(CharacterSetting, { foreignKey: 'character_id', as: 'settings' });
+CharacterSetting.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(EventBase.prototype, 'getEventTags', {
-	value: () => {
-		return EventBase.findAll({
-			where: { event_id: this.event_id },
-			include: ['tag'],
-		});
-	},
-});
+CharacterBase.hasMany(CharacterThread, { foreignKey: 'character_id', as: 'threads' });
+CharacterThread.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'character' });
 
-Reflect.defineProperty(EventBase.prototype, 'getResolutions', {
-	value: () => {
-		return EventBase.findAll({
-			where: { event_id: this.event_id },
-			include: ['resolution'],
-		});
-	},
-});
+const eventModels = require('./models/event/eventModel.js');
+const EventBase = eventModels.eventBase(sequelize);
+const EventFlag = eventModels.eventFlag(sequelize);
+const EventTag = eventModels.eventTag(sequelize);
+const EventResolution = eventModels.eventResolution(sequelize);
+const EventResolutionCheck = eventModels.eventResolutionCheck(sequelize);
+const EventCheck = eventModels.eventCheck(sequelize);
 
-// **LocationContain
+// Event relationships
+EventBase.hasMany(EventFlag, { foreignKey: 'event_id', as: 'flags' });
+EventFlag.belongsTo(EventBase, { foreignKey: 'event_id', as: 'event' });
+
+EventBase.hasMany(EventTag, { foreignKey: 'event_id', as: 'tags' });
+EventTag.belongsTo(EventBase, { foreignKey: 'event_id', as: 'event' });
+
+EventBase.hasMany(EventResolution, { foreignKey: 'event_id', as: 'resolutions' });
+EventResolution.belongsTo(EventBase, { foreignKey: 'event_id', as: 'event' });
+
+EventResolution.hasMany(EventResolutionCheck, { foreignKey: 'resolution_id', as: 'checks' });
+EventResolutionCheck.belongsTo(EventResolution, { foreignKey: 'resolution_id', as: 'resolution' });
+
+EventBase.hasMany(EventCheck, { foreignKey: 'event_id', as: 'checks' });
+EventCheck.belongsTo(EventBase, { foreignKey: 'event_id', as: 'event' });
+
+const LibModel = require('./models/lib/LibModel.js');
+const ArtLib = LibModel.artLib(sequelize);
+const SkillLib = LibModel.skillLib(sequelize);
+const ItemLib = LibModel.itemLib(sequelize);
+const WeaponLib = LibModel.weaponLib(sequelize);
+const ArmorLib = LibModel.armorLib(sequelize);
+const QuestLib = LibModel.questLib(sequelize);
+
+// Lib relationships
+// ArmorLib and WeaponLib belong to ItemLib
+ArmorLib.belongsTo(ItemLib, { foreignKey: 'item_id', as: 'item' });
+WeaponLib.belongsTo(ItemLib, { foreignKey: 'item_id', as: 'item' });
+
+// ArtLib references SkillLib (art uses a skill)
+ArtLib.belongsTo(SkillLib, { foreignKey: 'skill_id', as: 'skill' });
+
+const locationModels = require('./models/location/locationModel.js');
+const ObjectBase = require('./models/npc/objectBase.js')(sequelize);
+const LocationBase = locationModels.locationBase(sequelize);
+const LocationCluster = locationModels.locationCluster(sequelize);
+const LocationLink = locationModels.locationLink(sequelize);
+const LocationContain = locationModels.locationContain(sequelize);
+
+// Location relationships
+LocationBase.hasOne(LocationCluster, { foreignKey: 'location_id', as: 'clusters' });
+LocationCluster.belongsTo(LocationBase, { foreignKey: 'location_id', as: 'location' });
+
+LocationBase.hasMany(LocationLink, { foreignKey: 'location_id', as: 'links' });
+LocationLink.belongsTo(LocationBase, { foreignKey: 'location_id', as: 'location' });
+
+LocationBase.hasMany(LocationContain, { foreignKey: 'location_id', as: 'contains' });
+LocationContain.belongsTo(LocationBase, { foreignKey: 'location_id', as: 'location' });
 LocationContain.belongsTo(ObjectBase, { foreignKey: 'object_id', as: 'object' });
 
-Reflect.defineProperty(LocationBase.prototype, 'getObjects', {
-	value: () => {
-		return LocationContain.findAll({
-			where: { location_id: this.location_id },
-			include: ['object'],
-			type: gamecon.OBJECT,
-		});
-	},
-});
+const npcModels = require('./models/npc/npcModel.js');
+const NpcBase = npcModels.npcBase(sequelize);
+const NpcStock = npcModels.npcStock(sequelize);
+const NpcBaseStat = npcModels.npcBaseStat(sequelize);
+const NpcAttackStat = npcModels.npcAttackStat(sequelize);
+const NpcAbility = npcModels.npcAbility(sequelize);
+const NpcAttackLink = npcModels.npcAttackLink(sequelize);
+const NpcAbilityLink = npcModels.npcAbilityLink(sequelize);
 
-Reflect.defineProperty(LocationBase.prototype, 'getNPC', {
-	value: () => {
-		return LocationContain.findAll({
-			where: { location_id: this.location_id },
-			include: ['object'],
-			type: gamecon.NPC,
-		});
-	},
-});
+const CronLog = require('./models/utility/cronLog.js')(sequelize);
+const GlobalFlag = require('./models/global/globalFlag.js')(sequelize);
+// NPC relationships
+NpcBase.hasMany(NpcStock, { foreignKey: 'npc_id', as: 'stock' });
+NpcStock.belongsTo(NpcBase, { foreignKey: 'npc_id', as: 'npc' });
 
-Reflect.defineProperty(LocationBase.prototype, 'getEnemies', {
-	value: () => {
-		return LocationContain.findAll({
-			where: { location_id: this.location_id },
-			include: ['object'],
-			type: gamecon.NPC,
-		});
-	},
-});
+// One-to-one relationship between NPCBase and NpcBaseStat
+NpcBase.hasOne(NpcBaseStat, { foreignKey: 'npc_id', as: 'baseStat' });
+NpcBaseStat.belongsTo(NpcBase, { foreignKey: 'npc_id', as: 'npc' });
+
+// NPCBase and NpcAttackStat are linked through NpcAttackLink
+NpcBase.belongsToMany(NpcAttackStat, { through: NpcAttackLink, foreignKey: 'npc_id', otherKey: 'npc_attack_id', as: 'attackStats' });
+NpcAttackStat.belongsToMany(NpcBase, { through: NpcAttackLink, foreignKey: 'npc_attack_id', otherKey: 'npc_id', as: 'npcs' });
+
+// NPCBase and NpcAbility are linked through NPCAbilityLink
+NpcBase.belongsToMany(NpcAbility, { through: NpcAbilityLink, foreignKey: 'npc_id', otherKey: 'npc_ability_id', as: 'abilities' });
+NpcAbility.belongsToMany(NpcBase, { through: NpcAbilityLink, foreignKey: 'npc_ability_id', otherKey: 'npc_id', as: 'npcs' });
 
 module.exports = {
 	ArtLib,
@@ -196,13 +171,20 @@ module.exports = {
 	LocationCluster,
 	LocationContain,
 	LocationLink,
-	MonsterAbility,
-	MonsterAttackStat,
-	MonsterBaseStat,
-	NPCBase,
+	NpcBase,
 	NpcStock,
+	NpcAbility,
+	NpcAttackLink,
+	NpcAbilityLink,
+	NpcAttackStat,
 	ObjectBase,
 	QuestLib,
 	SkillLib,
 	WeaponLib,
 };
+
+const force = process.argv.includes('--force') || process.argv.includes('-f');
+
+sequelize.sync({ force }).then(() => {
+	console.log('Database & tables created!');
+});

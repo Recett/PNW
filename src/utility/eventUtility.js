@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 const characterUtil = require('./characterUtility');
 
 // Handles situations where eventBase.check is true
-async function handleEventCheck(eventId, interaction, flags = {}, characterId = null, ephemeral = true) {
+async function handleEventCheck(eventId, interaction, flags = { LocalFlag: {}, CharFlag: {}, GlobalFlag: {} }, characterId = null, ephemeral = true) {
 	// Fetch the event base and check details
 	const eventBase = await interaction.client.eventUtil.getEventBase(eventId);
 	if (!eventBase || !eventBase.check) return;
@@ -13,7 +13,7 @@ async function handleEventCheck(eventId, interaction, flags = {}, characterId = 
 	if (eventCheck) {
 		let flagValue;
 		if (eventCheck.check_source === 'LocalFlag') {
-			flagValue = flags[eventCheck.check_value] || 0;
+			flagValue = flags.LocalFlag[eventCheck.check_value] || 0;
 		}
 		else if (eventCheck.check_source === 'GlobalFlag') {
 			const globalFlagRow = await GlobalFlag.findOne({ where: { flag: eventCheck.check_value } });
@@ -29,7 +29,7 @@ async function handleEventCheck(eventId, interaction, flags = {}, characterId = 
 			}
 		}
 		else {
-			flagValue = flags[eventCheck.flag] || 0;
+			flagValue = flags.LocalFlag[eventCheck.flag] || 0;
 		}
 		switch (eventCheck.check_type) {
 		case '>':
@@ -117,30 +117,80 @@ async function updateCharacterFlags(characterId, flags) {
 	await characterUtil.updateMultipleCharacterFlags(characterId, flags);
 }
 
+// Helper function to update flags based on eventFlag
+function updateFlagsFromEventFlags(eventFlags, flags, selectedResolutionId = null) {
+	if (!eventFlags || eventFlags.length === 0) return;
+
+	eventFlags.forEach(flag => {
+		// Check if this flag applies to the current selection (0 means applies to all, or specific resolution)
+		if (flag.resolution_id == 0 || flag.resolution_id == selectedResolutionId) {
+			let targetFlags;
+
+			if (flag.external === false) {
+				// LocalFlag
+				targetFlags = flags.LocalFlag;
+			}
+			else if (flag.external === true && flag.global === true) {
+				// GlobalFlag
+				targetFlags = flags.GlobalFlag;
+			}
+			else {
+				// CharFlag (default case)
+				targetFlags = flags.CharFlag;
+			}
+
+			if (flag.method === 'set') {
+				targetFlags[flag.flag] = flag.amount;
+			}
+			else {
+				if (targetFlags[flag.flag] == null) {
+					targetFlags[flag.flag] = 0;
+				}
+				targetFlags[flag.flag] += flag.amount;
+			}
+		}
+	});
+}
+
 // Helper to determine if a resolution option should be shown
-function shouldShowResolutionOption(check, charFlags, globalFlags) {
+async function shouldShowResolutionOption(check, characterId = null, flags = null) {
 	if (!check) return true;
 	const flagName = check.flag;
 	let showOption = true;
 	let flagValue;
 
 	if (check.check_source === 'LocalFlag') {
-		showOption = Object.prototype.hasOwnProperty.call(charFlags, flagName);
-		flagValue = charFlags[flagName];
+		// LocalFlag should be searched in the flags collection
+		if (flags && flags.LocalFlag) {
+			showOption = Object.prototype.hasOwnProperty.call(flags.LocalFlag, flagName);
+			flagValue = flags.LocalFlag[flagName] || 0;
+		}
+		else {
+			showOption = false;
+			flagValue = 0;
+		}
 	}
 	else if (check.check_source === 'GlobalFlag') {
-		showOption = Object.prototype.hasOwnProperty.call(globalFlags, flagName);
-		flagValue = globalFlags[flagName];
+		const globalFlagRow = await GlobalFlag.findOne({ where: { flag: flagName } });
+		showOption = !!globalFlagRow;
+		flagValue = globalFlagRow ? globalFlagRow.value : 0;
 	}
 	else if (check.check_source === 'CharFlag') {
-		// CharFlag: check CharacterFlag DB (assume charFlags contains these)
-		showOption = Object.prototype.hasOwnProperty.call(charFlags, flagName);
-		flagValue = charFlags[flagName];
+		if (!characterId) {
+			showOption = false;
+			flagValue = 0;
+		}
+		else {
+			const charFlagRow = await CharacterFlag.findOne({ where: { character_id: characterId, flag: flagName } });
+			showOption = !!charFlagRow;
+			flagValue = charFlagRow ? charFlagRow.value : 0;
+		}
 	}
 	else {
-		// fallback to previous logic
-		showOption = Object.prototype.hasOwnProperty.call(globalFlags, flagName);
-		flagValue = globalFlags[flagName];
+		// fallback to previous logic - assume GlobalFlag
+		const globalFlagRow = await GlobalFlag.findOne({ where: { flag: flagName } });
+		showOption = !!globalFlagRow;
+		flagValue = globalFlagRow ? globalFlagRow.value : 0;
 	}
 
 	if (showOption && check.condition && typeof check.value !== 'undefined') {
@@ -172,7 +222,7 @@ function shouldShowResolutionOption(check, charFlags, globalFlags) {
 	return showOption;
 }
 
-async function handleEvent(eventId, interaction, flags = {}, characterId = null, ephemeral = true) {
+async function handleEvent(eventId, interaction, flags = { LocalFlag: {}, CharFlag: {}, GlobalFlag: {} }, characterId = null, ephemeral = true) {
 	// Fetch event base for embed details
 	const eventBase = await interaction.client.eventUtil.getEventBase(eventId);
 	// If eventBase.check is true, handle check logic and return
@@ -215,17 +265,8 @@ async function handleEvent(eventId, interaction, flags = {}, characterId = null,
 	let eventResolutions = await interaction.client.eventUtil.getEventResolution(eventId);
 	let eventFlag = await interaction.client.eventUtil.getEventFlag(eventId);
 
-	// --- NEW: Get EventResolutionCheck, characterFlag, and GlobalFlag ---
-
+	// Get EventResolutionCheck
 	let eventResolutionChecks = await EventResolutionCheck.findAll({ where: { id: eventId } });
-	let characterFlags = {};
-	if (characterId) {
-		const charFlags = await CharacterFlag.findAll({ where: { character_id: characterId } });
-		charFlags.forEach(f => { characterFlags[f.flag] = f.value; });
-	}
-	let globalFlagValues = {};
-	const globalFlagRows = await GlobalFlag.findAll();
-	globalFlagRows.forEach(f => { globalFlagValues[f.flag] = f.value; });
 
 	// Build select menu if there are resolutions
 	let select = null;
@@ -233,22 +274,20 @@ async function handleEvent(eventId, interaction, flags = {}, characterId = null,
 		select = new Discord.StringSelectMenuBuilder()
 			.setCustomId('talk_choice')
 			.setPlaceholder('Choose your response');
-		eventResolutions.forEach((res, idx) => {
+
+		for (let idx = 0; idx < eventResolutions.length; idx++) {
+			const res = eventResolutions[idx];
 			const check = eventResolutionChecks.find(c => c.resolution_id == res.resolution_id);
-			if (!shouldShowResolutionOption(check, characterFlags, globalFlagValues)) {
-				return;
+			if (!(await shouldShowResolutionOption(check, characterId, flags))) {
+				continue;
 			}
 			select.addOptions(
 				new Discord.StringSelectMenuOptionBuilder()
 					.setLabel(`${idx + 1}. ${res.resolution_text}`)
 					.setValue(`${res.resolution_id}`),
 			);
-		});
+		}
 	}
-
-	// Separate flags into global and local
-	let globalFlags = {};
-	let localFlags = {};
 
 	// Show select menu or just reply
 	if (select) {
@@ -266,37 +305,18 @@ async function handleEvent(eventId, interaction, flags = {}, characterId = null,
 		collector.on('collect', async i => {
 			const selected = i.values[0];
 			const resolution = await interaction.client.eventUtil.getEventResolutionOne(eventId, selected);
+
 			// Update flags based on eventFlag
-			if (eventFlag && eventFlag.length > 0) {
-				eventFlag.forEach(flag => {
-					if (flag.resolution_id == 0 || flag.resolution_id == selected) {
-						if (flag.global) {
-							if (flag.method === 'set') {
-								globalFlags[flag.flag] = flag.amount;
-							}
-							else {
-								if (globalFlags[flag.flag] == null) globalFlags[flag.flag] = 0;
-								globalFlags[flag.flag] += flag.amount;
-							}
-						}
-						else if (flag.method === 'set') {
-							localFlags[flag.flag] = flag.amount;
-						}
-						else {
-							if (localFlags[flag.flag] == null) localFlags[flag.flag] = 0;
-							localFlags[flag.flag] += flag.amount;
-						}
-					}
-				});
-			}
+			updateFlagsFromEventFlags(eventFlag, flags, selected);
+
 			const nextEventId = resolution && resolution.child_event_id ? resolution.child_event_id : null;
 			await interaction.deleteReply();
 			if (nextEventId && nextEventId !== 'end') {
 				await handleEvent(nextEventId, i, flags, characterId, ephemeral);
 			}
 			else {
-				if (characterId) await updateCharacterFlags(characterId, localFlags);
-				await updateGlobalFlags(globalFlags);
+				if (characterId) await updateCharacterFlags(characterId, flags.CharFlag);
+				await updateGlobalFlags(flags.GlobalFlag);
 			}
 		});
 	}
@@ -318,6 +338,9 @@ async function handleEvent(eventId, interaction, flags = {}, characterId = null,
 			filter: i => i.user.id === interaction.user.id,
 		});
 		collector.on('collect', async i => {
+			// Update flags based on eventFlag (no specific resolution selected)
+			updateFlagsFromEventFlags(eventFlag, flags);
+
 			// Use interaction.update for component interactions
 			const nextEventBase = await interaction.client.eventUtil.getEventBase(eventId);
 			const nextEventId = nextEventBase && nextEventBase.default_child_event_id ? nextEventBase.default_child_event_id : null;
@@ -326,8 +349,8 @@ async function handleEvent(eventId, interaction, flags = {}, characterId = null,
 				await handleEvent(nextEventId, i, flags, characterId, ephemeral);
 			}
 			else {
-				if (characterId) await updateCharacterFlags(characterId, localFlags);
-				await updateGlobalFlags(globalFlags);
+				if (characterId) await updateCharacterFlags(characterId, flags.CharFlag);
+				await updateGlobalFlags(flags.GlobalFlag);
 				await interaction.deleteReply();
 			}
 		});

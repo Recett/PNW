@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
-const { CharacterBase, MonsterAbility } = require('@root/dbObject.js');
-const monsterAbility = require('../../models/location/monsterAbility');
+const { CharacterBase } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
