@@ -1,9 +1,8 @@
 require('module-alias/register');
-const Sequelize = require('sequelize');
 const Discord = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Collection } = require('discord.js');
 const { token } = require('./config.json');
 
 // Create a new client instance
@@ -67,17 +66,28 @@ client.error = (error) => {
 client.log = (cat = 'LOG', message = '', prependLines = 0, appendLines = 0) => {
 	const breakLength = 60;
 	const colours = new Map([
-		['WATCHER', '\x1b[35m'], // magenta
-		['API', '\x1b[35m'], // magenta
-		['COMMAND', '\x1b[36m'], // cyan
-		['STARTED', '\x1b[34m'], // blue
-		['READY', '\x1b[32m'], // green
-		['SUCCEEDED', '\x1b[32m'], // green
-		['WARNING', '\x1b[33m'], // yellow
-		['ERROR', '\x1b[31m'], // red
-		['FAILED', '\x1b[31m'], // red
-		['STOPPED', '\x1b[31m'], // red
-		['LOG', '\x1b[37m'], // white
+		// magenta
+		['WATCHER', '\x1b[35m'],
+		// magenta
+		['API', '\x1b[35m'],
+		// cyan
+		['COMMAND', '\x1b[36m'],
+		// blue
+		['STARTED', '\x1b[34m'],
+		// green
+		['READY', '\x1b[32m'],
+		// green
+		['SUCCEEDED', '\x1b[32m'],
+		// yellow
+		['WARNING', '\x1b[33m'],
+		// red
+		['ERROR', '\x1b[31m'],
+		// red
+		['FAILED', '\x1b[31m'],
+		// red
+		['STOPPED', '\x1b[31m'],
+		// white
+		['LOG', '\x1b[37m'],
 	]);
 	cat = cat.toUpperCase();
 	if (prependLines > 1) console.log(''.padEnd(prependLines - 1, '\n').padEnd(breakLength + prependLines - 1, '='));
@@ -89,7 +99,7 @@ client.log = (cat = 'LOG', message = '', prependLines = 0, appendLines = 0) => {
 };
 
 // Start scheduled cron jobs (e.g., daily maintenance)
-const { startCronJob } = require('./utility/cronUtility.js');
-//startCronJob();
+// const { startCronJob } = require('./utility/cronUtility.js');
+// startCronJob();
 
 client.login(token);

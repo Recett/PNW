@@ -1,5 +1,5 @@
 // Utility functions for handling combat logic
-const { CharacterBase, NpcBaseStat, NpcAttackStat, NpcBase } = require('@root/dbObject.js');
+const { CharacterBase, MonsterBaseStat, MonsterAttackLib, MonsterBase } = require('@root/dbObject.js');
 const characterUtility = require('./characterUtility');
 
 /**
@@ -26,11 +26,11 @@ async function getDefenseStat(characterId) {
 async function performAttack(attackerId, defenderId) {
 	const attackStats = await getAttackStat(attackerId);
 	const defenseStats = await getDefenseStat(defenderId);
-	
+
 	// Get first attack stat if multiple exist
 	const attack = attackStats && attackStats.length > 0 ? attackStats[0].attack : 0;
 	const defense = defenseStats ? defenseStats.defense : 0;
-	
+
 	// Simple formula: damage = attack - defense (minimum 1)
 	return Math.max(1, attack - defense);
 }
@@ -61,7 +61,9 @@ async function runInitTracker(actors, options = {}) {
 	const actorMap = {};
 	for (const actor of actors) {
 		actorMap[actor.id] = { ...actor };
+		console.log(`=== DEBUG: Actor ${actor.name || actor.id} has ${actor.attacks.length} attacks ===`);
 		for (const attack of actor.attacks) {
+			console.log(`Adding attack tracker: ${attack.name || attack.id} (speed: ${attack.speed}, cooldown: ${attack.cooldown})`);
 			attackTrackers.push({
 				actorId: actor.id,
 				actorName: actor.name || actor.id,
@@ -69,25 +71,32 @@ async function runInitTracker(actors, options = {}) {
 				attackName: attack.name || attack.id,
 				speed: attack.speed,
 				cooldown: attack.cooldown,
-				initiative: 0,
+				// Add small random starting initiative to stagger attacks
+				initiative: Math.floor(Math.random() * (attack.speed || 10)),
 				attack: attack.attack,
-				defense: attack.defense,
+				accuracy: attack.accuracy,
+				crit: attack.crit,
 			});
 		}
 	}
+	console.log(`=== DEBUG: Total attack trackers created: ${attackTrackers.length} ===`);
 
 	for (let tick = 1; tick <= maxTicks; tick++) {
 		for (const tracker of attackTrackers) {
 			tracker.initiative += tracker.speed;
 			while (tracker.initiative >= tracker.cooldown) {
-				// === Call skill triggers: Before Attack ===
-				await handleBeforeAttackSkills(attacker, target, tracker, options);
 				// Only two actors: actors[0] and actors[1]
 				const attacker = actorMap[tracker.actorId];
 				const target = tracker.actorId === actors[0].id ? actorMap[actors[1].id] : actorMap[actors[0].id];
 				if (!attacker || !target || target.hp <= 0) break;
+
+				// === Call skill triggers: Before Attack ===
+				if (options.handleBeforeAttackSkills) {
+					await options.handleBeforeAttackSkills(attacker, target, tracker, options);
+				}
+
 				// Calculate hit rate
-				const tohit = tracker.tohit || 0;
+				const tohit = tracker.accuracy || 0;
 				const evd = target.evade || 0;
 				let hitRate = 100;
 				if (tohit - evd !== 0) {
@@ -113,7 +122,9 @@ async function runInitTracker(actors, options = {}) {
 					target.hp = Math.max(0, target.hp - damage);
 				}
 				// === Call skill triggers: After Attack ===
-				await handleAfterAttackSkills(attacker, target, tracker, { hit: hitResult, crit, damage });
+				if (options.handleAfterAttackSkills) {
+					await options.handleAfterAttackSkills(attacker, target, tracker, { hit: hitResult, crit, damage });
+				}
 
 				combatLog.push({
 					tick,
@@ -143,64 +154,99 @@ async function mainCombat(playerId, enemyId) {
 	const playerAttacks = await getAttackStat(playerId);
 	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
 
-	// Get NPC base info and stats
-	const npcBase = await NpcBase.findOne({ where: { id: enemyId } });
-	if (!npcBase) throw new Error('Enemy not found');
+	// Get player combat stats for speed
+	const playerCombatStats = await getDefenseStat(playerId);
 
-	const npcBaseStat = await NpcBaseStat.findOne({ where: { npc_id: enemyId } });
-	if (!npcBaseStat) throw new Error('Enemy stats not found');
+	// Get Monster base info and stats
+	const monsterBase = await MonsterBase.findOne({ where: { id: enemyId } });
+	if (!monsterBase) throw new Error('Enemy not found');
 
-	// Get NPC attacks through the many-to-many relationship
-	const npcWithAttacks = await NpcBase.findOne({
+	const monsterBaseStat = await MonsterBaseStat.findOne({ where: { monster_id: enemyId } });
+	if (!monsterBaseStat) throw new Error('Enemy stats not found');
+
+	// Get Monster attacks through the many-to-many relationship
+	const monsterWithAttacks = await MonsterBase.findOne({
 		where: { id: enemyId },
 		include: [{
-			model: NpcAttackStat,
-			as: 'attackStats',
-			through: { attributes: [] },
+			model: MonsterAttackLib,
+			as: 'attackLibs',
+			through: { attributes: ['damage_modifier', 'accuracy_modifier', 'cooldown_modifier', 'priority'] },
 		}],
 	});
 
-	if (!npcWithAttacks || !npcWithAttacks.attackStats || npcWithAttacks.attackStats.length === 0) {
+	if (!monsterWithAttacks || !monsterWithAttacks.attackLibs || monsterWithAttacks.attackLibs.length === 0) {
 		throw new Error('Enemy has no attacks');
 	}
 
 	const playerBase = await CharacterBase.findOne({ where: { id: playerId } });
 	if (!playerBase) throw new Error('Player not found');
 
+	// Get player's agility/speed from combat stats
+	const playerSpeed = playerCombatStats ? (playerCombatStats.agi || playerCombatStats.agility || 15) : 15;
+
 	const player = {
 		id: 'player',
 		name: playerBase.name || 'Player',
 		hp: playerBase.currentHp || playerBase.maxHp || 100,
-		attacks: playerAttacks.map(atk => ({
-			id: atk.item_id || atk.id,
-			name: atk.name || 'Attack',
-			speed: atk.speed || atk.agi || 10,
-			cooldown: atk.cooldown || 100,
-			attack: atk.attack || 0,
-			accuracy: atk.accuracy || 0,
-			crit: atk.crit || 0,
+		attacks: await Promise.all(playerAttacks.map(async (atk) => {
+			// Get weapon name from ItemLib if item_id exists
+			let attackName = 'Attack';
+			if (atk.item_id) {
+				const { ItemLib } = require('@root/dbObject.js');
+				const item = await ItemLib.findOne({ where: { id: atk.item_id } });
+				if (item) {
+					attackName = item.name;
+				}
+			}
+			else {
+				attackName = 'Unarmed';
+			}
+			
+			return {
+				id: atk.item_id || atk.id,
+				name: attackName,
+				// Use player's agility for speed, weapon speed as modifier
+				speed: playerSpeed,
+				// Use cooldown from database
+				cooldown: atk.cooldown || 80,
+				attack: atk.attack || 0,
+				accuracy: atk.accuracy || 0,
+				crit: atk.crit || 0,
+			};
 		})),
 	};
 
 	const monster = {
 		id: 'monster',
-		name: npcBase.name || npcBase.fullname || 'Unknown Enemy',
-		hp: npcBaseStat.health || 100,
-		defense: npcBaseStat.defense || 0,
-		evade: npcBaseStat.evade || 0,
-		attacks: npcWithAttacks.attackStats.map(atk => ({
-			id: atk.id,
-			name: atk.name || 'Attack',
-			speed: 10,
-			cooldown: atk.cooldown || 100,
-			attack: atk.attack || 0,
-			accuracy: atk.accuracy || 0,
-			crit: atk.critical || 0,
-		})),
+		name: monsterBase.name || monsterBase.fullname || 'Unknown Enemy',
+		hp: monsterBaseStat.health || 100,
+		defense: monsterBaseStat.defense || 0,
+		evade: monsterBaseStat.evade || 0,
+		attacks: monsterWithAttacks.attackLibs.map(atk => {
+			// Get modifiers from the junction table
+			const junction = atk.MonsterAttack || {};
+			const damageModifier = junction.damage_modifier || 0;
+			const accuracyModifier = junction.accuracy_modifier || 0;
+			const cooldownModifier = junction.cooldown_modifier || 0;
+			
+			return {
+				id: atk.id,
+				name: atk.name || 'Attack',
+				// Use monster's speed from base stats
+				speed: monsterBaseStat.speed || 12,
+				// Apply cooldown modifier from junction table
+				cooldown: Math.max(10, (atk.cooldown || 90) + cooldownModifier),
+				// Apply damage modifier from junction table
+				attack: (atk.base_damage || 0) + damageModifier,
+				// Apply accuracy modifier from junction table
+				accuracy: (atk.accuracy || 0) + accuracyModifier,
+				crit: atk.critical_chance || 0,
+			};
+		}),
 	};
 
 	// === Call skill triggers: Combat Begin ===
-	await handleCombatBeginSkills([player, monster], { playerId, enemyId });
+	await handleCombatBeginSkills([player, monster]);
 
 	// Patch runInitTracker to support skill hooks
 	const { combatLog, actors } = await runInitTracker(
@@ -213,7 +259,7 @@ async function mainCombat(playerId, enemyId) {
 	);
 
 	// === Call skill triggers: Combat End ===
-	await handleCombatEndSkills(Object.values(actors), { playerId, enemyId });
+	await handleCombatEndSkills(Object.values(actors));
 
 	// Update player's HP in the database
 	if (actors.player) {
@@ -225,6 +271,7 @@ async function mainCombat(playerId, enemyId) {
 	return {
 		combatLog,
 		finalState: actors,
+		battleReport: writeBattleReport(combatLog, actors),
 	};
 }
 
@@ -288,26 +335,80 @@ async function handleCombatEndSkills(actors) {
 }
 
 function writeBattleReport(combatLog, actors) {
-	let report = '=== Battle Report ===\n';
+	let report = '⚔️ **BATTLE REPORT** ⚔️\n\n';
+	
+	// Group consecutive attacks to reduce spam
+	const groupedLogs = [];
+	let currentGroup = null;
+	
 	for (const log of combatLog) {
-		report += `Turn ${log.tick}: ${log.attacker} attacks ${log.target} with ${log.attack}\n`;
-		report += `  Hit Rate: ${log.hitRate.toFixed(1)}% | Roll: ${log.roll}${log.hit ? ' | HIT' : ' | MISS'}\n`;
-		if (log.hit) {
-			report += log.crit ? '  CRITICAL HIT! ' : '';
-			report += `Damage: ${log.damage}\n`;
-			report += `  ${log.target} HP: ${log.targetHp}\n`;
+		if (currentGroup &&
+			currentGroup.attacker === log.attacker &&
+			currentGroup.target === log.target &&
+			currentGroup.attack === log.attack) {
+			// Same attack sequence, just track the results
+			currentGroup.attempts++;
+			currentGroup.totalDamage += log.damage;
+			currentGroup.hits += log.hit ? 1 : 0;
+			currentGroup.crits += log.crit ? 1 : 0;
+			currentGroup.finalTargetHp = log.targetHp;
 		}
 		else {
-			report += '  No damage dealt.\n';
+			// New attack sequence
+			if (currentGroup) groupedLogs.push(currentGroup);
+			currentGroup = {
+				attacker: log.attacker,
+				target: log.target,
+				attack: log.attack,
+				attempts: 1,
+				hits: log.hit ? 1 : 0,
+				crits: log.crit ? 1 : 0,
+				totalDamage: log.damage,
+				finalTargetHp: log.targetHp,
+				hitRate: log.hitRate,
+			};
 		}
-		report += '\n';
 	}
-	// Show final status
-	report += '--- Final Status ---\n';
-	for (const id in actors) {
-		const a = actors[id];
-		report += `${a.name || a.id}: HP ${a.hp}\n`;
+	if (currentGroup) groupedLogs.push(currentGroup);
+
+	// Generate RPG-style combat narrative
+	for (const group of groupedLogs) {
+		if (group.attempts === 1) {
+			// Single attack
+			if (group.hits > 0) {
+				let attackText = `${group.attacker} attacks ${group.target} with ${group.attack}`;
+				if (group.crits > 0) {
+					attackText += ' **CRITICAL HIT!** 💥';
+				}
+				attackText += ` dealing ${group.totalDamage} damage!`;
+				report += `${attackText}\n`;
+				report += `└─ ${group.target} HP: ${group.finalTargetHp}\n\n`;
+			}
+			else {
+				report += `${group.attacker} attacks ${group.target} with ${group.attack} but misses! 💨\n\n`;
+			}
+		}
+		else {
+			// Multiple attacks
+			const critText = group.crits > 0 ? ` (${group.crits} crits! 💥)` : '';
+			report += `${group.attacker} unleashes ${group.attempts} ${group.attack} attacks on ${group.target}!\n`;
+			report += `└─ ${group.hits}/${group.attempts} hits${critText} - Total damage: ${group.totalDamage}\n`;
+			report += `└─ ${group.target} HP: ${group.finalTargetHp}\n\n`;
+		}
 	}
+
+	// Show final battle outcome
+	report += '🏆 **BATTLE OUTCOME** 🏆\n';
+	const survivors = Object.values(actors).filter(a => a.hp > 0);
+	const defeated = Object.values(actors).filter(a => a.hp <= 0);
+	
+	if (survivors.length > 0) {
+		report += `**Victorious:** ${survivors.map(a => `${a.name} (${a.hp} HP)`).join(', ')}\n`;
+	}
+	if (defeated.length > 0) {
+		report += `**Defeated:** ${defeated.map(a => a.name).join(', ')}\n`;
+	}
+	
 	console.log(report);
 	return report;
 }

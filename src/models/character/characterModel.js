@@ -20,6 +20,8 @@ const characterBase = (sequelize) => {
 		maxStamina: Sequelize.INTEGER,
 		free_point: Sequelize.INTEGER,
 		xp: Sequelize.INTEGER,
+		location_id: Sequelize.STRING,
+		depth: { type: Sequelize.INTEGER, defaultValue: 0 },
 	}, { timestamps: false });
 };
 

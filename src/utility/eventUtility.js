@@ -1,4 +1,4 @@
-const { EventBase, EventFlag, EventTag, EventResolution, GlobalFlag, EventResolutionCheck, CharacterFlag, NPCBase, EventCheck } = require('@root/dbObject.js');
+const { EventBase, EventFlag, EventTag, EventResolution, GlobalFlag, EventResolutionCheck, CharacterFlag, MonsterBase, EventCheck } = require('@root/dbObject.js');
 const Discord = require('discord.js');
 const characterUtil = require('./characterUtility');
 
@@ -233,10 +233,10 @@ async function handleEvent(eventId, interaction, flags = { LocalFlag: {}, CharFl
 	let embed = {};
 	if (eventBase) {
 		if (eventBase.npc) {
-			const npc = await NPCBase.findOne({ where: { id: eventBase.npc } });
-			if (npc) {
-				embed.title = npc.name || undefined;
-				embed.thumbnail = npc.avatar ? { url: npc.avatar } : undefined;
+			const monster = await MonsterBase.findOne({ where: { id: eventBase.npc } });
+			if (monster) {
+				embed.title = monster.name || undefined;
+				embed.thumbnail = monster.avatar ? { url: monster.avatar } : undefined;
 			}
 			else {
 				embed.title = eventBase.title || undefined;
@@ -262,32 +262,32 @@ async function handleEvent(eventId, interaction, flags = { LocalFlag: {}, CharFl
 		}
 	}
 
-	let eventResolutions = await interaction.client.eventUtil.getEventResolution(eventId);
-	let eventFlag = await interaction.client.eventUtil.getEventFlag(eventId);
+	 let eventOptions = await interaction.client.eventUtil.getEventOption(eventId);
+	 let eventFlag = await interaction.client.eventUtil.getEventFlag(eventId);
 
-	// Get EventResolutionCheck
-	let eventResolutionChecks = await EventResolutionCheck.findAll({ where: { id: eventId } });
+	 // Get EventOptionCheck
+	 let eventOptionChecks = await EventOptionCheck.findAll({ where: { id: eventId } });
 
-	// Build select menu if there are resolutions
-	let select = null;
-	if (eventResolutions && eventResolutions.length > 0) {
-		select = new Discord.StringSelectMenuBuilder()
-			.setCustomId('talk_choice')
-			.setPlaceholder('Choose your response');
+	 // Build select menu if there are options
+	 let select = null;
+	 if (eventOptions && eventOptions.length > 0) {
+	 	select = new Discord.StringSelectMenuBuilder()
+	 		.setCustomId('talk_choice')
+	 		.setPlaceholder('Choose your response');
 
-		for (let idx = 0; idx < eventResolutions.length; idx++) {
-			const res = eventResolutions[idx];
-			const check = eventResolutionChecks.find(c => c.resolution_id == res.resolution_id);
-			if (!(await shouldShowResolutionOption(check, characterId, flags))) {
-				continue;
-			}
-			select.addOptions(
-				new Discord.StringSelectMenuOptionBuilder()
-					.setLabel(`${idx + 1}. ${res.resolution_text}`)
-					.setValue(`${res.resolution_id}`),
-			);
-		}
-	}
+	 	for (let idx = 0; idx < eventOptions.length; idx++) {
+	 		const opt = eventOptions[idx];
+	 		const check = eventOptionChecks.find(c => c.option_id == opt.option_id);
+	 		if (!(await shouldShowOption(check, characterId, flags))) {
+	 			continue;
+	 		}
+	 		select.addOptions(
+	 			new Discord.StringSelectMenuOptionBuilder()
+	 				.setLabel(`${idx + 1}. ${opt.option_text}`)
+	 				.setValue(`${opt.option_id}`),
+	 		);
+	 	}
+	 }
 
 	// Show select menu or just reply
 	if (select) {

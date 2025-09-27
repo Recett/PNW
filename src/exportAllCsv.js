@@ -46,7 +46,7 @@ const modelDefs = [
     './models/location/monsterAttackStat.js',
     './models/location/monsterBaseStat.js',
     './models/location/objectBase.js',
-    './models/npc/npcBase.js',
+    './models/monster/MonsterModel.js',
     './models/npc/npcStock.js',
     './models/skill/artLib.js',
     './models/skill/skillLib.js'

@@ -33,7 +33,7 @@ require('./models/item/itemLib.js')(sequelize);
 require('./models/item/weaponLib.js')(sequelize);
 require('./models/skill/skillLib.js')(sequelize);
 require('./models/skill/artLib.js')(sequelize);
-require('./models/npc/npcBase.js')(sequelize);
+require('./models/monster/MonsterModel.js')(sequelize);
 require('./models/npc/npcStock.js')(sequelize);
 require('./models/location/locationBase.js')(sequelize);
 require('./models/location/locationContain.js')(sequelize);

@@ -1,4 +1,4 @@
-const { ObjectBase, CharacterBase, NPCBase, LocationBase, LocationContain, LocationLink, LocationCluster } = require('@root/dbObject.js');
+const { ObjectBase, CharacterBase, MonsterBase, LocationBase, LocationContain, LocationLink, LocationCluster } = require('@root/dbObject.js');
 const { Op } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
 /**
@@ -19,8 +19,8 @@ async function getLocationContents(locationId) {
 
 	let objects = objectsId.length > 0 ? await ObjectBase.findAll({ where: { id: { [Op.in]: objectsId } } }) : [];
 	let pcs = pcsId.length > 0 ? await CharacterBase.findAll({ where: { id: { [Op.in]: pcsId } } }) : [];
-	let npcs = npcsId.length > 0 ? await NPCBase.findAll({ where: { id: { [Op.in]: npcsId } } }) : [];
-	let enemies = enemiesId.length > 0 ? await NPCBase.findAll({ where: { id: { [Op.in]: enemiesId } } }) : [];
+	let npcs = npcsId.length > 0 ? await MonsterBase.findAll({ where: { id: { [Op.in]: npcsId } } }) : [];
+	let enemies = enemiesId.length > 0 ? await MonsterBase.findAll({ where: { id: { [Op.in]: enemiesId } } }) : [];
 
 	return { objects, pcs, npcs, enemies };
 }
@@ -72,6 +72,7 @@ let getPCs = async (locationId) => {
 
 let getNPCs = async (locationId) => {
 	return await LocationContain.findAll({
+		attributes: ['object_id'],
 		where: {
 			location_id: locationId,
 			type: gamecon.NPC,
@@ -92,30 +93,22 @@ let getEnemies = async (locationId) => {
 let getLinkedLocations = async (locationId) => {
 	return await LocationLink.findAll({
 		where: {
-			location_from: locationId,
-		},
-	});
-};
-
-let getLinkedLocationsByChannel = async (channelId) => {
-	return await LocationLink.findAll({
-		where: {
-			channel: channelId,
+			location_id: locationId,
 		},
 	});
 };
 
 let getLocationinCluster = async (locationId) => {
-	let clusterId = await LocationCluster.findOne({
+	const cluster = await LocationCluster.findOne({
 		where: {
 			location_id: locationId,
 		},
-	}).id;
+	});
 
-	if (clusterId) {
+	if (cluster && cluster.cluster_id) {
 		return await LocationCluster.findAll({
 			where: {
-				id: clusterId,
+				cluster_id: cluster.cluster_id,
 			},
 		});
 	}
@@ -171,16 +164,19 @@ let addLocationToCluster = async (locationIdA, locationIdB) => {
  */
 async function updateLocationRoles({ guild, memberId, newLocationId }) {
 	const member = await guild.members.fetch(memberId);
-	// Load old location from LocationContain
-	const contain = await LocationContain.findOne({ where: { object_id: memberId } });
-	const prevLocationId = contain ? contain.location_id : null;
+
+	// Get old location from CharacterBase (since that's what move command updates)
+	const character = await CharacterBase.findOne({ where: { id: memberId } });
+	const prevLocationId = character ? character.location_id : null;
+
 	// Remove old location role
 	if (prevLocationId) {
 		const oldLoc = await LocationBase.findOne({ where: { id: prevLocationId } });
 		if (oldLoc && oldLoc.role) {
 			try {
 				await member.roles.remove(oldLoc.role);
-			} catch (err) {
+			}
+			catch {
 				// Ignore if role not present or error
 			}
 		}
@@ -191,15 +187,21 @@ async function updateLocationRoles({ guild, memberId, newLocationId }) {
 		if (newLoc && newLoc.role) {
 			try {
 				await member.roles.add(newLoc.role);
-			} catch (err) {
+			}
+			catch {
 				// Ignore if role not present or error
 			}
 		}
 		// Update LocationContain for the character
-		await LocationContain.update(
-			{ location_id: newLocationId },
-			{ where: { object_id: memberId } }
-		);
+		await LocationContain.findOrCreate({
+			where: { object_id: memberId },
+			defaults: { location_id: newLocationId, type: 'PC' },
+		}).then(([record, created]) => {
+			if (!created) {
+				record.location_id = newLocationId;
+				return record.save();
+			}
+		});
 	}
 }
 
@@ -212,7 +214,6 @@ module.exports = {
 	getNPCs,
 	getEnemies,
 	getLinkedLocations,
-	getLinkedLocationsByChannel,
 	getLocationinCluster,
 	addLocationToCluster,
 	getLocationContents,
