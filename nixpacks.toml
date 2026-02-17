@@ -1,0 +1,24 @@
+[phases.setup]
+nixPkgs = [
+  "cairo",
+  "pango",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pixman",
+  "noto-fonts-emoji"
+]
+nixLibs = [
+  "cairo",
+  "pango",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pixman"
+]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[start]
+cmd = "npm start"
