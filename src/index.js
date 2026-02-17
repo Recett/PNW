@@ -133,7 +133,7 @@ client.log = (cat = 'LOG', message = '', prependLines = 0, appendLines = 0) => {
 };
 
 // Start scheduled cron jobs (e.g., daily maintenance)
-// const { startCronJob } = require('./utility/cronUtility.js');
-// startCronJob();
+const { startCronJob } = require('./utility/cronUtility.js');
+startCronJob();
 
 client.login(token);

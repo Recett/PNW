@@ -162,17 +162,46 @@ npm run deploy-commands
 
 **Symptoms:**
 - `/stat` command works with `plain:true` but fails with default image mode
-- Error logs mention canvas or image generation
+- Error logs mention canvas, image generation, or `@napi-rs/canvas` errors
 
 **Solution:**
-The bot uses `@napi-rs/canvas` for generating stat cards, which requires native system libraries. Railway should auto-detect these via `nixpacks.toml`, but if issues persist:
+The bot uses `@napi-rs/canvas` for generating stat cards, which requires native system libraries. Railway uses Nixpacks as its build system, which reads configuration from `nixpacks.toml` in the project root.
 
-1. **Verify nixpacks.toml exists** in project root with canvas dependencies
-2. **Redeploy** after adding nixpacks.toml
-3. **Fallback:** The bot automatically falls back to plain text mode if canvas fails
+**Required Configuration:**
 
-The following system packages are required (configured in `nixpacks.toml`):
-- cairo, pango, libjpeg, giflib, librsvg, pixman, noto-fonts-emoji
+1. **Verify `nixpacks.toml` exists** in project root with the following content:
+```toml
+[phases.setup]
+nixPkgs = [
+  "cairo",
+  "pango",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pixman",
+  "noto-fonts-emoji"
+]
+nixLibs = [
+  "cairo",
+  "pango",
+  "libjpeg",
+  "giflib",
+  "librsvg",
+  "pixman"
+]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[start]
+cmd = "npm start"
+```
+
+2. **Redeploy** after adding/updating `nixpacks.toml`. Railway will detect the new configuration and install the required system packages during the build phase.
+
+3. **Fallback:** The bot automatically falls back to plain text mode if canvas initialization fails, so the `/stat` command will still work but without the image card.
+
+**Note:** The old `railpack.json` file was for Paketo buildpacks (Railway's legacy build system) and is no longer used. Railway now uses Nixpacks by default.
 
 ### "Module not found" errors
 

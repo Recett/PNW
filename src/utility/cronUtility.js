@@ -28,17 +28,21 @@ async function performHourlyJob() {
 		job_name: 'hourly_job',
 		last_run: new Date(),
 	});
-	// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina
+	// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
 	await CharacterBase.sequelize.query(`
 		UPDATE character_bases
 		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.05))
-		WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
+		WHERE maxStamina IS NOT NULL 
+			AND currentStamina IS NOT NULL
+			AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 	`);
-	// Increase every character's currentHp by 10% of maxHp, up to maxHp
+	// Increase every character's currentHp by 5% of maxHp, up to maxHp (only in town locations)
 	await CharacterBase.sequelize.query(`
 		UPDATE character_bases
-		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.1))
-		WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL;
+		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.05))
+		WHERE maxHp IS NOT NULL 
+			AND currentHp IS NOT NULL
+			AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 	`);
 }
 
@@ -91,17 +95,21 @@ async function startCronJob() {
 			job_name: 'hourly_job',
 			last_run: runTime,
 		});
-		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina
+		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
 		await CharacterBase.sequelize.query(`
 		UPDATE character_bases
 		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.05))
-		WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
+		WHERE maxStamina IS NOT NULL 
+			AND currentStamina IS NOT NULL
+			AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 	`);
-		// Increase every character's currentHp by 10% of maxHp, up to maxHp
+		// Increase every character's currentHp by 5% of maxHp, up to maxHp (only in town locations)
 		await CharacterBase.sequelize.query(`
 		UPDATE character_bases
-		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.1))
-		WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL;
+		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.05))
+		WHERE maxHp IS NOT NULL 
+			AND currentHp IS NOT NULL
+			AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 	`);
 	}
 
