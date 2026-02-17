@@ -1,0 +1,10 @@
+{
+    "newchar": "prologue_1",
+    "look": "look",
+    "interact": "interact",
+    "move": "move",
+    "PC": "pc",
+    "NPC": "npc",
+    "OBJECT": "object",
+    "ENEMY": "enemy"
+}

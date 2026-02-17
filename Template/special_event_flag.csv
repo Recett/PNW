@@ -1,0 +1,4 @@
+special_event_id,option_id,flag,amount,method,external,global
+ancient_rune_discovery,study_runes,ancient_knowledge,1,set,0,0
+ancient_rune_discovery,touch_runes,rune_blessing,1,set,0,0
+mystical_spring,drink_water,mystical_sight,1,set,0,0

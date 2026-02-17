@@ -1,0 +1,2 @@
+event_id,check_source,check_type,check_value,roll,difficulty_mod,target,event_if_true,event_if_false
+stealth_check_event,character,stealth,null,1,0,15,stealth_success_event,stealth_failure_event

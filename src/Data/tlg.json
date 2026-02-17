@@ -1,0 +1,56 @@
+{
+  "id": "559816640133595137",
+  "ownerRoleID": "559820224409501734",
+  "adminRoleID": "559820324787716097",
+  "modRoleID": "660596042915512321",
+  "dmRoleID": "634962746152189976",
+  "memberRoleID": "559866785860681728",
+  "noCampRoleID": "689644983141007392",
+  "waitingRoleID": "634985541800034324",
+  "receptionistRoleID": "695298211329605652",
+  "botRoleID": "559868002280013842",
+  "advLeagueRoleCatID": "710447442495144038",
+  "roleplayCat": "634459112050130977",
+  "discussCat": "638051953666031627",
+  "advLeagueCat": "706856741123522560",
+  "archiveCat": "1037232023519109130",
+  "alCat": "1344636070314377216",
+  "beyondChannel": "676102199423795220",
+  "newMemberChannel": "559829693956882477",
+  "permissions": {
+    "textDM": {
+      "SendMessages": true,
+      "ManageMessages": true
+    },
+    "voiceDM": {
+      "SendMessages": true,
+      "ManageMessages": true,
+      "Connect": true,
+      "Speak": true,
+      "Stream": true,
+      "MuteMembers": true,
+      "DeafenMembers": true,
+      "MoveMembers": true
+    },
+    "textRole": {
+      "ViewChannel": true
+    },
+    "voiceRole": {
+      "ViewChannel": true,
+      "Connect": true
+    },
+    "discObsv": {
+      "ViewChannel": true
+    },
+    "textObsv": {
+      "ViewChannel": true,
+      "SendMessages": false
+    },
+    "voiceObsv": {
+      "ViewChannel": true,
+      "Connect": true,
+      "Speak": false,
+      "SendMessages": false
+    }
+  }
+}

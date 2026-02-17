@@ -1,0 +1,11 @@
+id,resolution_id,outcome_type,target_stat,difficulty,success_flag,success_flag_value,failure_flag,failure_flag_value,reward_item,reward_quantity,experience_reward,success_text,failure_text
+1,1,skill_check,intelligence,15,ancient_knowledge,true,null,null,null,0,50,You successfully translate part of the ancient text and gain insight into forgotten magic,The runes remain indecipherable to you
+2,2,skill_check,constitution,12,rune_blessing,true,rune_burn,true,null,0,25,The runes respond to your touch and grant you a magical blessing,The runes burn your hand with magical energy
+3,3,skill_check,dexterity,14,null,null,null,null,gold_coins,25,30,You successfully open the cache and claim the hidden treasure,You fail to pick the lock and it jams permanently
+4,4,skill_check,strength,16,null,null,treasure_damaged,true,gold_coins,15,20,You smash open the cache and retrieve the contents,You damage the cache and some items are destroyed in the process
+5,5,skill_check,constitution,13,mystical_sight,true,spring_sickness,true,null,0,40,The magical water restores your energy and grants temporary magical sight,The water makes you violently ill
+6,6,skill_check,wisdom,12,null,null,null,null,mystical_water,1,25,You successfully preserve some of the magical water for later use,The water loses its magical properties when removed from the spring
+7,7,skill_check,wisdom,15,deity_blessing,true,null,null,null,0,60,The forgotten deity answers your prayer with a blessing,Your prayer goes unanswered
+8,8,skill_check,investigation,14,null,null,null,null,ancient_artifact,1,35,You discover hidden compartments containing ancient artifacts,You find nothing of interest
+9,9,skill_check,dexterity,16,null,null,crystal_shattered,true,magic_crystal,1,45,You successfully harvest a valuable magical crystal,The crystal shatters when you touch it
+10,10,skill_check,wisdom,18,crystal_attunement,true,attunement_failure,true,null,0,75,You successfully attune to the crystals and gain magical insight,The crystals reject your attempt at attunement
