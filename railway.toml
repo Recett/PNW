@@ -1,0 +1,16 @@
+# Railway Railpack configuration
+# Required for @napi-rs/canvas native dependencies
+
+[build]
+builder = "RAILPACK"
+
+[build.packages]
+# System packages required for @napi-rs/canvas
+apt = [
+    "libcairo2-dev",
+    "libpango1.0-dev",
+    "libjpeg-dev",
+    "libgif-dev",
+    "librsvg2-dev",
+    "fonts-noto-color-emoji"
+]

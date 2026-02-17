@@ -56,7 +56,8 @@ module.exports = {
 async function handleSwitch(interaction) {
 	await interaction.deferReply();
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const position = interaction.options.getInteger('position');
 
 	// Find active raid in this channel
@@ -144,7 +145,8 @@ async function handleSwitch(interaction) {
 async function handleStatus(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find active raid in this channel
 	const raid = await Raid.findOne({
@@ -215,7 +217,8 @@ async function handleStatus(interaction) {
 async function handleQueue(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find active raid in this channel
 	const raid = await Raid.findOne({

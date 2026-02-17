@@ -294,6 +294,14 @@ function processTextTemplate(text, playerAge, playerGender, character = null, np
 	result = result.replace(/([.!?])\s+([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/g,
 		(match, punct, letter) => `${punct} ${letter.toUpperCase()}`);
 
+	// Capitalize first letter at the beginning of text
+	result = result.replace(/^([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/,
+		(match, letter) => letter.toUpperCase());
+
+	// Capitalize first letter after newlines
+	result = result.replace(/\n([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/g,
+		(match, letter) => `\n${letter.toUpperCase()}`);
+
 	return result;
 }
 

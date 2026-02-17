@@ -1,12 +1,35 @@
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const { EQUIPMENT_SLOT_CONFIG, WEAPON_SLOTS } = require('@root/enums.js');
+const path = require('path');
+const fs = require('fs');
 
-// Try to register emoji font (Windows)
+// Try to register emoji font (platform-specific)
 try {
-	GlobalFonts.registerFromPath('C:\\Windows\\Fonts\\seguiemj.ttf', 'Segoe UI Emoji');
+	// Windows
+	if (process.platform === 'win32') {
+		const windowsFontPath = 'C:\\Windows\\Fonts\\seguiemj.ttf';
+		if (fs.existsSync(windowsFontPath)) {
+			GlobalFonts.registerFromPath(windowsFontPath, 'Segoe UI Emoji');
+		}
+	}
+	// Linux (Railway/production)
+	else if (process.platform === 'linux') {
+		// Common Linux emoji font paths
+		const linuxFontPaths = [
+			'/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
+			'/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf',
+			'/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf',
+		];
+		for (const fontPath of linuxFontPaths) {
+			if (fs.existsSync(fontPath)) {
+				GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
+				break;
+			}
+		}
+	}
 }
 catch (e) {
-	console.log('Could not load emoji font:', e.message);
+	console.log('Could not load emoji font (non-critical):', e.message);
 }
 
 /**

@@ -23,6 +23,12 @@ module.exports = {
 		if (unregistered === 1) {
 			return interaction.reply({ content: 'You must complete the registration process before using this command.', flags: MessageFlags.Ephemeral });
 		}
+
+			// Get location by channelId (use parent channel if in thread)
+			const channel = interaction.channel;
+			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
+			const locationUtil = interaction.client.locationUtil;
+			const currentLocation = await locationUtil.getLocationByChannel(channelId);
 			if (!currentLocation) {
 				return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
 			}

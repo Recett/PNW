@@ -10,8 +10,9 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
-			// Get location by channelId
-			const channelId = interaction.channelId;
+			// Get location by channelId (use parent channel if in thread)
+			const channel = interaction.channel;
+			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 			const currentLocation = await interaction.client.locationUtil.getLocationByChannel(channelId);
 			if (!currentLocation) {
 				return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });

@@ -82,7 +82,9 @@ async function handleStart(interaction, character) {
 		return interaction.reply({ content: 'That player does not have a character.', ephemeral: true });
 	}
 
-	const result = await tradeUtility.createTrade(character.id, targetCharacter.id, interaction.channelId);
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
+	const result = await tradeUtility.createTrade(character.id, targetCharacter.id, channelId);
 
 	if (!result.success) {
 		return interaction.reply({ content: result.error, ephemeral: true });

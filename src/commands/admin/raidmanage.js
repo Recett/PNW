@@ -81,7 +81,8 @@ async function handleStart(interaction) {
 
 	const raidId = interaction.options.getInteger('raid_id');
 	const spawnIntervalOverride = interaction.options.getInteger('spawn_interval');
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const guildId = interaction.guildId;
 
 	// Check if there's already an active raid in this channel
@@ -201,7 +202,8 @@ async function handleStart(interaction) {
 async function handleStop(interaction) {
 	await interaction.deferReply();
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const reason = interaction.options.getString('reason') || 'Manually stopped by admin';
 
 	// Find active raid in this channel
@@ -262,7 +264,8 @@ async function handleStop(interaction) {
 async function handleStatus(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find raid in this channel
 	const raid = await Raid.findOne({

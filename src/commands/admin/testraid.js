@@ -81,7 +81,8 @@ async function handleStart(interaction) {
 	await interaction.deferReply();
 
 	const raidId = interaction.options.getInteger('raid_id') || 1;
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Check if there's already an active raid in this channel
 	const existingRaid = await Raid.findOne({
@@ -189,7 +190,8 @@ async function handleStart(interaction) {
 async function handleStop(interaction) {
 	await interaction.deferReply();
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find active raid in this channel
 	const raid = await Raid.findOne({
@@ -226,7 +228,8 @@ async function handleStop(interaction) {
 async function handleStatus(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find raid in this channel (active or recent)
 	const raid = await Raid.findOne({
@@ -304,7 +307,8 @@ async function handleStatus(interaction) {
 async function handleSpawn(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 
 	// Find active raid in this channel
 	const raid = await Raid.findOne({
@@ -378,7 +382,8 @@ async function handleInfo(interaction) {
 async function handleSwap(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-	const channelId = interaction.channelId;
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const position = interaction.options.getInteger('position');
 
 	// Find active raid in this channel

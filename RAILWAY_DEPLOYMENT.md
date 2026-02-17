@@ -158,6 +158,22 @@ npm run deploy-commands
 - Ensure you have a Railway **Volume** mounted to `/data`
 - Set `DATABASE_PATH=/data/database.sqlite` in environment variables
 
+### Canvas/Image generation not working (stat command fails)
+
+**Symptoms:**
+- `/stat` command works with `plain:true` but fails with default image mode
+- Error logs mention canvas or image generation
+
+**Solution:**
+The bot uses `@napi-rs/canvas` for generating stat cards, which requires native system libraries. Railway should auto-detect these via `nixpacks.toml`, but if issues persist:
+
+1. **Verify nixpacks.toml exists** in project root with canvas dependencies
+2. **Redeploy** after adding nixpacks.toml
+3. **Fallback:** The bot automatically falls back to plain text mode if canvas fails
+
+The following system packages are required (configured in `nixpacks.toml`):
+- cairo, pango, libjpeg, giflib, librsvg, pixman, noto-fonts-emoji
+
 ### "Module not found" errors
 
 **Check:**

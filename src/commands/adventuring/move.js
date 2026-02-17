@@ -23,8 +23,9 @@ module.exports = {
 				return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 			}
 
-			// Get current location by channelId (like lookaround/talk)
-			const channelId = interaction.channelId;
+			// Get current location by channelId (use parent channel if in thread)
+			const channel = interaction.channel;
+			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 			const locationUtil = interaction.client.locationUtil;
 			const currentLocation = await locationUtil.getLocationByChannel(channelId);
 			if (!currentLocation) {

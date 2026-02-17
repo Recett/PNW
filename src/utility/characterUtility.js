@@ -671,6 +671,12 @@ let setCharacterStat = async (characterId, statName, value) => {
 		return { success: true, ...levelUpResult };
 	}
 
+	// If setting base stats (con, str, dex, agi), recalculate derived stats (HP, stamina, combat, attack)
+	const baseStats = ['con', 'str', 'dex', 'agi'];
+	if (baseStats.includes(statName)) {
+		await recalculateCharacterStats({ id: characterId });
+	}
+
 	return { success: true };
 };
 
@@ -692,6 +698,12 @@ let modifyCharacterStat = async (characterId, statName, value) => {
 	if (statName === 'xp') {
 		const levelUpResult = await checkAndApplyLevelUp(characterId);
 		return { success: true, ...levelUpResult };
+	}
+
+	// If modifying base stats (con, str, dex, agi), recalculate derived stats (HP, stamina, combat, attack)
+	const baseStats = ['con', 'str', 'dex', 'agi'];
+	if (baseStats.includes(statName)) {
+		await recalculateCharacterStats({ id: characterId });
 	}
 
 	return { success: true };

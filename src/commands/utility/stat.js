@@ -75,18 +75,24 @@ module.exports = {
 			const savedAvatar = await characterUtil.getCharacterSetting(userId, 'avatar');
 			const avatarUrl = savedAvatar || interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
 
-			// IMAGE CARD MODE (default)
+			// IMAGE CARD MODE (default) - fallback to plain text if canvas fails
 			if (!isPlain) {
-				const imageBuffer = await generateStatCard(
-					character,
-					combat,
-					attack,
-					equipment,
-					avatarUrl,
-				);
+				try {
+					const imageBuffer = await generateStatCard(
+						character,
+						combat,
+						attack,
+						equipment,
+						avatarUrl,
+					);
 
-				const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
-				return await interaction.editReply({ files: [attachment] });
+					const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
+					return await interaction.editReply({ files: [attachment] });
+				}
+				catch (canvasError) {
+					console.error('Canvas generation failed, falling back to plain text:', canvasError.message);
+					// Fall through to plain text mode
+				}
 			}
 
 			// PLAIN TEXT MODE

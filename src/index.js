@@ -1,4 +1,18 @@
-require('module-alias/register');
+// Load environment variables from .env file (for local development)
+// Railway will provide environment variables directly
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
+// Configure module aliases manually (since package.json is in parent directory)
+const moduleAlias = require('module-alias');
+moduleAlias.addAliases({
+	'@root': __dirname,
+	'@': __dirname,
+	'@models': require('path').join(__dirname, 'models'),
+	'@utility': require('path').join(__dirname, 'utility'),
+	'@events': require('path').join(__dirname, 'events'),
+	'@data': require('path').join(__dirname, 'Data'),
+});
+
 const Discord = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
