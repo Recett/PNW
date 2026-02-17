@@ -1,0 +1,45 @@
+# Exclude from Railway deployments to reduce build size and time
+
+# Documentation and guides
+*.md
+!RAILWAY_DEPLOYMENT.md
+
+# Templates and examples
+Template/
+Data/
+EVENT_QUEUE_EXAMPLE.md
+FINISH_REGISTER_TAG.md
+LOCATION_ENEMY_IMPLEMENTATION.md
+LOCATION_EVENT_IMPLEMENTATION.md
+SPECIAL_FIELD_STRUCTURE.md
+
+# Development files
+.vscode/
+.github/
+*.log
+tests/
+
+# Database files (will be created in volume)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Backup files
+/src/Backup DB/
+
+# Python requirements (not needed for Node.js bot)
+requirements.txt
+
+# Scripts not needed in production
+/src/scripts/
+
+# Config files (use environment variables instead)
+/src/config.json
+/src/token.json
+/src/google-credentials.json
+
+# Editor files
+.DS_Store
+*.swp
+*.swo
+*~

@@ -1,3 +1,0 @@
-sequelize
-sqlite3
-csv-parser
