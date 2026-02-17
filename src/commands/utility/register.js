@@ -13,7 +13,7 @@ const {
 	ChannelType,
 	ThreadAutoArchiveDuration,
 } = require('discord.js');
-const { CharacterBase, CharacterItem, ItemLib, LocationBase, EventBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, CharacterThread, ItemLib, LocationBase, EventBase } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -304,8 +304,12 @@ module.exports = {
 									// Add the user to the thread
 									await thread.members.add(userId);
 
-									// Store thread ID in player flag
-									await characterUtil.updateCharacterFlag(userId, 'interview_thread_id', thread.id);
+									// Store thread ID in CharacterThread table
+									await CharacterThread.create({
+										character_id: userId,
+										location_id: interviewLocation.id,
+										thread_id: thread.id,
+									});
 
 									// Move character to interview location
 									if (locationUtil) {
