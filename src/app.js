@@ -50,7 +50,8 @@ client.on(Events.InteractionCreate, async interaction => {
 		const target = interaction.options.getUser('user') || interaction.user;
 
 		return interaction.reply(`${target.tag} has ${getBalance(target.id)}💰`);
-	} else if (commandName === 'inventory') {
+	}
+	else if (commandName === 'inventory') {
 		const target = interaction.options.getUser('user') || interaction.user;
 		const user = await Users.findOne({ where: { user_id: target.id } });
 		const items = await user.getItems();
@@ -58,7 +59,8 @@ client.on(Events.InteractionCreate, async interaction => {
 		if (!items.length) return interaction.reply(`${target.tag} has nothing!`);
 
 		return interaction.reply(`${target.tag} currently has ${items.map(t => `${t.amount} ${t.item.name}`).join(', ')}`);
-	} else if (commandName === 'transfer') {
+	}
+	else if (commandName === 'transfer') {
 		const currentAmount = getBalance(interaction.user.id);
 		const transferAmount = interaction.options.getInteger('amount');
 		const transferTarget = interaction.options.getUser('user');
@@ -70,7 +72,8 @@ client.on(Events.InteractionCreate, async interaction => {
 		addBalance(transferTarget.id, transferAmount);
 
 		return interaction.reply(`Successfully transferred ${transferAmount}💰 to ${transferTarget.tag}. Your current balance is ${getBalance(interaction.user.id)}💰`);
-	} else if (commandName === 'buy') {
+	}
+	else if (commandName === 'buy') {
 		const itemName = interaction.options.getString('item');
 		const item = await CurrencyShop.findOne({ where: { name: { [Op.like]: itemName } } });
 
@@ -84,10 +87,12 @@ client.on(Events.InteractionCreate, async interaction => {
 		await user.addItem(item);
 
 		return interaction.reply(`You've bought a ${item.name}`);
-	} else if (commandName === 'shop') {
+	}
+	else if (commandName === 'shop') {
 		const items = await CurrencyShop.findAll();
 		return interaction.reply(codeBlock(items.map(i => `${i.name}: ${i.cost}💰`).join('\n')));
-	} else if (commandName === 'leaderboard') {
+	}
+	else if (commandName === 'leaderboard') {
 		return interaction.reply(
 			codeBlock(
 				currency.sort((a, b) => b.balance - a.balance)

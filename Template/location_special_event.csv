@@ -1,0 +1,8 @@
+id,location_id,special_event_id,rarity,required_flags,forbidden_flags,description
+1,forest_clearing,ancient_rune_discovery,3,"{""exploration_depth"": 5}","{""found_ancient_rune"": true}",Ancient runes found deep in the forest
+2,forest_clearing,hidden_treasure_cache,2,null,null,Treasure hidden by bandits
+3,mountain_cave,mystical_spring,4,"{""magic_affinity"": 1}",null,Mystical spring in the depths
+4,mountain_cave,forgotten_shrine,5,null,null,Ancient shrine to mountain spirits
+5,crystal_cavern,crystal_formation,3,null,null,Natural crystal formation
+6,forest_clearing,mystical_spring,5,"{""magic_sensitivity"": true}",null,Rare mystical spring in the forest
+7,dark_forest,stealth_check_event,2,null,null,Hidden dangers require stealth

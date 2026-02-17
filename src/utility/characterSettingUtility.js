@@ -26,7 +26,7 @@ async function getCharacterSetting(characterId, setting) {
 		where: {
 			character_id: characterId,
 			setting: setting,
-		}
+		},
 	});
 	return record ? record.value : null;
 }

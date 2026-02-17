@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
-const { CharacterBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, ItemLib, LocationBase } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -9,7 +9,7 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 			const userId = interaction.user.id;
 			const existing = await CharacterBase.findOne({ where: { id: userId } });
@@ -26,24 +26,30 @@ module.exports = {
 				con: 10,
 			});
 
-			// Move character to the first location in the database using locationUtil
+			// Move character to a location with "test" tag
 			const locationUtil = interaction.client.locationUtil;
-			const firstLocation = await locationUtil.getLocationBase(1);
-			if (firstLocation) {
+			const allLocations = await LocationBase.findAll();
+			const testLocation = allLocations.find(loc =>
+				loc.tag && Array.isArray(loc.tag) && loc.tag.includes('test'),
+			);
+			if (testLocation) {
 				await locationUtil.updateLocationRoles({
 					guild: interaction.guild,
 					memberId: userId,
-					newLocationId: firstLocation.id,
+					newLocationId: testLocation.id,
 				});
 			}
 
-			// Give the character three items: Sword_1, Armor_1, Leg_1, and equip them
-			const { CharacterItem } = require('@root/dbObject.js');
-			const items = ['1', '2', '3'];
-			for (const itemId of items) {
+			// Find all items with "starter" tag and give them to the character equipped
+			const allItems = await ItemLib.findAll();
+			const starterItems = allItems.filter(item =>
+				item.tag && Array.isArray(item.tag) && item.tag.includes('starter'),
+			);
+
+			for (const item of starterItems) {
 				await CharacterItem.create({
 					character_id: userId,
-					item_id: itemId,
+					item_id: item.id,
 					amount: 1,
 					equipped: true,
 				});
@@ -67,7 +73,8 @@ module.exports = {
 				await CharacterBase.update(updateFields, { where: { id: userId } });
 			}
 
-			await interaction.editReply({ content: 'Test character created, given and equipped Sword_1, Armor_1, Leg_1. Stats calculated.' });
+			const itemNames = starterItems.map(item => item.name).join(', ') || 'none';
+			await interaction.editReply({ content: `Test character created and equipped with starter items: ${itemNames}. Stats calculated.` });
 		}
 		catch (error) {
 			console.error('Error in testnewchar command:', error);

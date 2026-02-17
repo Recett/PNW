@@ -1,9 +1,27 @@
 require('module-alias/register');
 const { REST, Routes } = require('discord.js');
-const { clientId, guildId, token } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
-const Sequelize = require('sequelize');
+
+// Load environment variables (for Railway) or fallback to config.json (for local dev)
+let token, clientId, guildId;
+try {
+	if (process.env.DISCORD_TOKEN && process.env.DISCORD_CLIENT_ID && process.env.DISCORD_GUILD_ID) {
+		token = process.env.DISCORD_TOKEN;
+		clientId = process.env.DISCORD_CLIENT_ID;
+		guildId = process.env.DISCORD_GUILD_ID;
+	}
+	else {
+		const config = require('./config.json');
+		token = config.token;
+		clientId = config.clientId;
+		guildId = config.guildId;
+	}
+}
+catch (error) {
+	console.error('Failed to load Discord configuration. Please set environment variables or create config.json');
+	process.exit(1);
+}
 
 const commands = [];
 // Grab all the command folders from the commands directory you created earlier
@@ -20,7 +38,8 @@ for (const folder of commandFolders) {
 		const command = require(filePath);
 		if ('data' in command && 'execute' in command) {
 			commands.push(command.data.toJSON());
-		} else {
+		}
+		else {
 			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 		}
 	}
@@ -41,7 +60,8 @@ const rest = new REST().setToken(token);
 		);
 
 		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-	} catch (error) {
+	}
+	catch (error) {
 		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}

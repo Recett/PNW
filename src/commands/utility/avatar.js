@@ -24,7 +24,8 @@ module.exports = {
 					}],
 					flags: MessageFlags.Ephemeral,
 				});
-			} else {
+			}
+			else {
 				await interaction.reply({ content: 'You have not set a character avatar yet. Use `/avatar url:<your_image_url>` to set one.', flags: MessageFlags.Ephemeral });
 			}
 			return;
@@ -35,6 +36,6 @@ module.exports = {
 			return;
 		}
 		await setCharacterSetting(characterId, 'avatar', url);
-		await interaction.reply({ content: `Your character avatar has been set!`, flags: MessageFlags.Ephemeral });
+		await interaction.reply({ content: 'Your character avatar has been set!', flags: MessageFlags.Ephemeral });
 	},
 };

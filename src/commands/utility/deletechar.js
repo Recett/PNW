@@ -10,7 +10,7 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 			const userId = interaction.user.id;
 			const character = await CharacterBase.findOne({ where: { id: userId } });

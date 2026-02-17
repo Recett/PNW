@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, MessageFlags, ComponentType } = require('discord.js');
 const { CharacterBase, LocationBase, LocationLink, LocationCluster } = require('@root/dbObject.js');
+const characterUtility = require('../../utility/characterUtility');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -8,12 +9,18 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 			const userId = interaction.user.id;
 			const character = await CharacterBase.findOne({ where: { id: userId } });
 			if (!character) {
 				return await interaction.editReply({ content: 'Character not found.' });
+			}
+
+			// Check if registration is incomplete
+			const unregistered = await characterUtility.getCharacterFlag(userId, 'unregistered');
+			if (unregistered === 1) {
+				return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 			}
 
 			// Get current location by channelId (like lookaround/talk)
@@ -64,14 +71,22 @@ module.exports = {
 			});
 			collector.on('collect', async i => {
 				const selectedId = i.values[0];
-				// Move role update logic to locationUtility
-				await interaction.client.locationUtil.updateLocationRoles({
+				// Transition roles: add new role first, then remove old after delay
+				const { newLocation } = await interaction.client.locationUtil.transitionLocationRoles({
 					guild: interaction.guild,
 					memberId: userId,
 					newLocationId: selectedId,
+					delayMs: 5000,
 				});
 				await CharacterBase.update({ location_id: selectedId }, { where: { id: userId } });
-				await i.reply({ content: 'You have moved to the new location.', flags: MessageFlags.Ephemeral });
+				
+				// Build response with clickable channel link
+				let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
+				if (newLocation?.channel) {
+					replyContent += ` Head over to <#${newLocation.channel}>`;
+				}
+				
+				await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
 			});
 		}
 		catch (error) {

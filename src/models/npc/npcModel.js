@@ -9,6 +9,8 @@ const npcBase = (sequelize) => {
 		avatar: { type: Sequelize.STRING, allowNull: true },
 		npc_type: { type: Sequelize.STRING, allowNull: true },
 		start_event: { type: Sequelize.STRING, allowNull: true },
+		age: { type: Sequelize.INTEGER, allowNull: true },
+		gender: { type: Sequelize.STRING, allowNull: true },
 		status: Sequelize.STRING,
 	}, { timestamps: false });
 };
@@ -18,6 +20,8 @@ const npcStock = (sequelize) => {
 		npc_id: Sequelize.STRING,
 		item_id: Sequelize.STRING,
 		amount: Sequelize.INTEGER,
+		required_building_id: { type: Sequelize.INTEGER, allowNull: true },
+		required_building_level: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 1 },
 	}, { timestamps: false });
 };
 
@@ -29,25 +33,26 @@ const npcStatus = (sequelize) => {
 	}, { timestamps: false });
 };
 
-const npcBaseStat = (sequelize) => {
-	return sequelize.define('npc_base_stat', {
-		health: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		defense: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		evade: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		accuracy: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-	}, { timestamps: false });
-};
+// DEPRECATED: npcBaseStat and npcAttackStat are outdated and not used
+// const npcBaseStat = (sequelize) => {
+// 	return sequelize.define('npc_base_stat', {
+// 		health: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+// 		defense: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+// 		evade: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+// 		accuracy: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0 },
+// 	}, { timestamps: false });
+// };
 
-const npcAttackStat = (sequelize) => {
-	return sequelize.define('npc_attack_stat', {
-		name: { type: Sequelize.STRING, allowNull: false },
-		attack: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		accuracy: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		critical: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		cooldown: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
-		description: { type: Sequelize.STRING, allowNull: true },
-	}, { timestamps: false });
-};
+// const npcAttackStat = (sequelize) => {
+// 	return sequelize.define('npc_attack_stat', {
+// 		name: { type: Sequelize.STRING, allowNull: false },
+// 		attack: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+// 		accuracy: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0 },
+// 		critical: { type: Sequelize.INTEGER, allowNull: false, defaultValue: 0 },
+// 		cooldown: { type: Sequelize.FLOAT, allowNull: false, defaultValue: 0 },
+// 		description: { type: Sequelize.STRING, allowNull: true },
+// 	}, { timestamps: false });
+// };
 
 const npcAbility = (sequelize) => {
 	return sequelize.define('npc_ability', {
@@ -72,13 +77,24 @@ const npcAbilityLink = (sequelize) => {
 	}, { timestamps: false });
 };
 
+const npcPerk = (sequelize) => {
+	return sequelize.define('npc_perk', {
+		npc_id: { type: Sequelize.STRING, allowNull: false },
+		perk_id: { type: Sequelize.INTEGER, allowNull: false },
+		stamina_cost: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 0 },
+		required_building_id: { type: Sequelize.INTEGER, allowNull: true },
+		required_building_level: { type: Sequelize.INTEGER, allowNull: true, defaultValue: 1 },
+	}, { timestamps: false });
+};
+
 module.exports = {
 	npcBase,
 	npcStock,
 	npcStatus,
-	npcBaseStat,
-	npcAttackStat,
+	// npcBaseStat, // DEPRECATED
+	// npcAttackStat, // DEPRECATED
 	npcAbility,
 	npcAttackLink,
 	npcAbilityLink,
+	npcPerk,
 };

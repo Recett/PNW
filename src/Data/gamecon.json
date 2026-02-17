@@ -3,8 +3,8 @@
     "look": "look",
     "interact": "interact",
     "move": "move",
-    "PC": "PC",
-    "NPC": "NPC",
-    "OBJECT": "OBJECT",
-    "ENEMY": "ENEMY"
+    "PC": "pc",
+    "NPC": "npc",
+    "OBJECT": "object",
+    "ENEMY": "enemy"
 }

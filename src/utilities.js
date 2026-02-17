@@ -4,7 +4,7 @@ let user = (guild, string) => {
 	if (!string) return null;
 	const matches = string.match(/^<@!?(\d+)>$/);
 	if (matches) return guild.members.cache.get(matches[1]) ?? guild.members.fetch(matches[1]);
-	let user = () =>
+	let findUser = () =>
 		guild.members.cache.get(string) ??
     guild.members.resolve(string) ??
     Array.from(guild.members.cache.values()).find(
@@ -13,18 +13,18 @@ let user = (guild, string) => {
         mem.user.tag.toLowerCase().includes(string.toLowerCase()) ||
         mem.user.username.includes(string.toLowerCase()),
     );
-	return user() ?? (guild.members.fetch(), user());
+	return findUser() ?? (guild.members.fetch(), findUser());
 };
 
 let channel = (guild, string) => {
 	if (!string) return null;
 	const matches = string.match(/^<#(\d+)>$/);
 	if (matches) return guild.channels.cache.get(matches[1]) ?? guild.channels.fetch(matches[1]);
-	let channel = () =>
+	let findChannel = () =>
 		guild.channels.cache.get(string) ??
     guild.channels.resolve(string) ??
-    Array.from(guild.channels.cache.values()).find((channel) => channel.name.toLowerCase().includes(string.toLowerCase()));
-	return channel() ?? (guild.channels.fetch(), channel());
+    Array.from(guild.channels.cache.values()).find((ch) => ch.name.toLowerCase().includes(string.toLowerCase()));
+	return findChannel() ?? (guild.channels.fetch(), findChannel());
 };
 
 let role = (guild, string) => {
@@ -33,11 +33,11 @@ let role = (guild, string) => {
 	if (matches) return guild.roles.cache.get(matches[1]) ?? guild.roles.fetch(matches[1]);
 	if (guild.roles.cache.get(string)) return guild.roles.cache.get(string);
 	if (guild.roles.resolve(string)) return guild.roles.resolve(string);
-	let role = () =>
+	let findRole = () =>
 		guild.roles.cache.get(string) ??
     guild.roles.resolve(string) ??
-    Array.from(guild.roles.cache.values()).find((role) => role.name.toLowerCase().includes(string.toLowerCase()));
-	return role() ?? (guild.roles.fetch(), role());
+    Array.from(guild.roles.cache.values()).find((r) => r.name.toLowerCase().includes(string.toLowerCase()));
+	return findRole() ?? (guild.roles.fetch(), findRole());
 };
 
 let findCamp = async (name, campList = null, fullName = false) => {

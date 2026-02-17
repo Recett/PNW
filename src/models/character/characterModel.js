@@ -14,21 +14,25 @@ const characterBase = (sequelize) => {
 		dex: Sequelize.INTEGER,
 		agi: Sequelize.INTEGER,
 		con: Sequelize.INTEGER,
+		perk_point: Sequelize.INTEGER,
 		currentHp: Sequelize.INTEGER,
 		maxHp: Sequelize.INTEGER,
 		currentStamina: Sequelize.INTEGER,
 		maxStamina: Sequelize.INTEGER,
 		free_point: Sequelize.INTEGER,
-		xp: Sequelize.INTEGER,
+		level: { type: Sequelize.INTEGER, defaultValue: 1 },
+		xp: { type: Sequelize.INTEGER, defaultValue: 0 },
 		location_id: Sequelize.STRING,
 		depth: { type: Sequelize.INTEGER, defaultValue: 0 },
 	}, { timestamps: false });
 };
 
-const characterArte = (sequelize) => {
-	return sequelize.define('character_art', {
+const characterPerk = (sequelize) => {
+	return sequelize.define('character_perk', {
 		character_id: Sequelize.STRING,
-		art_id: Sequelize.INTEGER,
+		perk_id: Sequelize.INTEGER,
+		stamina_spent: { type: Sequelize.INTEGER, defaultValue: 0 },
+		status: { type: Sequelize.ENUM('learning', 'available', 'equipped'), defaultValue: 'learning' },
 	}, { timestamps: false });
 };
 
@@ -39,7 +43,7 @@ const characterCombatStat = (sequelize) => {
 		defense_percent: { type: Sequelize.INTEGER, defaultValue: 0 },
 		crit_resistance: { type: Sequelize.INTEGER, defaultValue: 0 },
 		evade: { type: Sequelize.INTEGER, defaultValue: 0 },
-		speed: { type: Sequelize.INTEGER, defaultValue: 0 },
+		speed: { type: Sequelize.FLOAT, defaultValue: 0 },
 		currentWeight: Sequelize.INTEGER,
 		maxWeight: Sequelize.INTEGER,
 	}, { timestamps: false });
@@ -50,10 +54,10 @@ const characterAttackStat = (sequelize) => {
 		character_id: Sequelize.STRING,
 		item_id: Sequelize.INTEGER,
 		attack: { type: Sequelize.INTEGER, defaultValue: 0 },
-		accuracy: { type: Sequelize.INTEGER, defaultValue: 0 },
+		accuracy: { type: Sequelize.FLOAT, defaultValue: 0 },
 		critical: { type: Sequelize.INTEGER, defaultValue: 0 },
 		critical_damage: { type: Sequelize.INTEGER, defaultValue: 150 },
-		cooldown: { type: Sequelize.INTEGER, defaultValue: 0 },
+		cooldown: { type: Sequelize.FLOAT, defaultValue: 0 },
 	}, { timestamps: false });
 };
 
@@ -67,8 +71,14 @@ const characterEquipment = (sequelize) => {
 
 const characterFlag = (sequelize) => {
 	return sequelize.define('character_flag', {
-		character_id: Sequelize.STRING,
-		flag: Sequelize.STRING,
+		character_id: {
+			type: Sequelize.STRING,
+			primaryKey: true,
+		},
+		flag: {
+			type: Sequelize.STRING,
+			primaryKey: true,
+		},
 		value: Sequelize.INTEGER,
 	}, { timestamps: false });
 };
@@ -84,11 +94,40 @@ const characterItem = (sequelize) => {
 
 const characterQuest = (sequelize) => {
 	return sequelize.define('character_quest', {
-		character_id: Sequelize.STRING,
-		quest_id: Sequelize.INTEGER,
+		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+		character_id: { type: Sequelize.STRING, allowNull: false },
+		quest_id: { type: Sequelize.INTEGER, allowNull: false },
+		// Quest status: 'not_started', 'in_progress', 'completed', 'failed', 'abandoned'
 		status: { type: Sequelize.STRING, defaultValue: 'in_progress' },
-		progress: { type: Sequelize.INTEGER, defaultValue: 0 },
-	}, { timestamps: false });
+		// Current progress (for tracked objectives) - JSON for complex tracking
+		// Example: { "kills": 5, "items_collected": 3 } or { "value": 10 }
+		progress: { type: Sequelize.JSON, defaultValue: {} },
+		// Maximum progress needed (for completion) - JSON for complex requirements
+		// Example: { "kills": 10, "items_collected": 5 } or { "value": 100 }
+		max_progress: { type: Sequelize.JSON, defaultValue: {} },
+		// JSON field for complex quest data
+		quest_data: { type: Sequelize.JSON, allowNull: true },
+		// JSON field for objective tracking
+		objectives: { type: Sequelize.JSON, allowNull: true },
+		// Current objective index or stage
+		current_stage: { type: Sequelize.INTEGER, defaultValue: 0 },
+		// When quest was started
+		started_at: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+		// When quest was completed/failed
+		completed_at: { type: Sequelize.DATE, allowNull: true },
+		// Last time quest was updated
+		updated_at: { type: Sequelize.DATE, defaultValue: Sequelize.NOW },
+		// Notes or custom data
+		notes: { type: Sequelize.TEXT, allowNull: true },
+	}, {
+		timestamps: false,
+		indexes: [
+			{ fields: ['character_id'] },
+			{ fields: ['quest_id'] },
+			{ fields: ['status'] },
+			{ fields: ['character_id', 'quest_id'], unique: true },
+		],
+	});
 };
 
 const characterSetting = (sequelize) => {
@@ -139,7 +178,7 @@ const characterThread = (sequelize) => {
 
 module.exports = {
 	characterBase,
-	characterArte,
+	characterPerk,
 	characterCombatStat,
 	characterAttackStat,
 	characterEquipment,

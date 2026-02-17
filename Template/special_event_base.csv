@@ -1,0 +1,7 @@
+id,title,avatar,illustration,text,default_child_event_id,choose_placeholder,hidden,npc,check,is_active
+ancient_rune_discovery,Ancient Rune Discovery,🗿,ancient_runes.png,The runes pulse with a faint magical energy. They seem to tell a story of ages past. What do you do?,null,Choose your action...,0,null,0,1
+hidden_treasure_cache,Hidden Treasure Cache,💰,treasure_cache.png,Someone has hidden a collection of valuable items here. The cache is secured with a simple lock.,null,Choose your action...,0,null,0,1
+mystical_spring,Mystical Spring,💧,mystical_spring.png,The water here glows with an otherworldly light. It seems to have magical properties.,null,Choose your action...,0,null,0,1
+forgotten_shrine,Forgotten Shrine,⛩️,forgotten_shrine.png,This shrine has been forgotten by time but still radiates a sense of reverence and mystery.,null,Choose your action...,0,null,0,1
+crystal_formation,Crystal Formation,💎,crystal_formation.png,These crystals hum with magical energy. They appear to be growing naturally from the rock.,null,Choose your action...,0,null,0,1
+stealth_check_event,Stealth Check,null,null,null,stealth_success_event,null,1,null,1,1

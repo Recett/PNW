@@ -23,7 +23,8 @@ module.exports = {
 				currentEventId = result.nextEventId;
 				// Optionally, update flags if result.flags is returned
 				if (result.flags) flags = { ...flags, ...result.flags };
-			} else {
+			}
+			else {
 				continueChain = false;
 			}
 		}
@@ -46,7 +47,7 @@ module.exports = {
 		const starterItems = [
 			'Sword',
 			'Travelling Clothes',
-			'Leather Shoe'
+			'Leather Shoe',
 		];
 		for (const itemName of starterItems) {
 			const item = await ItemLib.findOne({ where: { name: itemName } });
@@ -81,7 +82,7 @@ module.exports = {
 				{ name: 'AGI', value: `${updatedCharacter.agi}`, inline: true },
 				{ name: 'CON', value: `${updatedCharacter.con}`, inline: true },
 				{ name: 'Combat', value: combatStat ? `DEF: ${combatStat.defense}, SPD: ${combatStat.speed}, EVA: ${combatStat.evade}` : 'N/A', inline: false },
-				{ name: 'Attack', value: attackStat ? `ATK: ${attackStat.attack}, ACC: ${attackStat.accuracy}, CRIT: ${attackStat.critical}` : 'N/A', inline: false }
+				{ name: 'Attack', value: attackStat ? `ATK: ${attackStat.attack}, ACC: ${attackStat.accuracy}, CRIT: ${attackStat.critical}` : 'N/A', inline: false },
 			)
 			.setColor(0x00AE86);
 		await interaction.followUp({ embeds: [statEmbed], flags: MessageFlags.Ephemeral });

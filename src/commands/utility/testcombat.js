@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
-const { CharacterBase, MonsterBase } = require('@root/dbObject.js');
+const { CharacterBase, EnemyBase } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -9,7 +9,7 @@ module.exports = {
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 			const userId = interaction.user.id;
 			const character = await CharacterBase.findOne({ where: { id: userId } });
@@ -18,10 +18,10 @@ module.exports = {
 				return;
 			}
 
-			// Find Monster with ID 2
-			const monster = await MonsterBase.findOne({ where: { id: 2 } });
-			if (!monster) {
-				await interaction.editReply({ content: 'Monster with ID 2 not found in the database.' });
+			// Find Enemy with ID 2
+			const enemy = await EnemyBase.findOne({ where: { id: 2 } });
+			if (!enemy) {
+				await interaction.editReply({ content: 'Enemy with ID 2 not found in the database.' });
 				return;
 			}
 
@@ -42,7 +42,7 @@ module.exports = {
 			}
 
 			await interaction.editReply({
-				content: `**Combat initiated with ${monster.name || monster.fullname || 'Unknown Enemy'}!**\n\n${typeof result === 'object' && result.battleReport ? result.battleReport : JSON.stringify(result, null, 2)}`,
+				content: `**Combat initiated with ${enemy.name || enemy.fullname || 'Unknown Enemy'}!**\n\n${typeof result === 'object' && result.battleReport ? result.battleReport : JSON.stringify(result, null, 2)}`,
 			});
 		}
 		catch (error) {

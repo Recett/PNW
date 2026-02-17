@@ -25,13 +25,14 @@ function getModel(tableName) {
 		'./models/item/',
 		'./models/skill/',
 		'./models/npc/',
-		'./models/location/'
+		'./models/location/',
 	];
 	for (const dir of modelPaths) {
 		try {
 			const model = require(path.join(__dirname, dir, tableName + '.js'))(sequelize);
 			return model;
-		} catch (e) {
+		}
+		catch {
 			// continue
 		}
 	}
@@ -51,9 +52,11 @@ async function importCsv(tableName, csvFilePath) {
 					await Model.bulkCreate(records, { ignoreDuplicates: true });
 					console.log(`Imported ${records.length} records into ${tableName}`);
 					resolve();
-				} catch (err) {
+				}
+				catch (err) {
 					reject(err);
-				} finally {
+				}
+				finally {
 					await sequelize.close();
 				}
 			})
@@ -76,12 +79,14 @@ if (require.main === module) {
 				const tableName = path.basename(file, path.extname(file));
 				try {
 					await importCsv(tableName, csvFilePath);
-				} catch (err) {
+				}
+				catch (err) {
 					console.error(`Error importing ${file}:`, err);
 				}
 			}
 		})();
-	} else {
+	}
+	else {
 		const csvFilePath = arg1;
 		const tableName = path.basename(arg1, path.extname(arg1));
 		importCsv(tableName, csvFilePath)

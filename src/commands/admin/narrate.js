@@ -1,43 +1,66 @@
-const { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType } = require('discord.js');
-const { LocationBase } = require('@root/dbObject.js');
+const {
+	SlashCommandBuilder,
+	PermissionFlagsBits,
+	InteractionContextType,
+	ModalBuilder,
+	TextInputBuilder,
+	TextInputStyle,
+	ActionRowBuilder,
+	EmbedBuilder,
+} = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('narrate')
-		.setDescription('Narrate event!')
+		.setDescription('Send a narration message with a modal input.')
 		.setDefaultMemberPermissions(PermissionFlagsBits.BanMembers)
-		.setContexts(InteractionContextType.Guild)
-		.addStringOption(option =>
-			option
-				.setName('event_id')
-				.setDescription('Event ID')
-				.setRequired(true)),
+		.setContexts(InteractionContextType.Guild),
 
 	async execute(interaction) {
-		const eventId = interaction.options.getString('event_id');
-		const collectorFilter = i => i.user.id === interaction.user.id;
-		let eventBase = await interaction.client.eventUtil.getEventBase(eventId);
-		if (!eventId) {
-			return interaction.reply({ content: 'Please provide a valid event ID.', flags: MessageFlags.Ephemeral });
-		};
-		// Add resolution to description
-		do {
-			let title = `${eventBase.title}`;
-			let description = `${eventBase.text}`;
+		// Build the narration modal
+		const modal = new ModalBuilder()
+			.setCustomId('narrate_modal')
+			.setTitle('Narration');
 
-			const embed = { title: title, description: description };
-			let response = await interaction.reply({ embeds: [embed] });
+		// Title input (optional)
+		const titleInput = new TextInputBuilder()
+			.setCustomId('narrate_title')
+			.setLabel('Title (optional)')
+			.setStyle(TextInputStyle.Short)
+			.setPlaceholder('Enter a title for the narration...')
+			.setRequired(false)
+			.setMaxLength(256);
 
-			if (eventBase.default_child_event_id != 'end') {
-				let childEvent = await interaction.client.eventUtil.getEventBase(eventBase.default_child_event_id);
-				if (childEvent) {
-					eventBase = childEvent;
-				}
-				else {
-					return interaction.followUp({ content: 'No further child event found.', flags: MessageFlags.Ephemeral });
-				}
-			}
-		}
-		while (eventBase.default_child_event_id != 'end');
+		// Text input (required, paragraph style for long text)
+		const textInput = new TextInputBuilder()
+			.setCustomId('narrate_text')
+			.setLabel('Narration Text')
+			.setStyle(TextInputStyle.Paragraph)
+			.setPlaceholder('Enter your narration text here...')
+			.setRequired(true)
+			.setMaxLength(4000);
+
+		modal.addComponents(
+			new ActionRowBuilder().addComponents(titleInput),
+			new ActionRowBuilder().addComponents(textInput),
+		);
+
+		await interaction.showModal(modal);
+	},
+
+	/**
+	 * Handle the modal submission - send the narration as an embed
+	 */
+	async handleModal(interaction) {
+		const title = interaction.fields.getTextInputValue('narrate_title')?.trim() || 'Narration';
+		const text = interaction.fields.getTextInputValue('narrate_text').trim();
+
+		const embed = new EmbedBuilder()
+			.setTitle(title)
+			.setDescription(text)
+			.setColor(0x2f3136);
+
+		// Send to the channel (not ephemeral - visible to everyone)
+		await interaction.reply({ embeds: [embed] });
 	},
 };

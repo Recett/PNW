@@ -1,0 +1,11 @@
+special_event_id,option_id,text,child_event_id
+ancient_rune_discovery,study_runes,Study the ancient runes carefully and try to decipher their meaning,null
+ancient_rune_discovery,touch_runes,Reach out and touch the pulsing magical energy,null
+hidden_treasure_cache,pick_lock,Attempt to pick the simple lock mechanism,null
+hidden_treasure_cache,force_open,Use brute force to break open the cache,null
+mystical_spring,drink_water,Cup the glowing water in your hands and drink,null
+mystical_spring,bottle_water,Carefully collect some of the mystical water in a bottle,null
+forgotten_shrine,pray_shrine,Kneel before the shrine and offer a prayer,null
+forgotten_shrine,examine_shrine,Investigate the shrine's construction and symbols,null
+crystal_formation,harvest_crystal,Try to carefully extract one of the magical crystals,null
+crystal_formation,attune_crystal,Place your hands on the crystals and focus your energy,null

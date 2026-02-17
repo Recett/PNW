@@ -25,7 +25,8 @@ async function loadSavedCredentialsIfExist() {
 		const content = await fs.readFile(TOKEN_PATH);
 		const credentials = JSON.parse(content);
 		return google.auth.fromJSON(credentials);
-	} catch (err) {
+	}
+	catch {
 		return null;
 	}
 }
@@ -77,10 +78,13 @@ async function importSheet(sheetId, range) {
 			if (header && header.length > 0) {
 				const lastCol = String.fromCharCode('A'.charCodeAt(0) + header.length - 1);
 				actualRange = `${sheetName}!A2:${lastCol}`;
-			} else {
-				actualRange = `${sheetName}!A2:J`; // fallback
 			}
-		} else {
+			else {
+				// fallback
+				actualRange = `${sheetName}!A2:J`;
+			}
+		}
+		else {
 			actualRange = range;
 		}
 		const res = await sheets.spreadsheets.values.get({
@@ -97,7 +101,8 @@ async function importSheet(sheetId, range) {
 		let Model;
 		try {
 			Model = require(`./models/event/${sheetName}.js`)(sequelize);
-		} catch (e) {
+		}
+		catch {
 			console.error(`Model for sheet '${sheetName}' not found.`);
 			continue;
 		}
@@ -110,7 +115,8 @@ async function importSheet(sheetId, range) {
 			try {
 				await Model.create(record);
 				imported++;
-			} catch (e) {
+			}
+			catch {
 				// Optionally log or handle duplicate/invalid rows
 			}
 		}

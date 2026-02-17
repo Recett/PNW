@@ -3,7 +3,22 @@ const Discord = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Collection } = require('discord.js');
-const { token } = require('./config.json');
+
+// Load environment variables (for Railway) or fallback to config.json (for local dev)
+let token;
+try {
+	if (process.env.DISCORD_TOKEN) {
+		token = process.env.DISCORD_TOKEN;
+	}
+	else {
+		const config = require('./config.json');
+		token = config.token;
+	}
+}
+catch (error) {
+	console.error('Failed to load Discord token. Please set DISCORD_TOKEN environment variable or create config.json');
+	process.exit(1);
+}
 
 // Create a new client instance
 const client = new Discord.Client({
@@ -14,6 +29,11 @@ const client = new Discord.Client({
 		Discord.GatewayIntentBits.GuildMessageReactions,
 		Discord.GatewayIntentBits.DirectMessages,
 		Discord.GatewayIntentBits.DirectMessageReactions,
+	],
+	partials: [
+		Discord.Partials.Message,
+		Discord.Partials.Reaction,
+		Discord.Partials.User,
 	],
 });
 

@@ -5,12 +5,12 @@ const {
 	LocationSpecialEvent,
 	LocationSpecialEventTrigger,
 	LocationResourceNodeSpawn,
-	LocationMonsterSpawn,
+	LocationEnemySpawn,
 	LocationInstanceResourceNode,
-	LocationInstanceMonster,
+	LocationInstanceEnemy,
 	ResourceNodeLib,
-	MonsterBase,
-	MonsterInstance,
+	EnemyBase,
+	EnemyInstance,
 	SpecialEventBase,
 	SpecialEventOption,
 	SpecialEventOptionCheck,
@@ -20,16 +20,23 @@ const { v4: uuidv4 } = require('uuid');
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('explore')
-		.setDescription('Explore deeper into the current location to find resources, monsters, or special events.'),
+		.setDescription('Explore deeper into the current location to find resources, enemies, or special events.'),
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 			const userId = interaction.user.id;
 			const character = await CharacterBase.findOne({ where: { id: userId } });
 			if (!character) {
 				return await interaction.editReply({ content: 'Character not found. Use `/newchar` to create one.' });
+			}
+
+			// Check if registration is incomplete
+			const characterUtil = require('@utility/characterUtility.js');
+			const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
+			if (unregistered === 1) {
+				return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 			}
 
 			// Get current location by channelId
@@ -154,7 +161,7 @@ async function handleSpecialEvent(interaction, character, location, targetRarity
 					}],
 				}],
 			});
-			
+
 			if (resultSpecialEvent) {
 				selectedEvent = resultSpecialEvent;
 			}
@@ -184,22 +191,24 @@ async function handleSpecialEvent(interaction, character, location, targetRarity
 	// Add available options if they exist
 	if (selectedEvent.specialEvent.options && selectedEvent.specialEvent.options.length > 0) {
 		const availableOptions = [];
-		
+
 		for (const option of selectedEvent.specialEvent.options) {
 			if (!option.is_active) continue;
-			
+
+			if (!option.is_active) continue;
+
 			// Check if this option is available to the character
 			const isAvailable = await checkOptionAvailability(character, option);
 			if (isAvailable) {
 				availableOptions.push(option);
 			}
 		}
-		
+
 		if (availableOptions.length > 0) {
 			const optionList = availableOptions
 				.map((opt, index) => `${index + 1}. **${opt.name}** - ${opt.description}`)
 				.join('\n');
-			
+
 			embed.addFields({ name: 'Available Actions', value: optionList, inline: false });
 		}
 		else {
@@ -248,17 +257,17 @@ async function generateLocationInstance(interaction, character, location, target
 		include: [{ model: ResourceNodeLib, as: 'resourceNodeTemplate' }],
 	});
 
-	const monsterSpawns = await LocationMonsterSpawn.findAll({
+	const enemySpawns = await LocationEnemySpawn.findAll({
 		where: {
 			location_id: location.id,
 			rarity: { [require('sequelize').Op.lte]: targetRarity },
 		},
-		include: [{ model: MonsterBase, as: 'monsterTemplate' }],
+		include: [{ model: EnemyBase, as: 'enemyTemplate' }],
 	});
 
 	// Clear existing instance content to regenerate
 	await LocationInstanceResourceNode.destroy({ where: { instance_id: instance.id } });
-	await LocationInstanceMonster.destroy({ where: { instance_id: instance.id } });
+	await LocationInstanceEnemy.destroy({ where: { instance_id: instance.id } });
 
 	const generatedContent = [];
 
@@ -282,23 +291,23 @@ async function generateLocationInstance(interaction, character, location, target
 		}
 	}
 
-	// Generate monsters
-	for (const spawn of monsterSpawns) {
+	// Generate enemies
+	for (const spawn of enemySpawns) {
 		if (Math.random() * 100 < spawn.spawn_chance) {
 			const count = Math.floor(Math.random() * (spawn.max_count - spawn.min_count + 1)) + spawn.min_count;
 
 			for (let i = 0; i < count; i++) {
-				// Create monster instance
-				const monsterInstance = await MonsterInstance.create({
-					monster_base_id: spawn.monster_base_id,
+				// Create enemy instance
+				const enemyInstance = await EnemyInstance.create({
+					enemy_base_id: spawn.enemy_base_id,
 					current_health: 100,
 					is_alive: true,
 					created_at: new Date(),
 				});
 
-				await LocationInstanceMonster.create({
+				await LocationInstanceEnemy.create({
 					instance_id: instance.id,
-					monster_instance_id: monsterInstance.id,
+					enemy_instance_id: enemyInstance.id,
 					position_x: Math.random() * 100,
 					position_y: Math.random() * 100,
 					is_boss: spawn.is_boss,
@@ -306,7 +315,7 @@ async function generateLocationInstance(interaction, character, location, target
 			}
 
 			const bossText = spawn.is_boss ? ' (Boss)' : '';
-			generatedContent.push(`${count}x ${spawn.monsterTemplate.name}${bossText} (${getRarityName(spawn.rarity)})`);
+			generatedContent.push(`${count}x ${spawn.enemyTemplate.name}${bossText} (${getRarityName(spawn.rarity)})`);
 		}
 	}
 
@@ -436,19 +445,19 @@ async function checkOptionAvailability(character, option) {
 async function processSpecialEventCheck(character, specialEvent) {
 	// Load event checks (using standard EventCheck for special events too)
 	const { EventCheck } = require('@root/dbObject.js');
-	
+
 	const checks = await EventCheck.findAll({
 		where: { event_id: specialEvent.id },
 	});
-	
+
 	if (checks.length === 0) {
 		return specialEvent.default_child_event_id;
 	}
-	
+
 	// Process each check
 	for (const check of checks) {
 		const checkResult = await performCheck(character, check);
-		
+
 		// Return the appropriate result event based on check outcome
 		if (checkResult) {
 			return check.event_if_true;
@@ -457,15 +466,15 @@ async function processSpecialEventCheck(character, specialEvent) {
 			return check.event_if_false;
 		}
 	}
-	
+
 	return specialEvent.default_child_event_id;
 }
 
 async function performCheck(character, check) {
 	const { CharacterCombatStat, CharacterSkill } = require('@root/dbObject.js');
-	
+
 	let checkValue = 0;
-	
+
 	// Get the character's stat/skill value
 	switch (check.check_source) {
 	case 'character': {
@@ -493,16 +502,16 @@ async function performCheck(character, check) {
 	default:
 		checkValue = check.check_value || 10;
 	}
-	
+
 	// Apply difficulty modifier
 	checkValue += check.difficulty_mod;
-	
+
 	// Perform roll if required
 	if (check.roll) {
 		const roll = Math.floor(Math.random() * 20) + 1;
 		checkValue += roll;
 	}
-	
+
 	// Compare against target
 	return checkValue >= check.target;
 }

@@ -3,16 +3,24 @@
   "version": "1.0.0",
   "main": "./src/index.js",
   "scripts": {
+    "start": "node src/index.js",
+    "deploy-commands": "node src/deploy-commands.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "Recett",
   "license": "Apache-2.0",
-  "description": "",
+  "description": "Discord RPG Bot with text-based adventure gameplay",
   "dependencies": {
-    "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
+    "@napi-rs/canvas": "^0.1.68",
+    "cron": "^4.3.1",
+    "csv-parser": "^3.2.0",
     "discord.js": "^14.18.0",
-    "sequelize": "^6.37.6",
+    "googleapis": "^105.0.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "module-alias": "^2.2.3",
+    "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
@@ -20,11 +28,14 @@
     "eslint": "^9.23.0"
   },
   "_moduleAliases": {
-    "@root": ".",
+    "@root": "./src",
     "@": "./src",
     "@models": "./src/models",
     "@utility": "./src/utility",
-    "@events": "./src/Events",
+    "@events": "./src/events",
     "@data": "./src/Data"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

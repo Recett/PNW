@@ -17,7 +17,8 @@ module.exports = {
 			const desc = await getCharacterSetting(characterId, 'description');
 			if (desc) {
 				await interaction.reply({ content: `Your current character description:\n${desc}`, flags: MessageFlags.Ephemeral });
-			} else {
+			}
+			else {
 				await interaction.reply({ content: 'You have not set a character description yet. Use `/describe text:<your description>` to set one.', flags: MessageFlags.Ephemeral });
 			}
 			return;

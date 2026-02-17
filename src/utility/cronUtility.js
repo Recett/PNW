@@ -28,11 +28,17 @@ async function performHourlyJob() {
 		job_name: 'hourly_job',
 		last_run: new Date(),
 	});
-	// Increase every character's currentStamina by 10% of maxStamina, up to maxStamina
+	// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina
 	await CharacterBase.sequelize.query(`
 		UPDATE character_bases
-		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.1))
+		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.05))
 		WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
+	`);
+	// Increase every character's currentHp by 10% of maxHp, up to maxHp
+	await CharacterBase.sequelize.query(`
+		UPDATE character_bases
+		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.1))
+		WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL;
 	`);
 }
 
@@ -43,7 +49,8 @@ async function startCronJob() {
 		let needsCatchUp = false;
 		if (!last || !last.last_run) {
 			needsCatchUp = true;
-		} else {
+		}
+		else {
 			const lastRun = new Date(last.last_run);
 			const now = new Date();
 			const diff = now - lastRun;
@@ -78,19 +85,25 @@ async function startCronJob() {
 		console.log('Hourly cron job started.');
 	}
 
-// Helper for catch-up: run hourly job for a specific time
-async function performHourlyJobForTime(runTime) {
-	await CronLog.upsert({
-		job_name: 'hourly_job',
-		last_run: runTime,
-	});
-	// Increase every character's currentStamina by 10% of maxStamina, up to maxStamina
-	await CharacterBase.sequelize.query(`
+	// Helper for catch-up: run hourly job for a specific time
+	async function performHourlyJobForTime(runTime) {
+		await CronLog.upsert({
+			job_name: 'hourly_job',
+			last_run: runTime,
+		});
+		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina
+		await CharacterBase.sequelize.query(`
 		UPDATE character_bases
-		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.1))
+		SET currentStamina = LEAST(maxStamina, currentStamina + CEIL(maxStamina * 0.05))
 		WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
 	`);
-}
+		// Increase every character's currentHp by 10% of maxHp, up to maxHp
+		await CharacterBase.sequelize.query(`
+		UPDATE character_bases
+		SET currentHp = LEAST(maxHp, currentHp + CEIL(maxHp * 0.1))
+		WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL;
+	`);
+	}
 
 }
 

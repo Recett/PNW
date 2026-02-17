@@ -1,0 +1,11 @@
+option_id,check_type,target_stat,minimum_value,required_flag,required_flag_value,forbidden_flag,forbidden_flag_value,required_item,required_quantity,description
+study_runes,stat,intelligence,12,null,null,null,null,null,0,Requires intelligence to understand ancient runes
+touch_runes,flag,null,null,null,null,rune_burn,true,null,0,Cannot touch runes if previously burned
+pick_lock,skill,dexterity,10,null,null,null,null,null,0,Requires dexterity to pick locks
+force_open,stat,strength,14,null,null,null,null,null,0,Requires strength to force open cache
+drink_water,flag,null,null,null,null,spring_sickness,true,null,0,Cannot drink if previously made sick
+bottle_water,item,null,null,null,null,null,null,water_bottle,1,Requires an empty bottle to collect water
+pray_shrine,flag,null,null,shrine_knowledge,true,null,null,null,0,Must know about the deity to pray effectively
+examine_shrine,skill,investigation,8,null,null,null,null,null,0,Requires investigation skill to examine thoroughly
+harvest_crystal,item,null,null,null,null,null,null,mining_tools,1,Requires proper tools to harvest crystals safely
+attune_crystal,stat,wisdom,15,null,null,crystal_attunement_failed,true,null,0,Requires wisdom and no previous failed attempts

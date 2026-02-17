@@ -1,16 +1,58 @@
-const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType, MessageFlags, AttachmentBuilder } = require('discord.js');
 const characterUtil = require('@utility/characterUtility.js');
-const { CharacterCombatStat, CharacterAttackStat } = require('@root/dbObject.js');
+const { generateStatCard } = require('@utility/imageGenerator.js');
+
+/**
+ * Creates a colored progress bar using emoji squares
+ * @param {number} current - Current value
+ * @param {number} max - Maximum value
+ * @param {string} type - 'hp' for gradient colors, 'stamina' for blue
+ * @param {number} length - Bar length in segments (default: 8)
+ * @returns {string} Formatted bar string with value
+ */
+function createColorBar(current, max, type = 'hp', length = 8) {
+	if (max == null || max <= 0) return '- / -';
+	const curr = current ?? 0;
+	const percent = Math.max(0, Math.min(100, (curr / max) * 100));
+	const filled = Math.min(length, Math.floor((percent / 100) * length));
+	const empty = length - filled;
+
+	let filledEmoji;
+	if (type === 'stamina') {
+		filledEmoji = '🟦';
+	}
+	else if (percent > 50) {
+		filledEmoji = '🟩';
+	}
+	else if (percent > 25) {
+		filledEmoji = '🟨';
+	}
+	else {
+		filledEmoji = '🟥';
+	}
+
+	return `${filledEmoji.repeat(filled)}${'⬛'.repeat(empty)} ${curr}/${max}`;
+}
 
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('stat')
 		.setDescription('Show your character\'s stats and equipped items.')
-		.setContexts(InteractionContextType.Guild),
+		.setContexts(InteractionContextType.Guild)
+		.addBooleanOption(option =>
+			option.setName('plain')
+				.setDescription('Show text-based stats instead of image card (default: false)')
+				.setRequired(false))
+		.addBooleanOption(option =>
+			option.setName('public')
+				.setDescription('Show the stats publicly (default: hidden)')
+				.setRequired(false)),
 
 	async execute(interaction) {
 		try {
-			await interaction.deferReply({ ephemeral: true });
+			const isPublic = interaction.options.getBoolean('public') ?? false;
+			const isPlain = interaction.options.getBoolean('plain') ?? false;
+			await interaction.deferReply({ ephemeral: !isPublic });
 
 			const userId = interaction.user.id;
 			const character = await characterUtil.getCharacterBase(userId);
@@ -18,18 +60,43 @@ module.exports = {
 				return await interaction.editReply({ content: 'Character not found.' });
 			}
 
-			// Gather base stats
-			const stats = [
-				`HP: ${character.currentHp ?? '-'} / ${character.maxHp ?? '-'}`,
-				`Stamina: ${character.currentStamina ?? '-'} / ${character.maxStamina ?? '-'}`,
+			// Check if registration is incomplete
+			const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
+			if (unregistered === 1) {
+				return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
+			}
+
+			// Get stats via utility methods (separation of concerns)
+			const combat = await characterUtil.getCharacterCombatStat(userId);
+			const attack = await characterUtil.getCharacterAttackStat(userId);
+			const equipment = await characterUtil.getCharacterEquippedItems(userId);
+
+			// Load avatar from CharacterSetting DB if available
+			const savedAvatar = await characterUtil.getCharacterSetting(userId, 'avatar');
+			const avatarUrl = savedAvatar || interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
+
+			// IMAGE CARD MODE (default)
+			if (!isPlain) {
+				const imageBuffer = await generateStatCard(
+					character,
+					combat,
+					attack,
+					equipment,
+					avatarUrl,
+				);
+
+				const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
+				return await interaction.editReply({ files: [attachment] });
+			}
+
+			// PLAIN TEXT MODE
+			const statFields = [
 				`STR: ${character.str ?? '-'}`,
 				`DEX: ${character.dex ?? '-'}`,
 				`AGI: ${character.agi ?? '-'}`,
 				`CON: ${character.con ?? '-'}`,
 			];
 
-			// Get summarized combat stats
-			const combat = await CharacterCombatStat.findOne({ where: { character_id: userId } });
 			const combatFields = combat
 				? [
 					`Defense: ${combat.defense ?? '-'}`,
@@ -40,8 +107,6 @@ module.exports = {
 				]
 				: ['None'];
 
-			// Get summarized attack stats
-			const attack = await CharacterAttackStat.findOne({ where: { character_id: userId } });
 			const attackFields = attack
 				? [
 					`Attack: ${attack.attack ?? '-'}`,
@@ -50,33 +115,25 @@ module.exports = {
 				]
 				: ['None'];
 
-			// Get equipped items with names
-			const { CharacterItem, ItemLib } = require('@root/dbObject.js');
-			const equippedItems = await CharacterItem.findAll({
-				where: { character_id: userId, equipped: true },
-				include: [{ model: ItemLib, as: 'item' }],
-			});
-			const equipList = equippedItems.length > 0
-				? equippedItems.map(eq => `- ${eq.item ? eq.item.name : eq.item_id}`).join('\n')
+			// Format equipped items list for plain text
+			const equipList = equipment.length > 0
+				? equipment.map(eq => `- ${eq.itemName}`).join('\n')
 				: 'None';
 
-			// Load avatar from CharacterSetting DB if available
-			let avatarUrl;
-			const { CharacterSetting } = require('@root/dbObject.js');
-			const charSetting = await CharacterSetting.findOne({ where: { character_id: userId, setting: 'avatar' } });
-			if (charSetting && charSetting.value) {
-				avatarUrl = charSetting.value;
-			}
-			else {
-				avatarUrl = interaction.user.displayAvatarURL({ dynamic: true });
-			}
+			// Create HP and Stamina bars
+			const hpBar = createColorBar(character.currentHp, character.maxHp, 'hp');
+			const staminaBar = createColorBar(character.currentStamina, character.maxStamina, 'stamina');
+
 			const embed = {
 				title: `${character.name}'s Stats`,
-				description: stats.join('\n'),
+				description: statFields.join('\n'),
 				thumbnail: { url: avatarUrl },
 				fields: [
-					{ name: 'Combat Stats', value: combatFields.join('\n') },
-					{ name: 'Attack Stats', value: attackFields.join('\n') },
+					{ name: 'HP', value: hpBar, inline: true },
+					{ name: 'Stamina', value: staminaBar, inline: true },
+					{ name: '\u200B', value: '\u200B', inline: true },
+					{ name: 'Combat Stats', value: combatFields.join('\n'), inline: true },
+					{ name: 'Attack Stats', value: attackFields.join('\n'), inline: true },
 					{ name: 'Equipped Items', value: equipList },
 				],
 			};
