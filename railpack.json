@@ -1,12 +1,10 @@
 {
-  "packages": {
-    "apt": [
-      "libcairo2-dev",
-      "libpango1.0-dev",
-      "libjpeg-dev",
-      "libgif-dev",
-      "librsvg2-dev",
-      "fonts-noto-color-emoji"
-    ]
-  }
+  "packages": [
+    "libcairo2-dev",
+    "libpango1.0-dev",
+    "libjpeg-dev",
+    "libgif-dev",
+    "librsvg2-dev",
+    "fonts-noto-color-emoji"
+  ]
 }
