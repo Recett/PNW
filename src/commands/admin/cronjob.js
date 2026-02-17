@@ -80,7 +80,7 @@ module.exports = {
 			switch (subcommand) {
 			case 'list': {
 				const filter = interaction.options.getString('filter') || 'all';
-				const jobs = filter === 'all' 
+				const jobs = filter === 'all'
 					? await CronJobManager.getAllJobs()
 					: await CronJobManager.getAllJobs(filter);
 
@@ -99,7 +99,7 @@ module.exports = {
 
 					const lastRun = job.last_run ? new Date(job.last_run).toLocaleString() : 'Never';
 					const execCount = `${job.execution_count || 0} runs`;
-					const successRate = job.execution_count > 0 
+					const successRate = job.execution_count > 0
 						? `(${((job.success_count / job.execution_count) * 100).toFixed(1)}% success)`
 						: '';
 
@@ -164,7 +164,7 @@ module.exports = {
 			case 'stop': {
 				const jobName = interaction.options.getString('name');
 				const job = await CronJobManager.stopJob(jobName);
-				return await interaction.editReply({ 
+				return await interaction.editReply({
 					content: `✅ Cron job **${jobName}** has been stopped.`,
 					embeds: [{
 						description: `Status: ${job.status}\nStopped at: ${new Date(job.stopped_at).toLocaleString()}`,
@@ -176,7 +176,7 @@ module.exports = {
 			case 'pause': {
 				const jobName = interaction.options.getString('name');
 				const job = await CronJobManager.pauseJob(jobName);
-				return await interaction.editReply({ 
+				return await interaction.editReply({
 					content: `⏸️ Cron job **${jobName}** has been paused.`,
 					embeds: [{
 						description: `Status: ${job.status}\nPaused at: ${new Date(job.paused_at).toLocaleString()}`,
@@ -188,7 +188,7 @@ module.exports = {
 			case 'resume': {
 				const jobName = interaction.options.getString('name');
 				const job = await CronJobManager.resumeJob(jobName);
-				return await interaction.editReply({ 
+				return await interaction.editReply({
 					content: `▶️ Cron job **${jobName}** has been resumed.`,
 					embeds: [{
 						description: `Status: ${job.status}`,
@@ -200,7 +200,7 @@ module.exports = {
 			case 'enable': {
 				const jobName = interaction.options.getString('name');
 				const job = await CronJobManager.setJobEnabled(jobName, true);
-				return await interaction.editReply({ 
+				return await interaction.editReply({
 					content: `✅ Cron job **${jobName}** has been enabled.`,
 					embeds: [{
 						description: `Status: ${job.status}\nEnabled: ${job.is_enabled}`,
@@ -212,7 +212,7 @@ module.exports = {
 			case 'disable': {
 				const jobName = interaction.options.getString('name');
 				const job = await CronJobManager.setJobEnabled(jobName, false);
-				return await interaction.editReply({ 
+				return await interaction.editReply({
 					content: `🚫 Cron job **${jobName}** has been disabled.`,
 					embeds: [{
 						description: `Status: ${job.status}\nEnabled: ${job.is_enabled}`,

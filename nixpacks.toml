@@ -1,5 +1,6 @@
 [phases.setup]
 nixPkgs = [
+  "nodejs_20",
   "cairo",
   "pango",
   "libjpeg",
@@ -21,4 +22,4 @@ nixLibs = [
 cmds = ["npm ci"]
 
 [start]
-cmd = "npm start"
+cmd = "node src/index.js"
