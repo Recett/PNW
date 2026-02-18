@@ -1,34 +1,105 @@
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const { EQUIPMENT_SLOT_CONFIG, WEAPON_SLOTS } = require('@root/enums.js');
 const fs = require('fs');
+const { execSync } = require('child_process');
 
-// Try to register emoji font (platform-specific)
+/**
+ * Find a font file using fc-list (fontconfig) on Linux
+ * @param {string} fontFamily - Font family name (e.g., "Liberation Sans")
+ * @returns {string|null} - Path to font file or null
+ */
+function findFontWithFc(fontFamily) {
+	try {
+		// Use fc-list to find font file path
+		const output = execSync(`fc-list "${fontFamily}" file`, { encoding: 'utf8', timeout: 2000 });
+		const lines = output.trim().split('\n');
+		for (const line of lines) {
+			// fc-list returns lines like: /path/to/font.ttf: Font Family Name:style
+			const match = line.match(/^([^:]+\.ttf)/i);
+			if (match) {
+				return match[1].trim();
+			}
+		}
+	}
+	catch {
+		// fc-list not available or failed
+		return null;
+	}
+	return null;
+}
+
+// Register fonts (platform-specific)
 try {
 	// Windows
 	if (process.platform === 'win32') {
 		const windowsFontPath = 'C:\\Windows\\Fonts\\seguiemj.ttf';
 		if (fs.existsSync(windowsFontPath)) {
 			GlobalFonts.registerFromPath(windowsFontPath, 'Segoe UI Emoji');
+			console.log('[Canvas] Registered Segoe UI Emoji font');
 		}
+		// Windows already has Arial/system fonts available
 	}
 	// Linux (Railway/production)
 	else if (process.platform === 'linux') {
-		// Common Linux emoji font paths
-		const linuxFontPaths = [
+		// Register Liberation Sans (regular text font) - CRITICAL for rendering
+		const liberationSansPaths = [
+			'/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+			'/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+			'/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf',
+		];
+		let liberationRegistered = false;
+		
+		// Try known paths first
+		for (const fontPath of liberationSansPaths) {
+			if (fs.existsSync(fontPath)) {
+				GlobalFonts.registerFromPath(fontPath, 'Liberation Sans');
+				console.log('[Canvas] Registered Liberation Sans from:', fontPath);
+				liberationRegistered = true;
+				break;
+			}
+		}
+		
+		// Fallback: use fc-list to find the font
+		if (!liberationRegistered) {
+			const fcPath = findFontWithFc('Liberation Sans');
+			if (fcPath && fs.existsSync(fcPath)) {
+				GlobalFonts.registerFromPath(fcPath, 'Liberation Sans');
+				console.log('[Canvas] Registered Liberation Sans from fc-list:', fcPath);
+				liberationRegistered = true;
+			}
+		}
+		
+		if (!liberationRegistered) {
+			console.error('[Canvas] CRITICAL: Liberation Sans font not found! Text rendering will fail.');
+			console.error('[Canvas] Make sure liberation_ttf package is installed in nixpacks.toml');
+		}
+
+		// Register emoji font (for icons)
+		const emojiPaths = [
 			'/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
 			'/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf',
 			'/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf',
 		];
-		for (const fontPath of linuxFontPaths) {
+		for (const fontPath of emojiPaths) {
 			if (fs.existsSync(fontPath)) {
 				GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
+				console.log('[Canvas] Registered Noto Color Emoji from:', fontPath);
 				break;
 			}
 		}
 	}
 }
 catch (e) {
-	console.log('Could not load emoji font (non-critical):', e.message);
+	console.error('[Canvas] Font registration error:', e.message);
+}
+
+// Log available fonts for debugging
+try {
+	const registeredFonts = GlobalFonts.families;
+	console.log('[Canvas] Available font families:', registeredFonts.length > 0 ? registeredFonts : 'NONE - This will cause rendering to fail!');
+}
+catch (e) {
+	console.log('[Canvas] Could not list fonts:', e.message);
 }
 
 /**
