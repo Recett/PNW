@@ -96,7 +96,7 @@ function drawProgressBar(ctx, x, y, width, height, current, max, type = 'hp') {
 
 	// Text value
 	ctx.fillStyle = '#ffffff';
-	ctx.font = 'bold 14px Arial';
+	ctx.font = 'bold 14px "Liberation Sans", Arial, sans-serif';
 	ctx.textAlign = 'right';
 	ctx.fillText(`${current ?? 0}/${max ?? 0}`, x + width - 8, y + height - 6);
 }
@@ -151,7 +151,7 @@ function drawCircularAvatar(ctx, image, x, y, radius, borderColor = '#5865F2') {
  */
 function drawSectionHeader(ctx, text, x, y, width) {
 	ctx.fillStyle = '#7289da';
-	ctx.font = 'bold 14px Arial';
+	ctx.font = 'bold 14px "Liberation Sans", Arial, sans-serif';
 	ctx.textAlign = 'left';
 	ctx.fillText(text, x, y);
 
@@ -240,7 +240,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		ctx.fillStyle = '#3a3a5e';
 		ctx.fill();
 		ctx.fillStyle = '#7289da';
-		ctx.font = 'bold 40px Arial';
+		ctx.font = 'bold 40px "Liberation Sans", Arial, sans-serif';
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'middle';
 		ctx.fillText('?', avatarX, avatarY);
@@ -248,7 +248,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 
 	// Character name
 	ctx.fillStyle = '#ffffff';
-	ctx.font = 'bold 28px Arial';
+	ctx.font = 'bold 28px "Liberation Sans", Arial, sans-serif';
 	ctx.textAlign = 'left';
 	ctx.fillText(character.name ?? 'Unknown', 160, 50);
 
@@ -259,32 +259,32 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	ctx.fill();
 	// Use dark text for gold/silver for better contrast
 	ctx.fillStyle = (character.level ?? 1) >= 21 ? '#1a1a2e' : '#ffffff';
-	ctx.font = 'bold 14px Arial';
+	ctx.font = 'bold 14px "Liberation Sans", Arial, sans-serif';
 	ctx.fillText(`Lv. ${character.level ?? 1}`, 170, 78);
 
 	// Gold display (using emoji font)
 	ctx.fillStyle = '#f1c40f';
-	ctx.font = '14px "Segoe UI Emoji", Arial';
+	ctx.font = '14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText(`💰 ${character.gold ?? 0}`, 240, 78);
 
 	// HP Bar (below level/gold row)
 	ctx.textAlign = 'left';
 	ctx.fillStyle = '#e74c3c';
-	ctx.font = 'bold 14px "Segoe UI Emoji", Arial';
+	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('❤️ HP', 160, 110);
 	drawProgressBar(ctx, 210, 95, 275, 20, character.currentHp ?? 0, character.maxHp ?? 100, 'hp');
 
 	// Stamina Bar
 	ctx.textAlign = 'left';
 	ctx.fillStyle = '#3498db';
-	ctx.font = 'bold 14px "Segoe UI Emoji", Arial';
+	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('⚡ STA', 160, 135);
 	drawProgressBar(ctx, 210, 120, 275, 20, character.currentStamina ?? 0, character.maxStamina ?? 100, 'stamina');
 
 	// XP Bar
 	ctx.textAlign = 'left';
 	ctx.fillStyle = '#9b59b6';
-	ctx.font = 'bold 14px "Segoe UI Emoji", Arial';
+	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('✨ XP', 160, 160);
 	const xpForLevel = 1000;
 	drawProgressBar(ctx, 210, 145, 275, 20, character.xp ?? 0, xpForLevel, 'xp');
@@ -312,13 +312,13 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		// Icon and Label (using emoji font)
 		ctx.fillStyle = '#7289da';
 		ctx.textAlign = 'left';
-		ctx.font = 'bold 16px "Segoe UI Emoji", Arial';
+		ctx.font = 'bold 16px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 		ctx.fillText(`${stat.icon} ${stat.label}`, statX + 5, statY + 5);
 
 		// Value
 		ctx.fillStyle = '#ffffff';
 		ctx.textAlign = 'right';
-		ctx.font = 'bold 16px Arial';
+		ctx.font = 'bold 16px "Liberation Sans", Arial, sans-serif';
 		ctx.fillText(stat.value.toString(), statX + 110, statY + 5);
 	});
 
@@ -334,7 +334,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		{ label: 'Critical', value: attackStats?.critical ?? 0 },
 	];
 
-	ctx.font = '13px Arial';
+	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
 	combatData.forEach((stat, index) => {
 		const col = index % 2;
 		const row = Math.floor(index / 2);
@@ -377,7 +377,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		});
 	}
 
-	ctx.font = '13px Arial';
+	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
 	EQUIPMENT_SLOT_CONFIG.forEach((slot, index) => {
 		const slotY = 290 + index * 26;
 		const slotX = 345;
@@ -385,11 +385,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		// Slot icon and label (using emoji font)
 		ctx.fillStyle = '#7289da';
 		ctx.textAlign = 'left';
-		ctx.font = '13px "Segoe UI Emoji", Arial';
+		ctx.font = '13px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 		ctx.fillText(`${slot.icon} ${slot.label}:`, slotX, slotY);
 
 		// Item name
-		ctx.font = '13px Arial';
+		ctx.font = '13px "Liberation Sans", Arial, sans-serif';
 		const itemName = equipmentMap[slot.key] ?? '—';
 		const isOccupied = occupiedSlots.has(slot.key);
 		
@@ -419,14 +419,14 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	// === WEIGHT SECTION ===
 	if (combatStats) {
 		ctx.fillStyle = '#888888';
-		ctx.font = '12px Arial';
+		ctx.font = '12px "Liberation Sans", Arial, sans-serif';
 		ctx.textAlign = 'left';
 		ctx.fillText(`Weight: ${combatStats.currentWeight ?? 0}/${combatStats.maxWeight ?? 0}`, 30, 370);
 	}
 
 	// Watermark/footer
 	ctx.fillStyle = '#4a4a6e';
-	ctx.font = '11px Arial';
+	ctx.font = '11px "Liberation Sans", Arial, sans-serif';
 	ctx.textAlign = 'right';
 	ctx.fillText('Pioneer Certificate', width - 20, height - 15);
 

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, MessageFlags } = require('discord.js');
-const { setCharacterSetting } = require('../../utility/characterSettingUtility');
+const { setCharacterSetting, getCharacterSetting } = require('../../utility/characterSettingUtility');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,6 +15,7 @@ module.exports = {
 		const url = interaction.options.getString('url');
 		if (!url) {
 			const currentAvatar = await getCharacterSetting(characterId, 'avatar');
+			console.log('[Avatar] Retrieved current avatar for', characterId, ':', currentAvatar);
 			if (currentAvatar) {
 				await interaction.reply({
 					embeds: [{
@@ -30,12 +31,13 @@ module.exports = {
 			}
 			return;
 		}
-		// Optionally: Validate URL is a valid image URL (basic check)
-		if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+		// Validate URL is a valid image URL (allows query parameters like ?size=256)
+		if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)($|\?)/i.test(url)) {
 			await interaction.reply({ content: 'Please provide a valid image URL (jpg, jpeg, png, gif, webp).', flags: MessageFlags.Ephemeral });
 			return;
 		}
 		await setCharacterSetting(characterId, 'avatar', url);
+		console.log('[Avatar] Set avatar for', characterId, 'to:', url);
 		await interaction.reply({ content: 'Your character avatar has been set!', flags: MessageFlags.Ephemeral });
 	},
 };

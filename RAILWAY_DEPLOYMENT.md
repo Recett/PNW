@@ -173,12 +173,14 @@ The bot uses `@napi-rs/canvas` for generating stat cards, which requires native 
 ```toml
 [phases.setup]
 nixPkgs = [
+  "nodejs_20",
   "cairo",
   "pango",
   "libjpeg",
   "giflib",
   "librsvg",
   "pixman",
+  "liberation_ttf",
   "noto-fonts-emoji"
 ]
 nixLibs = [
@@ -194,7 +196,7 @@ nixLibs = [
 cmds = ["npm ci"]
 
 [start]
-cmd = "npm start"
+cmd = "node src/index.js"
 ```
 
 2. **Redeploy** after adding/updating `nixpacks.toml`. Railway will detect the new configuration and install the required system packages during the build phase.
