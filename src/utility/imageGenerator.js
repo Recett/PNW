@@ -41,50 +41,104 @@ try {
 	}
 	// Linux (Railway/production)
 	else if (process.platform === 'linux') {
-		// Register Liberation Sans (regular text font) - CRITICAL for rendering
-		const liberationSansPaths = [
-			'/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-			'/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
-			'/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf',
-		];
-		let liberationRegistered = false;
+		let fontsRegistered = 0;
 		
-		// Try known paths first
-		for (const fontPath of liberationSansPaths) {
-			if (fs.existsSync(fontPath)) {
-				GlobalFonts.registerFromPath(fontPath, 'Liberation Sans');
-				console.log('[Canvas] Registered Liberation Sans from:', fontPath);
-				liberationRegistered = true;
-				break;
+		// Register Liberation Sans family (all weights) - CRITICAL for rendering
+		const liberationFonts = [
+			{ file: 'LiberationSans-Regular.ttf', family: 'Liberation Sans' },
+			{ file: 'LiberationSans-Bold.ttf', family: 'Liberation Sans' },
+		];
+		
+		// Standard Linux paths
+		const basePaths = [
+			'/usr/share/fonts/truetype/liberation',
+			'/usr/share/fonts/truetype/liberation2',
+			'/usr/share/fonts/liberation-sans',
+			'/run/current-system/sw/share/fonts/truetype',
+		];
+		
+		// Search Nix store for liberation fonts (Railway uses Nix)
+		try {
+			const findCmd = 'find /nix/store -name "LiberationSans-*.ttf" 2>/dev/null | head -5';
+			const nixFonts = execSync(findCmd, { encoding: 'utf8', timeout: 5000 }).trim().split('\n').filter(Boolean);
+			
+			if (nixFonts.length > 0) {
+				console.log('[Canvas] Found Liberation fonts in Nix store:', nixFonts.length);
+				for (const fontPath of nixFonts) {
+					if (fontPath.includes('Regular')) {
+						GlobalFonts.registerFromPath(fontPath, 'Liberation Sans');
+						console.log('[Canvas] Registered Regular from Nix:', fontPath);
+						fontsRegistered++;
+					}
+					else if (fontPath.includes('Bold') && !fontPath.includes('Italic')) {
+						GlobalFonts.registerFromPath(fontPath, 'Liberation Sans');
+						console.log('[Canvas] Registered Bold from Nix:', fontPath);
+						fontsRegistered++;
+					}
+				}
+			}
+		}
+		catch (nixError) {
+			console.log('[Canvas] Nix store search failed:', nixError.message);
+		}
+		
+		// Fallback to standard paths if Nix search didn't work
+		if (fontsRegistered === 0) {
+			for (const fontDef of liberationFonts) {
+				for (const basePath of basePaths) {
+					const fontPath = `${basePath}/${fontDef.file}`;
+					if (fs.existsSync(fontPath)) {
+						GlobalFonts.registerFromPath(fontPath, fontDef.family);
+						console.log(`[Canvas] Registered ${fontDef.file} from ${basePath}`);
+						fontsRegistered++;
+						break;
+					}
+				}
 			}
 		}
 		
-		// Fallback: use fc-list to find the font
-		if (!liberationRegistered) {
+		// Try fc-list if available
+		if (fontsRegistered === 0) {
 			const fcPath = findFontWithFc('Liberation Sans');
 			if (fcPath && fs.existsSync(fcPath)) {
 				GlobalFonts.registerFromPath(fcPath, 'Liberation Sans');
-				console.log('[Canvas] Registered Liberation Sans from fc-list:', fcPath);
-				liberationRegistered = true;
+				console.log('[Canvas] Registered via fc-list:', fcPath);
+				fontsRegistered++;
 			}
 		}
 		
-		if (!liberationRegistered) {
-			console.error('[Canvas] CRITICAL: Liberation Sans font not found! Text rendering will fail.');
-			console.error('[Canvas] Make sure liberation_ttf package is installed in nixpacks.toml');
+		if (fontsRegistered === 0) {
+			console.error('[Canvas] CRITICAL: No Liberation Sans fonts found!');
+			console.error('[Canvas] Searched: Nix store, standard paths, fc-list');
+			console.error('[Canvas] Make sure liberation_ttf is in nixpacks.toml nixPkgs array');
+		}
+		else {
+			console.log(`[Canvas] Successfully registered ${fontsRegistered} Liberation Sans variants`);
 		}
 
-		// Register emoji font (for icons)
+		// Register emoji font
 		const emojiPaths = [
 			'/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
 			'/usr/share/fonts/google-noto-emoji/NotoColorEmoji.ttf',
 			'/usr/share/fonts/noto-emoji/NotoColorEmoji.ttf',
 		];
-		for (const fontPath of emojiPaths) {
-			if (fs.existsSync(fontPath)) {
-				GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
-				console.log('[Canvas] Registered Noto Color Emoji from:', fontPath);
-				break;
+		
+		// Also search Nix store for emoji fonts
+		try {
+			const nixEmoji = execSync('find /nix/store -name "NotoColorEmoji.ttf" 2>/dev/null | head -1', { encoding: 'utf8', timeout: 3000 }).trim();
+			if (nixEmoji) {
+				GlobalFonts.registerFromPath(nixEmoji, 'Noto Color Emoji');
+				console.log('[Canvas] Registered emoji from Nix:', nixEmoji);
+			}
+		}
+		catch {
+			// Try standard paths
+			for (const fontPath of emojiPaths) {
+				if (fs.existsSync(fontPath)) {
+					GlobalFonts.registerFromPath(fontPath, 'Noto Color Emoji');
+					console.log('[Canvas] Registered emoji from:', fontPath);
+					break;
+				}
 			}
 		}
 	}
@@ -97,6 +151,25 @@ catch (e) {
 try {
 	const registeredFonts = GlobalFonts.families;
 	console.log('[Canvas] Available font families:', registeredFonts.length > 0 ? registeredFonts : 'NONE - This will cause rendering to fail!');
+	
+	// Test canvas rendering on Linux
+	if (process.platform === 'linux') {
+		try {
+			const testCanvas = createCanvas(100, 100);
+			const testCtx = testCanvas.getContext('2d');
+			testCtx.fillStyle = '#ff0000';
+			testCtx.fillRect(0, 0, 100, 100);
+			testCtx.fillStyle = '#ffffff';
+			testCtx.font = '14px "Liberation Sans", Arial, sans-serif';
+			testCtx.fillText('TEST', 10, 50);
+			const testBuffer = testCanvas.toBuffer('image/png');
+			console.log('[Canvas] Test render successful, buffer size:', testBuffer.length, 'bytes');
+		}
+		catch (testError) {
+			console.error('[Canvas] Test render FAILED:', testError.message);
+			console.error('[Canvas] Stack:', testError.stack);
+		}
+	}
 }
 catch (e) {
 	console.log('[Canvas] Could not list fonts:', e.message);
@@ -247,6 +320,37 @@ function drawSectionHeader(ctx, text, x, y, width) {
  */
 async function generateStatCard(character, combatStats, attackStats, equipment, avatarUrl) {
 	console.log('[Canvas] generateStatCard called for character:', character.id);
+	
+	// CRITICAL: Register fonts for @napi-rs/canvas before any rendering
+	// This library requires explicit font registration on Linux
+	if (process.platform === 'linux') {
+		try {
+			// Try to find and register Liberation Sans
+			const fontPaths = [
+				'/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
+				'/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
+			];
+			
+			let registered = false;
+			for (const fontPath of fontPaths) {
+				if (fs.existsSync(fontPath)) {
+					GlobalFonts.registerFromPath(fontPath, 'Liberation Sans');
+					console.log('[Canvas] Registered font:', fontPath);
+					registered = true;
+				}
+			}
+			
+			if (!registered) {
+				console.error('[Canvas] WARNING: Could not register Liberation Sans font');
+			}
+			
+			console.log('[Canvas] Available fonts:', GlobalFonts.families);
+		}
+		catch (fontError) {
+			console.error('[Canvas] Font registration error:', fontError.message);
+		}
+	}
+	
 	const width = 650;
 	const height = 430;
 	const canvas = createCanvas(width, height);

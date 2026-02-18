@@ -7,6 +7,7 @@ nixPkgs = [
   "giflib",
   "librsvg",
   "pixman",
+  "fontconfig",
   "liberation_ttf",
   "noto-fonts-emoji"
 ]
@@ -24,3 +25,6 @@ cmds = ["npm ci"]
 
 [start]
 cmd = "node src/index.js"
+
+[variables]
+FONTCONFIG_PATH = "/etc/fonts"
