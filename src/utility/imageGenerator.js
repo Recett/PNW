@@ -1,6 +1,5 @@
 const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const { EQUIPMENT_SLOT_CONFIG, WEAPON_SLOTS } = require('@root/enums.js');
-const path = require('path');
 const fs = require('fs');
 
 // Try to register emoji font (platform-specific)
@@ -176,9 +175,11 @@ function drawSectionHeader(ctx, text, x, y, width) {
  * @returns {Promise<Buffer>} PNG image buffer
  */
 async function generateStatCard(character, combatStats, attackStats, equipment, avatarUrl) {
+	console.log('[Canvas] generateStatCard called for character:', character.id);
 	const width = 650;
 	const height = 430;
 	const canvas = createCanvas(width, height);
+	console.log('[Canvas] Canvas created successfully, size:', width, 'x', height);
 	const ctx = canvas.getContext('2d');
 
 	// Determine rank color based on level
@@ -429,7 +430,10 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	ctx.textAlign = 'right';
 	ctx.fillText('Pioneer Certificate', width - 20, height - 15);
 
-	return canvas.toBuffer('image/png');
+	console.log('[Canvas] Rendering complete, converting to PNG buffer');
+	const buffer = canvas.toBuffer('image/png');
+	console.log('[Canvas] Buffer created, size:', buffer.length, 'bytes');
+	return buffer;
 }
 
 module.exports = {

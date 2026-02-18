@@ -878,29 +878,34 @@ let applyVirtueStats = async (characterId, fortitude, justice, prudence, tempera
 
 	// Calculate total and apply correction if needed
 	const total = con + str + dex + agi;
-	const correction = 12 - total;
+	const correction = 6 - total;
 
 	if (correction !== 0) {
-		// Find the highest stat to apply correction
+		// Distribute correction round-robin from highest to lowest stat
 		const stats = [
-			{ name: 'con', value: con },
-			{ name: 'str', value: str },
-			{ name: 'dex', value: dex },
-			{ name: 'agi', value: agi },
+			{ name: 'con', ref: () => con, set: (v) => { con = v; } },
+			{ name: 'str', ref: () => str, set: (v) => { str = v; } },
+			{ name: 'dex', ref: () => dex, set: (v) => { dex = v; } },
+			{ name: 'agi', ref: () => agi, set: (v) => { agi = v; } },
 		];
 
 		// Sort by value descending, then by name for consistency
 		stats.sort((a, b) => {
-			if (b.value !== a.value) return b.value - a.value;
+			if (b.ref() !== a.ref()) return b.ref() - a.ref();
 			return a.name.localeCompare(b.name);
 		});
 
-		// Apply correction to the highest stat
-		const highestStat = stats[0].name;
-		if (highestStat === 'con') con += correction;
-		else if (highestStat === 'str') str += correction;
-		else if (highestStat === 'dex') dex += correction;
-		else if (highestStat === 'agi') agi += correction;
+		// Distribute correction points round-robin
+		let remaining = Math.abs(correction);
+		let index = 0;
+		const increment = correction > 0 ? 1 : -1;
+		
+		while (remaining > 0) {
+			const stat = stats[index];
+			stat.set(stat.ref() + increment);
+			remaining--;
+			index = (index + 1) % stats.length;
+		}
 	}
 
 	// Apply the calculated stats to the character

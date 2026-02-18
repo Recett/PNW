@@ -90,7 +90,10 @@ module.exports = {
 					return await interaction.editReply({ files: [attachment] });
 				}
 				catch (canvasError) {
-					console.error('Canvas generation failed, falling back to plain text:', canvasError.message);
+					console.error('Canvas generation failed, falling back to plain text:');
+					console.error('Error name:', canvasError.name);
+					console.error('Error message:', canvasError.message);
+					console.error('Error stack:', canvasError.stack);
 					// Fall through to plain text mode
 				}
 			}
