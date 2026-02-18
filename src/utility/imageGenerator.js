@@ -447,14 +447,14 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	ctx.fillStyle = '#e74c3c';
 	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('❤️ HP', 160, 110);
-	drawProgressBar(ctx, 210, 95, 275, 20, character.currentHp ?? 0, character.maxHp ?? 100, 'hp');
+	drawProgressBar(ctx, 230, 95, 255, 20, character.currentHp ?? 0, character.maxHp ?? 100, 'hp');
 
 	// Stamina Bar
 	ctx.textAlign = 'left';
 	ctx.fillStyle = '#3498db';
 	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('⚡ STA', 160, 135);
-	drawProgressBar(ctx, 210, 120, 275, 20, character.currentStamina ?? 0, character.maxStamina ?? 100, 'stamina');
+	drawProgressBar(ctx, 230, 120, 255, 20, character.currentStamina ?? 0, character.maxStamina ?? 100, 'stamina');
 
 	// XP Bar
 	ctx.textAlign = 'left';
@@ -462,7 +462,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	ctx.font = 'bold 14px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 	ctx.fillText('✨ XP', 160, 160);
 	const xpForLevel = 1000;
-	drawProgressBar(ctx, 210, 145, 275, 20, character.xp ?? 0, xpForLevel, 'xp');
+	drawProgressBar(ctx, 230, 145, 255, 20, character.xp ?? 0, xpForLevel, 'xp');
 
 	// === BASE STATS SECTION ===
 	drawSectionHeader(ctx, 'BASE STATS', 25, 185, 600);
@@ -584,11 +584,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		// Truncate long item names, add parentheses if occupied
 		let displayName = itemName;
 		if (isOccupied) displayName = `(${itemName})`;
-		const maxWidth = 150;
+		const maxWidth = 135;
 		while (ctx.measureText(displayName).width > maxWidth && displayName.length > 3) {
 			displayName = displayName.slice(0, -4) + '...';
 		}
-		ctx.fillText(displayName, slotX + 100, slotY);
+		ctx.fillText(displayName, slotX + 115, slotY);
 	});
 
 	// === WEIGHT SECTION ===
