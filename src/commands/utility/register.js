@@ -131,8 +131,8 @@ module.exports = {
 				}
 			}
 
-			// Get avatar URL - use provided avatar or fall back to server/user avatar
-			const avatarUrl = avatar || interaction.member?.displayAvatarURL() || interaction.user.displayAvatarURL();
+			// Use provided avatar for display, or Discord avatar as fallback for preview
+			const displayAvatarUrl = avatar || interaction.user.displayAvatarURL({ forceStatic: false });
 
 			// Normalize gender input (accept both Vietnamese and English, default to Male if empty)
 			const genderLower = gender?.toLowerCase() || '';
@@ -155,7 +155,7 @@ module.exports = {
 				.setDescription(certificateText)
 				.setColor(0xf1c40f)
 				.setFooter({ text: 'Đọc kĩ trước khi xác nhận. ' })
-				.setThumbnail(avatarUrl);
+				.setThumbnail(displayAvatarUrl);
 
 			// Create Submit and Scrap buttons
 			const row = new ActionRowBuilder().addComponents(
@@ -205,7 +205,7 @@ module.exports = {
 							fullname: fullname,
 							gender: normalizedGender,
 							age: age,
-							avatar: avatarUrl,
+								avatar: avatar || null,
 							str: 9,
 							dex: 9,
 							agi: 9,
@@ -273,13 +273,7 @@ module.exports = {
 							.setDescription(certificateText)
 							.setColor(0x2ecc71)
 							.setFooter({ text: 'Tôi trịnh trọng thề rằng những thông tin được cung cấp ở trên là sự thật, và không có gì khác ngoài sự thật.' })
-							.setThumbnail(avatarUrl);
-
-						if (starterLocation) {
-							successEmbed.addFields({ name: 'Starting Location', value: starterLocation.name, inline: true });
-						}
-
-						await i.editReply({ embeds: [successEmbed], components: [] });
+						.setThumbnail(displayAvatarUrl);
 
 						// === Create interview thread ===
 						// Find location with "interview" tag

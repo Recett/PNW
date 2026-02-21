@@ -96,8 +96,8 @@ module.exports = {
 						userId,
 						{
 							metadata: { npcId: npc.id, npcName: npc.name },
-							// Dialogue should be visible to channel
-							ephemeral: false,
+							// Dialogue should be ephemeral like the rest of talk command
+							ephemeral: true,
 						},
 					);
 

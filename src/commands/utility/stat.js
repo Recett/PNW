@@ -71,12 +71,9 @@ module.exports = {
 			const attack = await characterUtil.getCharacterAttackStat(userId);
 			const equipment = await characterUtil.getCharacterEquippedItems(userId);
 
-			// Load avatar from CharacterSetting DB if available
-			const savedAvatar = await characterUtil.getCharacterSetting(userId, 'avatar');
-			const avatarUrl = savedAvatar || interaction.user.displayAvatarURL({ extension: 'png', size: 256 });
-			console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!savedAvatar, ')');
-
-			// IMAGE CARD MODE (default) - fallback to plain text if canvas fails
+			// Use stored avatar if available, otherwise use Discord avatar for display
+			const avatarUrl = character.avatar || interaction.user.displayAvatarURL({ forceStatic: false });
+		console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!character.avatar, ')');
 			if (!isPlain) {
 				try {
 					const imageBuffer = await generateStatCard(

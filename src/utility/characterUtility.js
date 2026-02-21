@@ -908,11 +908,20 @@ let applyVirtueStats = async (characterId, fortitude, justice, prudence, tempera
 		}
 	}
 
-	// Apply the calculated stats to the character
-	await modifyCharacterStat(characterId, 'con', con);
-	await modifyCharacterStat(characterId, 'str', str);
-	await modifyCharacterStat(characterId, 'dex', dex);
-	await modifyCharacterStat(characterId, 'agi', agi);
+	// Apply the calculated stats to the character - explicitly set to 9 + bonus instead of just adding bonus
+	// This ensures consistency: always base (9) + virtue bonus, avoiding accidental duplicates
+	const { CharacterBase } = getDbModels();
+	await CharacterBase.update(
+		{
+			con: 9 + con,
+			str: 9 + str,
+			dex: 9 + dex,
+			agi: 9 + agi,
+		},
+		{ where: { id: characterId } },
+	);
+	// Trigger stat recalculation for derived stats
+	await recalculateCharacterStats({ id: characterId });
 
 	return {
 		success: true,

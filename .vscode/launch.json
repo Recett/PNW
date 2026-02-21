@@ -9,7 +9,7 @@
             "name": "Start Bot",
             "request": "launch",
             "program": "${workspaceFolder}/src/index.js",
-            "cwd": "${workspaceFolder}/src",
+            "cwd": "${workspaceFolder}",
             "console": "integratedTerminal",
             "skipFiles": ["<node_internals>/**"]
         }

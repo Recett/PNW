@@ -294,6 +294,11 @@ function processTextTemplate(text, playerAge, playerGender, character = null, np
 	result = result.replace(/([.!?])\s+([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/g,
 		(match, punct, letter) => `${punct} ${letter.toUpperCase()}`);
 
+	// Auto-capitalize after quotation marks
+	// Match: quotation mark followed by optional space(s) and then a Vietnamese/ASCII lowercase letter
+	result = result.replace(/([""])\s*([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/g,
+		(match, quote, letter) => `${quote}${match.includes(' ') ? ' ' : ''}${letter.toUpperCase()}`);
+
 	// Capitalize first letter at the beginning of text
 	result = result.replace(/^([a-zA-Zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ])/,
 		(match, letter) => letter.toUpperCase());

@@ -23,6 +23,8 @@ const {
 	ItemLib,
 	PerkLib,
 	TownBuilding,
+	CharacterBase,
+	CharacterItem,
 } = require('@root/dbObject.js');
 const characterUtil = require('./characterUtility');
 const characterSettingUtil = require('./characterSettingUtility');
@@ -201,14 +203,19 @@ class EventProcessor {
 				// Determine next event from check outcomes (priority over default)
 				checkOutcomeEventId = this.getCheckOutcomeEventId(checkResults);
 
-				// Execute immediate actions
-				await this.executeActionsByTrigger(eventId, session, TRIGGER_CONDITION.IMMEDIATE);
-
 				// Handle special tag: finish_register
 				if (eventBase.tags && Array.isArray(eventBase.tags) && eventBase.tags.includes('finish_register')) {
 					await this.handleFinishRegister(session);
 				}
+
+				// Handle special tag: redo
+				if (eventBase.tags && Array.isArray(eventBase.tags) && eventBase.tags.includes('redo')) {
+					await this.handleRedo(session);
+				}
 			}
+
+			// Execute immediate actions BEFORE silent check (modals need fresh interaction)
+			await this.executeActionsByTrigger(eventId, session, TRIGGER_CONDITION.IMMEDIATE);
 
 			// 3. Handle silent events - skip message/options and auto-proceed
 			if (eventBase.silent) {
@@ -638,6 +645,7 @@ class EventProcessor {
 			break;
 
 		case VARIABLE_SOURCE.INPUT:
+			console.log(`[DEBUG] Executing INPUT variable action for ${variable_name}`);
 			value = await this.collectModalInput(session, {
 				variable_name,
 				input_label: input_label || 'Enter value',
@@ -645,6 +653,7 @@ class EventProcessor {
 				input_default: input_default || '',
 				is_numeric: is_numeric || false,
 			});
+			console.log(`[DEBUG] INPUT variable action completed, value: ${value}`);
 			break;
 
 		case VARIABLE_SOURCE.CHAT_INPUT:
@@ -678,7 +687,10 @@ class EventProcessor {
 	 */
 	async collectModalInput(session, options) {
 		const { variable_name, input_label, input_placeholder, input_default, is_numeric } = options;
-		const interaction = session.interaction;
+		let interaction = session.interaction;
+
+		console.log(`[DEBUG] collectModalInput called for variable: ${variable_name}`);
+		console.log(`[DEBUG] interaction type: ${interaction?.type}, replied: ${interaction?.replied}, deferred: ${interaction?.deferred}`);
 
 		// Create modal (title/label max 45 chars, placeholder max 100 chars)
 		const modalId = `input_modal_${variable_name}_${Date.now()}`;
@@ -692,10 +704,10 @@ class EventProcessor {
 			.setStyle(TextInputStyle.Short)
 			.setRequired(true);
 
-		if (input_placeholder) {
+		if (input_placeholder && input_placeholder !== 'null') {
 			textInput.setPlaceholder(input_placeholder.substring(0, 100));
 		}
-		if (input_default) {
+		if (input_default && input_default !== 'null') {
 			textInput.setValue(String(input_default));
 		}
 
@@ -703,8 +715,10 @@ class EventProcessor {
 		modal.addComponents(actionRow);
 
 		try {
+			console.log(`[DEBUG] Attempting to show modal...`);
 			// Show modal to user
 			await interaction.showModal(modal);
+			console.log(`[DEBUG] Modal shown successfully, waiting for submission...`);
 
 			// Wait for modal submission (5 minute timeout)
 			const modalSubmit = await interaction.awaitModalSubmit({
@@ -715,11 +729,13 @@ class EventProcessor {
 			// Get the input value
 			const inputValue = modalSubmit.fields.getTextInputValue('input_value');
 
-			// Acknowledge the modal submission - defer so we can continue the event
-			await modalSubmit.deferUpdate();
+			// Acknowledge the modal submission and clear components
+			await modalSubmit.update({ components: [] });
 
 			// Update session interaction to use the modal submit for future responses
 			session.interaction = modalSubmit;
+
+			console.log(`[DEBUG] Modal input completed successfully, value: ${inputValue}`);
 
 			// Parse as number if needed
 			if (is_numeric) {
@@ -728,8 +744,22 @@ class EventProcessor {
 			}
 			return inputValue || input_default || '';
 		}
-		catch {
-			// Timeout or error - use default value
+		catch (error) {
+			// Timeout or error - acknowledge interaction if not already done
+			console.error(`[DEBUG] Modal input failed for ${variable_name}:`, error);
+			
+			// Emergency acknowledgment if interaction not already handled
+			if (!interaction.replied && !interaction.deferred) {
+				try {
+					await interaction.reply({ 
+						content: `⚠️ Input timed out for ${variable_name}, using default: ${input_default}`,
+						ephemeral: true 
+					});
+				} catch (e) {
+					console.error('Failed to acknowledge interaction after modal error:', e);
+				}
+			}
+			
 			console.log(`Modal input timed out or failed for ${variable_name}, using default: ${input_default}`);
 			if (is_numeric) {
 				return parseInt(input_default) || 0;
@@ -918,10 +948,11 @@ class EventProcessor {
 			console.log('[handleFinishRegister] ALL LOCAL FLAGS:', JSON.stringify(session.flags.local, null, 2));
 			
 			// Try both capitalized (database format) and lowercase (fallback)
-		let fortitude = parseInt(session.flags.local.Fortitude || session.flags.local.fortitude) || 0;
-		let justice = parseInt(session.flags.local.Justice || session.flags.local.justice) || 0;
-		let prudence = parseInt(session.flags.local.Prudence || session.flags.local.prudence) || 0;
-		let temperance = parseInt(session.flags.local.Temperance || session.flags.local.temperance) || 0;
+			// Default to 8 if not found (as per FINISH_REGISTER_TAG.md specification)
+		let fortitude = parseInt(session.flags.local.Fortitude || session.flags.local.fortitude) || 8;
+		let justice = parseInt(session.flags.local.Justice || session.flags.local.justice) || 8;
+		let prudence = parseInt(session.flags.local.Prudence || session.flags.local.prudence) || 8;
+		let temperance = parseInt(session.flags.local.Temperance || session.flags.local.temperance) || 8;
 			const jptfTotal = justice + prudence + temperance + fortitude;
 			if (jptfTotal > 24) {
 				console.error(`[handleFinishRegister] Invalid JPTF total: ${jptfTotal} (max: 24). Values: F=${fortitude}, J=${justice}, P=${prudence}, T=${temperance}`);
@@ -994,6 +1025,58 @@ class EventProcessor {
 			session.messages.push({
 				type: 'error',
 				text: '⚠️ There was an issue completing your registration. Please contact an administrator.',
+			});
+		}
+	}
+
+	/**
+	 * Handle redo tag - clear starter weapons only (keep starter armor) and reset stats to base 9
+	 * Virtue bonuses will be recalculated at the end of the event chain by finish_register
+	 */
+	async handleRedo(session) {
+		if (!session.characterId) return;
+
+		try {
+			// 1. Find and remove starter weapons only (items with "starter_X" tags, but NOT plain "starter")
+			const allCharacterItems = await CharacterItem.findAll({ where: { character_id: session.characterId } });
+			const allItems = await ItemLib.findAll();
+
+			for (const charItem of allCharacterItems) {
+				const itemDef = allItems.find(i => i.id === charItem.item_id);
+				if (itemDef?.tag && Array.isArray(itemDef.tag)) {
+					// Check if item has starter_X tags (e.g., starter_sword, starter_bow) but NOT plain "starter"
+					const hasStarterWeaponTag = itemDef.tag.some(tag => 
+						tag.startsWith('starter_') && tag !== 'starter'
+					);
+					
+					if (hasStarterWeaponTag) {
+						await CharacterItem.destroy({ where: { id: charItem.id } });
+						console.log(`[handleRedo] Removed starter weapon: ${itemDef.name} (${itemDef.id})`);
+					}
+				}
+			}
+
+			// 2. Reset stats to base 9 (virtue bonuses will be applied by finish_register at the end)
+			await CharacterBase.update(
+				{ con: 9, str: 9, dex: 9, agi: 9 },
+				{ where: { id: session.characterId } },
+			);
+
+			// 3. Recalculate combat stats
+			await characterUtil.calculateCombatStat(session.characterId);
+			await characterUtil.calculateAttackStat(session.characterId);
+
+			// 4. Reset registration flags so finish_register can run again
+			await characterUtil.updateCharacterFlag(session.characterId, 'registration_complete', null);
+			await characterUtil.updateCharacterFlag(session.characterId, 'unregistered', 1);
+
+			console.log(`[handleRedo] Reset character ${session.characterId} to base 9 stats and removed starter weapons only`);
+		}
+		catch (error) {
+			console.error('Error in handleRedo:', error);
+			session.messages.push({
+				type: 'error',
+				text: '⚠️ There was an issue resetting your character. Please contact an administrator.',
 			});
 		}
 	}
@@ -1862,6 +1945,151 @@ class EventProcessor {
 						nextEventId = option.next_event_id;
 					}
 
+					// Check if next event will need modal input - handle modal DIRECTLY
+					if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
+						console.log(`[DEBUG] Checking if event ${nextEventId} needs input...`);
+						const nextEventNeedsInput = await this.eventHasInputActions(nextEventId);
+						console.log(`[DEBUG] Event ${nextEventId} needs input: ${nextEventNeedsInput}`);
+						
+						if (nextEventNeedsInput) {
+							console.log(`[DEBUG] Starting direct modal handling for ${nextEventId}`);
+							// Get the input action details 
+							const { EventActionVariable, EventActionStat } = require('@root/dbObject.js');
+							const { VARIABLE_SOURCE } = require('@root/models/event/eventConstants.js');
+							
+							const inputAction = await EventActionVariable.findOne({
+								where: { 
+									event_id: nextEventId,
+									source_type: VARIABLE_SOURCE.INPUT,
+								},
+								order: [['execution_order', 'ASC']],
+							});
+							
+							console.log(`[DEBUG] Found input action:`, inputAction ? 'YES' : 'NO');
+							
+							if (inputAction) {
+								console.log(`[DEBUG] Showing modal DIRECTLY for ${inputAction.variable_name}`);
+								
+								// Create and show modal DIRECTLY - no event processing
+								const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+								
+								const modalId = `input_modal_${inputAction.variable_name}_${Date.now()}`;
+								const modal = new ModalBuilder()
+									.setCustomId(modalId)
+									.setTitle((inputAction.input_label || 'Enter value').substring(0, 45));
+
+								const textInput = new TextInputBuilder()
+									.setCustomId('input_value')
+									.setLabel((inputAction.input_label || 'Enter value').substring(0, 45))
+									.setStyle(TextInputStyle.Short)
+									.setRequired(true);
+
+								if (inputAction.input_placeholder && inputAction.input_placeholder !== 'null') {
+									textInput.setPlaceholder(inputAction.input_placeholder.substring(0, 100));
+								}
+								if (inputAction.input_default && inputAction.input_default !== 'null') {
+									textInput.setValue(String(inputAction.input_default));
+								}
+
+								const actionRow = new ActionRowBuilder().addComponents(textInput);
+								modal.addComponents(actionRow);
+								
+								try {
+									console.log(`[DEBUG] About to show modal with componentInteraction - replied: ${componentInteraction.replied}, deferred: ${componentInteraction.deferred}`);
+									// Show modal with fresh componentInteraction
+									await componentInteraction.showModal(modal);
+									console.log(`[DEBUG] Modal shown successfully, waiting for input...`);
+									
+									// Wait for modal submission
+									const modalSubmit = await componentInteraction.awaitModalSubmit({
+										filter: i => i.customId === modalId && i.user.id === componentInteraction.user.id,
+										time: 300_000,
+									});
+									
+									// Get the input value
+									const modalValue = modalSubmit.fields.getTextInputValue('input_value');
+									console.log(`[DEBUG] Modal input received: ${modalValue}`);
+									
+									// Parse as number if needed
+									let finalValue = modalValue;
+									if (inputAction.is_numeric) {
+										const numValue = parseInt(modalValue);
+										finalValue = isNaN(numValue) ? (parseInt(inputAction.input_default) || 0) : numValue;
+									}
+									
+									// Save to character stats directly
+									const statActions = await EventActionStat.findAll({
+										where: { event_id: nextEventId },
+										order: [['execution_order', 'ASC']],
+									});
+									
+									for (const statAction of statActions) {
+										if (statAction.stat_name) {
+											await characterUtil.setCharacterStat(session.characterId, statAction.stat_name, finalValue);
+											console.log(`[DEBUG] Saved ${statAction.stat_name} = ${finalValue}`);
+										}
+									}
+									
+									// Handle tags
+									if (session.characterId && eventBase.tags && Array.isArray(eventBase.tags)) {
+										for (const tag of eventBase.tags) {
+											if (tag.startsWith('save-')) {
+												const settingName = tag.substring(5);
+												if (settingName && option?.text) {
+													const currentValue = await characterSettingUtil.getCharacterSetting(session.characterId, settingName);
+													let newValue = currentValue ? 
+														currentValue + ', "' + option.text.replace(/"/g, '\\"') + '"' :
+														'"' + option.text.replace(/"/g, '\\"') + '"';
+													await characterSettingUtil.setCharacterSetting(session.characterId, settingName, newValue);
+												}
+											}
+											else if (tag.startsWith('clear-')) {
+												const settingName = tag.substring(6);
+												if (settingName) {
+													await characterSettingUtil.setCharacterSetting(session.characterId, settingName, '');
+												}
+											}
+										}
+									}
+									
+									// Acknowledge modal submission
+									await modalSubmit.update({ 
+										content: '', 
+										components: [] 
+									});
+									
+									console.log(`[DEBUG] Direct modal handling completed, continuing to process event ${nextEventId}`);
+									
+									// Continue processing the event that had input actions
+									session.currentEventId = nextEventId;
+									await this.processEvent(session, modalSubmit);
+									return; // Event processing continues via processEvent
+								}
+								catch (error) {
+									console.error(`[DEBUG] Modal failed:`, error);
+									// Emergency acknowledgment
+									if (!componentInteraction.replied && !componentInteraction.deferred) {
+										await componentInteraction.reply({ 
+											content: '⚠️ Input failed, please try again.',
+											ephemeral: true 
+										});
+									}
+									console.log(`[DEBUG] Modal error handling completed - RETURNING`);
+									return;
+								}
+							}
+							else {
+								console.log(`[DEBUG] No input action found for event ${nextEventId}`);
+							}
+						}
+						else {
+							console.log(`[DEBUG] Event ${nextEventId} does not need input, proceeding with normal processing`);
+						}
+					}
+					else {
+						console.log(`[DEBUG] No next event or invalid event ID: ${nextEventId}`);
+					}
+
 					// Handle save-X and clear-X tags
 					if (session.characterId && eventBase.tags && Array.isArray(eventBase.tags)) {
 						for (const tag of eventBase.tags) {
@@ -1924,22 +2152,24 @@ class EventProcessor {
 					collector.stop();
 				}
 
-				// Clear components
-				await componentInteraction.update({ components: [] });
-
-				// Save session flags
-				await this.saveSession(session);
-
 				// Process next event if exists and is not empty/blank
 				if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
-					await this.processEvent(nextEventId, interaction, session.characterId, {
+					// Normal processing - defer interaction and continue
+					await componentInteraction.deferUpdate();
+					
+					// Save session flags before proceeding
+					await this.saveSession(session);
+					
+					await this.processEvent(nextEventId, componentInteraction, session.characterId, {
 						flags: session.flags,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 					});
 				}
 				else {
-					// Event chain ended - clean up session
+					// Event chain ended - clear components and clean up
+					await componentInteraction.update({ components: [] });
+					await this.saveSession(session);
 					this.activeEvents.delete(session.sessionId);
 				}
 			}
@@ -1955,6 +2185,28 @@ class EventProcessor {
 				this.activeEvents.delete(session.sessionId);
 			}
 		});
+	}
+
+	/**
+	 * Check if event has input actions that need fresh interaction for modals
+	 */
+	async eventHasInputActions(eventId) {
+		try {
+			const { EventActionVariable } = require('@root/dbObject.js');
+			const { VARIABLE_SOURCE } = require('@root/models/event/eventConstants.js');
+			
+			const inputActions = await EventActionVariable.findAll({
+				where: { 
+					event_id: eventId,
+					source_type: VARIABLE_SOURCE.INPUT,
+				},
+			});
+			
+			return inputActions.length > 0;
+		} catch (error) {
+			console.error(`Error checking input actions for event ${eventId}:`, error);
+			return false; // Default to false on error
+		}
 	}
 
 	/**
