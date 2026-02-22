@@ -283,6 +283,18 @@ module.exports = {
 
 						if (interviewLocation && interviewLocation.channel) {
 							try {
+								// Get locationUtil for role management
+								const locationUtil = interaction.client.locationUtil;
+								
+								// FIRST: Move character to interview location (grants channel access)
+								if (locationUtil) {
+									await locationUtil.updateLocationRoles({
+										guild: interaction.guild,
+										memberId: userId,
+										newLocationId: interviewLocation.id,
+									});
+								}
+
 								// Get the interview channel
 								const interviewChannel = await interaction.guild.channels.fetch(interviewLocation.channel);
 
@@ -295,7 +307,7 @@ module.exports = {
 										reason: `Registration interview for ${name}`,
 									});
 
-									// Add the user to the thread
+									// Add the user to the thread (should work now that they have role)
 									await thread.members.add(userId);
 
 									// Store thread ID in CharacterThread table
@@ -304,15 +316,6 @@ module.exports = {
 										location_id: interviewLocation.id,
 										thread_id: thread.id,
 									});
-
-									// Move character to interview location
-									if (locationUtil) {
-										await locationUtil.updateLocationRoles({
-											guild: interaction.guild,
-											memberId: userId,
-											newLocationId: interviewLocation.id,
-										});
-									}
 
 									// Find event with "begin_interview" tag
 									const allEvents = await EventBase.findAll({ where: { is_active: true } });
@@ -353,8 +356,20 @@ module.exports = {
 								}
 							}
 							catch (threadError) {
-								console.error('Error creating interview thread:', threadError);
-								// Non-fatal - registration still succeeds
+								console.error('Error creating or managing interview thread:', threadError);
+								
+								// Provide specific error messages based on error type
+								if (threadError.code === 50001) {
+									console.error('PERMISSION ERROR: Unexpected permission issue after granting roles. Check bot role hierarchy.');
+								}
+								else if (threadError.code === 50013) {
+									console.error('PERMISSION ERROR: Bot lacks permission to create/manage threads in interview channel');
+								}
+								else if (threadError.code === 10003) {
+									console.error('CHANNEL ERROR: Interview channel not found or not accessible');
+								}
+								
+								// Non-fatal - registration still succeeds, user just won't have interview thread
 							}
 						}
 					}
