@@ -44,7 +44,7 @@ module.exports = {
 		const character = await getCharacterBase(interaction.user.id);
 
 		if (!character) {
-			return interaction.reply({ content: 'You need a character to trade. Use `/newchar` to create one.', ephemeral: true });
+			return interaction.reply({ content: 'You need a character to trade. Use `/register` to create one.', ephemeral: true });
 		}
 
 		switch (subcommand) {

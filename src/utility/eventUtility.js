@@ -1014,6 +1014,16 @@ class EventProcessor {
 			await characterUtil.calculateCombatStat(session.characterId);
 			await characterUtil.calculateAttackStat(session.characterId);
 
+			// 8.1. Set HP and stamina to exactly max amount after registration recalculation
+			const { CharacterBase } = require('@root/dbObject.js');
+			const updatedCharacter = await CharacterBase.findOne({ where: { id: session.characterId } });
+			if (updatedCharacter) {
+				await CharacterBase.update({
+					currentHp: updatedCharacter.maxHp,
+					currentStamina: updatedCharacter.maxStamina,
+				}, { where: { id: session.characterId } });
+			}
+
 			// 9. Remove unregistered flag (character flag) to unlock full game
 			await characterUtil.updateCharacterFlag(session.characterId, 'unregistered', null);
 

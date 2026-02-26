@@ -27,7 +27,7 @@ let calculateCombatStat = async (characterId) => {
 	// Base Stamina + CON bonus
 	let stamina = 60 + (character.con || 0);
 
-	// Update maxHp in CharacterBase
+	// Update maxHp and maxStamina in CharacterBase
 	await CharacterBase.update({ maxHp: hp }, { where: { id: characterId } });
 	await CharacterBase.update({ maxStamina: stamina }, { where: { id: characterId } });
 

@@ -77,7 +77,7 @@ async function handleRaidReaction(reaction, user, emoji) {
 		try {
 			await reaction.users.remove(user.id);
 			const dm = await user.createDM();
-			await dm.send('You need a character to participate in raids. Use `/newchar` to create one.');
+			await dm.send('You need a character to participate in raids. Use `/register` to create one.');
 		}
 		catch (e) {
 			// Ignore DM errors

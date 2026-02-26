@@ -256,7 +256,7 @@ async function handleLocationExitButton(interaction) {
 		
 		// Add linked location IDs
 		for (const link of linkedLocations) {
-			allPossibleLocations.add(link.link_id);
+			allPossibleLocations.add(link.linked_location_id);
 		}
 		
 		// Add cluster location IDs (excluding current location)

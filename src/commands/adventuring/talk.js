@@ -64,7 +64,7 @@ module.exports = {
 
 			const row = new ActionRowBuilder().addComponents(select);
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-			await interaction.editReply({ content: 'Who do you want to talk to?', components: [row], flags: MessageFlags.Ephemeral });
+			await interaction.editReply({ content: 'Who do you want to talk to?', components: [row] });
 
 			const message = (await interaction.fetchReply()) || interaction.message;
 			const collector = message.createMessageComponentCollector({
@@ -96,24 +96,19 @@ module.exports = {
 						userId,
 						{
 							metadata: { npcId: npc.id, npcName: npc.name },
-							// Dialogue should be ephemeral like the rest of talk command
-							ephemeral: true,
+							// Dialogue should not be ephemeral
+							ephemeral: false,
 						},
 					);
 
 					// Handle the result
-					if (eventResult.awaitingInput) {
-						// Event has options - user will see them and can respond
-						// The event system will handle the user's choice automatically
-						console.log(`Dialogue started, awaiting user input. Session: ${eventResult.sessionId}`);
-					}
-					else if (eventResult.complete) {
-						// Dialogue completed without user choices
-						console.log('Dialogue completed automatically');
+					if (eventResult.success) {
+						// Event started successfully - ephemeral selection interface will automatically be hidden
+						console.log(`Dialogue started. Session: ${eventResult.sessionId}`);
 					}
 					else {
 						// Something went wrong
-						console.warn('Unexpected dialogue result:', eventResult);
+						console.warn('Event processing failed:', eventResult);
 					}
 
 				}

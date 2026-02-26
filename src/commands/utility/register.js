@@ -131,8 +131,17 @@ module.exports = {
 				}
 			}
 
-			// Use provided avatar for display, or Discord avatar as fallback for preview
-			const displayAvatarUrl = avatar || interaction.user.displayAvatarURL({ forceStatic: false });
+			// Validate avatar URL - only use if it's a valid URL
+			let displayAvatarUrl = interaction.user.displayAvatarURL({ forceStatic: false });
+			if (avatar) {
+				try {
+					new URL(avatar);
+					displayAvatarUrl = avatar;
+				} catch (error) {
+					// Invalid URL, keep using Discord avatar as fallback
+					console.log(`Invalid avatar URL provided: ${avatar}, using Discord avatar instead`);
+				}
+			}
 
 			// Normalize gender input (accept both Vietnamese and English, default to Male if empty)
 			const genderLower = gender?.toLowerCase() || '';
@@ -172,7 +181,6 @@ module.exports = {
 			const reply = await interaction.reply({
 				embeds: [embed],
 				components: [row],
-				flags: MessageFlags.Ephemeral,
 			});
 
 			// Set up button collector

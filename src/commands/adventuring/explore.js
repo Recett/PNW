@@ -29,7 +29,7 @@ module.exports = {
 			const userId = interaction.user.id;
 			const character = await CharacterBase.findOne({ where: { id: userId } });
 			if (!character) {
-				return await interaction.editReply({ content: 'Character not found. Use `/newchar` to create one.' });
+				return await interaction.editReply({ content: 'Character not found. Use `/register` to create one.' });
 			}
 
 			// Check if registration is incomplete
