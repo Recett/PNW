@@ -2072,7 +2072,9 @@ class EventProcessor {
 									
 									// Continue processing the event that had input actions
 									session.currentEventId = nextEventId;
-									await this.processEvent(session, modalSubmit);
+									await this.processEvent(nextEventId, modalSubmit, session.characterId, {
+										flags: session.flags
+									});
 									return; // Event processing continues via processEvent
 								}
 								catch (error) {

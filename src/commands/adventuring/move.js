@@ -23,6 +23,30 @@ module.exports = {
 				return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 			}
 
+			// Clean up: remove all location roles except the character's DB location role
+			try {
+				const member = await interaction.guild.members.fetch(userId);
+				const allLocations = await LocationBase.findAll();
+				const dbLocation = character.location_id 
+					? await LocationBase.findOne({ where: { id: character.location_id } }) 
+					: null;
+				const currentRoleId = dbLocation?.role;
+				const locationRoleIds = allLocations
+					.map(loc => loc.role)
+					.filter(role => role && role !== currentRoleId);
+				
+				console.log(`[Move Cleanup] User ${userId} - DB location: ${dbLocation?.name || 'NONE'}, keeping role: ${currentRoleId || 'NONE'}`);
+				for (const roleId of locationRoleIds) {
+					if (member.roles.cache.has(roleId)) {
+						console.log(`[Move Cleanup] Removing excess role: ${roleId}`);
+						await member.roles.remove(roleId).catch(() => {});
+					}
+				}
+			}
+			catch (cleanupErr) {
+				console.error('Error cleaning up location roles:', cleanupErr);
+			}
+
 			// Get current location by channelId (use parent channel if in thread)
 			const channel = interaction.channel;
 			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
@@ -79,7 +103,7 @@ module.exports = {
 					newLocationId: selectedId,
 					delayMs: 5000,
 				});
-				await CharacterBase.update({ location_id: selectedId }, { where: { id: userId } });
+				// CharacterBase.location_id is now updated inside transitionLocationRoles
 				
 				// Build response with clickable channel link
 				let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;

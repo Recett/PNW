@@ -142,7 +142,8 @@ await characterUtil.addCharacterItem(characterId, itemId, quantity);
 
 **Location System (`location_*`):**
 - `location_bases` - Location definitions (id, name, description, channel, role, tag, metadata)
-- `location_links` - Navigation connections between locations (from_location_id, to_location_id)
+- `location_links` - Navigation connections between locations (location_id, linked_location_id) 
+  **CRITICAL:** Use `linked_location_id` field, NOT `link_id` (which doesn't exist)
 - `location_clusters` - Grouped locations that share visibility (cluster_id, location_id)
 - `location_contains` - What's at each location (location_id, type, entity_id, entity_name)
 - `location_enemies` - Enemy spawns (location_id, enemy_id, spawn_rate, max_count)
@@ -242,7 +243,11 @@ const equipped = await CharacterItem.findAll({
 
 5. **Flag values are strings** - Even numeric flags are stored as strings in character_flags and must be parsed
 
-6. **Discord UI constraints** - Be mindful of Discord's limitations:
+6. **ALWAYS verify field names** - Never assume field names. Always check the actual model definition in `src/models/` before using any field. For example, LocationLink uses `linked_location_id`, not `link_id`. When in doubt, look up the schema.
+
+7. **Location links use `linked_location_id`** - NEVER use `link_id` when accessing LocationLink records. The correct field is `linked_location_id`
+
+8. **Discord UI constraints** - Be mindful of Discord's limitations:
    - Select menu option labels: **100 characters max** (automatically truncated in eventUtility.js)
    - Select menu option descriptions: **100 characters max**
    - Button labels: **80 characters max**
