@@ -15,6 +15,7 @@ const {
 } = require('discord.js');
 const { CharacterBase, CharacterItem, CharacterThread, LocationBase } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
+const RS = require('./registerStrings.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -38,14 +39,14 @@ module.exports = {
 			// Build the registration modal
 			const modal = new ModalBuilder()
 				.setCustomId('register_character_modal')
-				.setTitle('Bản Đăng Ký:');
+				.setTitle(RS.modal.title);
 
 			// Name input (required)
 			const nameInput = new TextInputBuilder()
 				.setCustomId('character_name')
-				.setLabel('Tôi, người ký tên dưới đây, khai báo tên là:')
+				.setLabel(RS.modal.nameLabel)
 				.setStyle(TextInputStyle.Short)
-				.setPlaceholder('Nhập tên nhân vật của bạn')
+				.setPlaceholder(RS.modal.namePlaceholder)
 				.setRequired(true)
 				.setMinLength(2)
 				.setMaxLength(32);
@@ -53,27 +54,27 @@ module.exports = {
 			// Gender input (optional, defaults to Male)
 			const genderInput = new TextInputBuilder()
 				.setCustomId('character_gender')
-				.setLabel('Và tôi thuộc giới tính:')
+				.setLabel(RS.modal.genderLabel)
 				.setStyle(TextInputStyle.Short)
-				.setPlaceholder('Nam hoặc Nữ (mặc định: Nam)')
+				.setPlaceholder(RS.modal.genderPlaceholder)
 				.setRequired(false)
 				.setMaxLength(20);
 
 			// Age input (optional)
 			const ageInput = new TextInputBuilder()
 				.setCustomId('character_age')
-				.setLabel('Và tôi đã sống được:')
+				.setLabel(RS.modal.ageLabel)
 				.setStyle(TextInputStyle.Short)
-				.setPlaceholder('ví dụ: 25 (tùy chọn)')
+				.setPlaceholder(RS.modal.agePlaceholder)
 				.setRequired(false)
 				.setMaxLength(3);
 
 			// Avatar input (optional)
 			const avatarInput = new TextInputBuilder()
 				.setCustomId('character_avatar')
-				.setLabel('Hình ảnh của tôi có thềEtìm thấy tại:')
+				.setLabel(RS.modal.avatarLabel)
 				.setStyle(TextInputStyle.Short)
-				.setPlaceholder('URL hình ảnh (tùy chọn)')
+				.setPlaceholder(RS.modal.avatarPlaceholder)
 				.setRequired(false)
 				.setMaxLength(500);
 
@@ -151,20 +152,14 @@ module.exports = {
 			const normalizedGender = isFemale ? 'Female' : 'Male';
 
 			// Build certificate preview embed
-			const certificateText =
-				'Tôi, **' + name + '**, trân trọng kiến nghềEđược xuất dương sang Tân Thế Giới dưới danh nghĩa Sứ mệnh do Ngai vàng bảo trợ này.\n\n' +
-				'**CÁC ĐIỀU KHOẢN THỎA THUẬN**\n\n' +
-				'I. VỀ VIềE VẬN CHUYềE: Người Kiến nghềEsẽ được bềEtrí một vềEtrí trên Tàu do Ngai vàng chềEđịnh, cùng với các nhu yếu phẩm và vật dụng cần thiết cho suốt hành trình. \n\n' +
-				'II. VỀ TƯ CÁCH PHÁP LÁE Người Kiến nghềEtuyên bềEbản thân là người tự do, hiện không bềEràng buộc bởi bất kỳ nghĩa vụ, khoản nợ, hoặc bản án nào của pháp luật có thềEngăn cản việc xuất cảnh hợp pháp khỏi Vương quốc Gateland.\n\n' +
-				'III. VỀ SỰ TUÁE THỦ: Khi đặt chân đến Tân Thế Giới, Người Kiến nghềEcam kết sẽ tiếp tục là một thần dân trung thành tuân theo Pháp luật của Đức Vua, đồng thời tuân thủ các Sắc lệnh của Thống đốc tại đó, như thềEvẫn cư trú tại các tỉnh thành chính quốc.\n\n' +
-				'IV. VỀ SỰ PHÁETHÁC: Người Kiến nghềEchấp nhận rằng những hiểm nguy trên biển cả và chốn hoang dã nằm ngoài sự bảo đảm của Ngai vàng, và người này phó thác sự an toàn của bản thân cho sự cần cù của chính mình và ân điển của các Thánh.';
+			const certificateText = RS.certificate.getText(name);
 
 
 			const embed = new EmbedBuilder()
-				.setTitle('CHỨNG THƯ DỰ ĐỊNH')
+				.setTitle(RS.certificate.embedTitle)
 				.setDescription(certificateText)
 				.setColor(0xf1c40f)
-				.setFooter({ text: 'Đọc kĩ trước khi xác nhận. ' })
+				.setFooter({ text: RS.certificate.embedFooter })
 				.setThumbnail(displayAvatarUrl);
 
 			// Create Submit and Scrap buttons
@@ -276,14 +271,6 @@ module.exports = {
 							await CharacterBase.update(updateFields, { where: { id: userId } });
 						}
 
-						// Update embed to show success
-						const successEmbed = new EmbedBuilder()
-							.setTitle('CERTIFICATE OF INTENT')
-							.setDescription(certificateText)
-							.setColor(0x2ecc71)
-							.setFooter({ text: 'Tôi trịnh trọng thềErằng những thông tin được cung cấp ềEtrên là sự thật, và không có gì khác ngoài sự thật.' })
-						.setThumbnail(displayAvatarUrl);
-
 						// === Create interview thread ===
 						// Find location with "interview" tag
 						const interviewLocation = allLocations.find(loc =>
@@ -340,7 +327,7 @@ module.exports = {
 									// Send interview start message in thread
 									const interviewEmbed = new EmbedBuilder()
 										.setDescription(
-											'Đằng sau một bàn giấy lớn là một người trạc tầm tuổi ba mươi với những nếp nhăn nơi khóe mắt hằn sâu dấu vết của nắng muối và những dặm dài trên biển. Mái tóc màu nâu hạt dẻ được chải chuốt gọn gàng, điểm xuyết những sợi bạc lấp lánh dưới ánh sáng. Anh ta khoác trên mình chiếc áo brigandine bằng nhung xanh thẫm, với những chiếc đinh tán bạc phản chiếu ánh nắng từ ngoài cửa sềE BềEgiáp sạch sẽ, tươm tất, mang theo dáng vẻ tĩnh lặng của một sĩ quan trẻ.\n\n' +
+											RS.interview.description +
 											(interviewEvent
 												? ''
 												: 'An administrator will be with you shortly.'),
@@ -352,7 +339,7 @@ module.exports = {
 									if (interviewEvent) {
 										const startButton = new ButtonBuilder()
 											.setCustomId(`start_interview|${userId}|${interviewEvent.id}`)
-											.setLabel('Nói chuyện với anh ta')
+												.setLabel(RS.interview.startButtonLabel)
 											.setStyle(ButtonStyle.Primary);
 										components.push(new ActionRowBuilder().addComponents(startButton));
 									}
@@ -382,6 +369,9 @@ module.exports = {
 								// Non-fatal - registration still succeeds, user just won't have interview thread
 							}
 						}
+
+						// Delete the certificate entirely
+						await i.deleteReply();
 					}
 					catch (createError) {
 						console.error('Error creating character:', createError);

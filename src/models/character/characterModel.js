@@ -225,7 +225,7 @@ const characterStatus = (sequelize) => {
 
 const characterThread = (sequelize) => {
 	return sequelize.define('character_threads', {
-		character_id: Sequelize.INTEGER,
+		character_id: Sequelize.STRING,
 		location_id: Sequelize.INTEGER,
 		thread_id: { type: Sequelize.STRING, allowNull: false },
 	}, { timestamps: false });

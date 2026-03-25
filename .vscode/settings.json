@@ -1,4 +1,8 @@
 {
+  // Encoding — must be UTF-8 everywhere to avoid PowerShell/Windows corruption
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+
   // YAML Configuration for Discord RPG Bot Content
   "yaml.validate": true,
   "yaml.hover": true,

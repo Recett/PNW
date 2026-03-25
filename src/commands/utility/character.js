@@ -769,33 +769,54 @@ async function handleDelete(interaction, userId) {
 	const character = await CharacterBase.findOne({ where: { id: targetId } });
 	if (!character) return await interaction.editReply({ content: 'Character not found.' });
 
-	// Remove location role
-	try {
-		const currentLocationId = await characterUtil.getCharacterCurrentLocationId(targetId);
-		if (currentLocationId) {
-			const location = await LocationBase.findByPk(currentLocationId);
-			if (location && location.role) {
-				const member = await interaction.guild.members.fetch(targetId);
-				await member.roles.remove(location.role).catch(() => {});
-			}
-		}
-	}
-	catch (err) { console.log('Error removing location role:', err); }
-
-	// Delete threads
+	// Delete threads: grant each thread's parent channel role first, then delete, then clean up.
+	// Mirrors the pattern in register.js — private thread ops require the user to have
+	// access to the parent channel. We temporarily re-grant the role to guarantee access.
+	const rolesToRemove = new Set();
 	try {
 		const threads = await CharacterThread.findAll({ where: { character_id: targetId } });
+		const targetMember = await interaction.guild.members.fetch(targetId);
 		for (const threadRecord of threads) {
-			if (threadRecord.thread_id) {
-				try {
-					const thread = await interaction.guild.channels.fetch(threadRecord.thread_id);
-					if (thread && thread.isThread()) await thread.delete();
+			if (!threadRecord.thread_id) continue;
+			try {
+				// Re-grant the thread's parent channel role so the member has access
+				if (threadRecord.location_id) {
+					const threadLocation = await LocationBase.findByPk(threadRecord.location_id);
+					if (threadLocation?.role) {
+						await targetMember.roles.add(threadLocation.role).catch(() => {});
+						rolesToRemove.add(threadLocation.role);
+					}
 				}
-				catch (threadError) { console.log('Error deleting thread:', threadError.message); }
+				// force: true bypasses stale cache (archived threads are evicted from gateway cache)
+				const thread = await interaction.guild.channels.fetch(threadRecord.thread_id, { force: true });
+				if (thread && thread.isThread()) {
+					await thread.delete('Character deleted');
+				}
+				else {
+					console.log(`[DeleteChar] Thread ${threadRecord.thread_id} returned null after role grant.`);
+				}
+			}
+			catch (threadError) {
+				// code 10003 = Unknown Channel
+				console.log(`[DeleteChar] Could not delete thread ${threadRecord.thread_id} (code: ${threadError.code}): ${threadError.message}`);
 			}
 		}
 	}
 	catch (err) { console.log('Error handling thread deletion:', err); }
+
+	// Remove location role + any thread channel roles granted above
+	try {
+		const currentLocationId = await characterUtil.getCharacterCurrentLocationId(targetId);
+		if (currentLocationId) {
+			const location = await LocationBase.findByPk(currentLocationId);
+			if (location?.role) rolesToRemove.add(location.role);
+		}
+		if (rolesToRemove.size > 0) {
+			const member = await interaction.guild.members.fetch(targetId);
+			await member.roles.remove([...rolesToRemove]).catch(() => {});
+		}
+	}
+	catch (err) { console.log('Error removing location role:', err); }
 
 	// Delete all related data
 	await Promise.all([

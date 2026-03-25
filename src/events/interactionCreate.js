@@ -68,7 +68,7 @@ async function handleInterviewInteraction(interaction) {
 			return true;
 		}
 
-		// Disable the button
+		// Disable the button and keep the thread message in place
 		await interaction.update({
 			components: [],
 		});
@@ -80,6 +80,7 @@ async function handleInterviewInteraction(interaction) {
 				try {
 					await eventUtil.processEvent(eventId, interaction, interaction.user.id, {
 						ephemeral: false,
+						targetChannel: interaction.channel, // Force all event messages into the thread
 					});
 				}
 				catch (eventError) {

@@ -118,6 +118,7 @@ class EventProcessor {
 			npc: sessionData.npc || null, // NPC info for relational pronouns
 			logSessionId: sessionData.logSessionId || null, // Event logger session
 			eventDepth: sessionData.eventDepth || 0, // Track recursion depth
+			targetChannel: sessionData.targetChannel || null, // Force messages to a specific channel (e.g. interview thread)
 		};
 
 		try {
@@ -201,6 +202,7 @@ class EventProcessor {
 						combatLogSent: true, // Tell next event that combat log is already displayed
 						logSessionId: session.logSessionId,
 						eventDepth: session.eventDepth + 1,
+						targetChannel: session.targetChannel,
 					});
 				}
 			}
@@ -238,6 +240,7 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
+						targetChannel: session.targetChannel,
 					});
 				}
 				// No next event, end silently
@@ -1895,25 +1898,37 @@ class EventProcessor {
 		// If no options and no next event (or blank), don't add components (event ends)
 
 		// Send or update message
-		if (!(interaction.replied || interaction.deferred)) {
-			await interaction.deferReply({ ephemeral: session.ephemeral });
-		}
-
-		// If combat log was sent, use followUp for dialog message; otherwise editReply
 		let dialogMessage;
-		if (hasCombatLog) {
-			dialogMessage = await interaction.followUp({
+		if (session.targetChannel) {
+			// Force messages into a specific channel (e.g. private interview thread)
+			if (!(interaction.replied || interaction.deferred)) {
+				await interaction.deferUpdate();
+			}
+			dialogMessage = await session.targetChannel.send({
 				...messageData,
 				components: components.length > 0 ? components : [],
-				ephemeral: session.ephemeral,
 			});
 		}
 		else {
-			await interaction.editReply({
-				...messageData,
-				components: components.length > 0 ? components : [],
-			});
-			dialogMessage = await interaction.fetchReply();
+			if (!(interaction.replied || interaction.deferred)) {
+				await interaction.deferReply({ ephemeral: session.ephemeral });
+			}
+
+			// If combat log was sent, use followUp for dialog message; otherwise editReply
+			if (hasCombatLog) {
+				dialogMessage = await interaction.followUp({
+					...messageData,
+					components: components.length > 0 ? components : [],
+					ephemeral: session.ephemeral,
+				});
+			}
+			else {
+				await interaction.editReply({
+					...messageData,
+					components: components.length > 0 ? components : [],
+				});
+				dialogMessage = await interaction.fetchReply();
+			}
 		}
 
 		// Set up collector if there are components or options
@@ -2005,6 +2020,7 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
+						targetChannel: session.targetChannel,
 					});
 				}
 				else {
@@ -2182,6 +2198,7 @@ class EventProcessor {
 										pendingCharacterFlags: session.pendingCharacterFlags,
 										pendingGlobalFlags: session.pendingGlobalFlags,
 										eventDepth: session.eventDepth + 1,
+										targetChannel: session.targetChannel,
 									});
 									return; // Event processing continues via processEvent
 								}
@@ -2288,6 +2305,7 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
+						targetChannel: session.targetChannel,
 					});
 				}
 				else {
