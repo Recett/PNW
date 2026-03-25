@@ -73,22 +73,22 @@ events:
         text: Tôi là ${player_fullname}, rất vui được gặp anh York.
         next: event_waylan_york_flag_a
         display_order: 1
-        button_label: York
+        button_label: Rất vui được gặp.
       - id: event_waylan_york_a-option-2
         text: Tạ ơn Cửu Thánh, đường đi cũng khá là suôn sẻ. Tôi tên là ${player_fullname}.
         next: event_waylan_york_flag_b
         display_order: 2
-        button_label: Tạ ơn Cửu Thánh, đường đi…
+        button_label: Đường đi suôn sẻ.
       - id: event_waylan_york_a-option-3
         text: Đường đi khá trắc trở. Cướp, đầm lầy, cây đổ. Có gì uống được không? À, tôi là ${player_fullname}.
         next: event_waylan_york_flag_c
         display_order: 3
-        button_label: Đường đi khá trắc trở. Cướp,…
+        button_label: Đường đi trắc trở.
       - id: event_waylan_york_a-option-4
         text: Tôi là ${player_fullname}. Một cái tên sẽ đi vào lịch sử, nhưng giờ cứ gọi tôi là ${player_name}.
         next: event_waylan_york_flag_d
         display_order: 4
-        button_label: Tôi là ${player_fullname}.…
+        button_label: Tên đi vào lịch sử.
   - id: event_waylan_york_flag_a
     name: 'Flag: Prudence'
     description: Auto-created for flag action
@@ -480,22 +480,22 @@ events:
         text: Nhà tôi trồng lúa và hoa màu, mỗi năm 2 vụ.
         next: event_waylan_york_flag_u
         display_order: 1
-        button_label: Nhà tôi trồng lúa và hoa màu,…
+        button_label: Trồng lúa và hoa màu
       - id: event_waylan_york_d-option-2
         text: Nhà tôi trồng nho và cất rượu.
         next: event_waylan_york_flag_v
         display_order: 2
-        button_label: Nhà tôi trồng nho và cất rượu.
+        button_label: Trồng nho, cất rượu
       - id: event_waylan_york_d-option-3
         text: Nhà tôi có vườn cây ăn quả.
         next: event_waylan_york_flag_w
         display_order: 3
-        button_label: Nhà tôi có vườn cây ăn quả.
+        button_label: Vườn cây ăn quả
       - id: event_waylan_york_d-option-4
         text: Nhà tôi làm chăn nuôi gia súc gia cầm các loại.
         next: event_waylan_york_flag_x
         display_order: 4
-        button_label: Nhà tôi làm chăn nuôi gia súc…
+        button_label: Chăn nuôi gia súc
   - id: event_waylan_york_flag_u
     name: 'Flag: Justice +3 more'
     description: Auto-created for flag action
@@ -592,22 +592,22 @@ events:
         text: Chỉ là tiểu thương nhỏ trong vùng thôi
         next: event_waylan_york_flag_y
         display_order: 1
-        button_label: Chỉ là tiểu thương nhỏ trong…
+        button_label: Tiểu thương trong vùng
       - id: event_waylan_york_e-option-2
         text: Một thương đoàn bán buôn vận chuyển những lô hàng lớn đi xa
         next: event_waylan_york_flag_z
         display_order: 2
-        button_label: Một thương đoàn bán buôn vận…
+        button_label: Thương đoàn bán buôn
       - id: event_waylan_york_e-option-3
         text: Nhà tôi buôn những mặt hàng quý hiếm.
         next: event_waylan_york_flag_aa
         display_order: 3
-        button_label: Nhà tôi buôn những mặt hàng…
+        button_label: Buôn hàng quý hiếm
       - id: event_waylan_york_e-option-4
         text: Chúng tôi làm bên môi giới.
         next: event_waylan_york_flag_ab
         display_order: 4
-        button_label: Chúng tôi làm bên môi giới.
+        button_label: Làm môi giới
   - id: event_waylan_york_flag_y
     name: 'Flag: Justice +2 more'
     description: Auto-created for flag action
@@ -699,17 +699,17 @@ events:
         text: Nhà tôi làm nghề rèn lâu đời.
         next: event_waylan_york_flag_ac
         display_order: 1
-        button_label: Nhà tôi làm nghề rèn lâu đời.
+        button_label: Nghề rèn lâu đời
       - id: event_waylan_york_f-option-2
         text: Nhà tôi có xưởng dệt may.
         next: event_waylan_york_flag_ad
         display_order: 2
-        button_label: Nhà tôi có xưởng dệt may.
+        button_label: Xưởng dệt may
       - id: event_waylan_york_f-option-3
         text: Nhà tôi đập đá. Ý tôi là điêu khắc.
         next: event_waylan_york_flag_ae
         display_order: 3
-        button_label: Nhà tôi đập đá. Ý tôi là điêu…
+        button_label: Điêu khắc đá
       - id: event_waylan_york_f-option-4
         text: Làm thủ công mỹ nghệ.
         next: event_waylan_york_flag_af
@@ -826,22 +826,22 @@ events:
         text: Nhà tôi làm bốc vác bên cảng. Thu nhập không nhiều nhưng nó trung thực.
         next: event_waylan_york_flag_ag
         display_order: 1
-        button_label: Thu
+        button_label: Bốc vác bên cảng
       - id: event_waylan_york_g-option-2
         text: Gia đình tôi làm bên xây dựng.
         next: event_waylan_york_flag_ah
         display_order: 2
-        button_label: Gia
+        button_label: Xây dựng
       - id: event_waylan_york_g-option-3
         text: Chúng tôi làm nghề mộc.
         next: event_waylan_york_flag_ai
         display_order: 3
-        button_label: Chúng tôi làm nghề mộc.
+        button_label: Làm nghề mộc
       - id: event_waylan_york_g-option-4
         text: Chúng tôi làm thợ mỏ.
         next: event_waylan_york_flag_aj
         display_order: 4
-        button_label: Chúng tôi làm thợ mỏ.
+        button_label: Làm thợ mỏ
   - id: event_waylan_york_flag_ag
     name: 'Flag: Prudence +2 more'
     description: Auto-created for flag action
@@ -933,22 +933,22 @@ events:
         text: Một thuyền buôn tầm trung.
         next: event_waylan_york_flag_ak
         display_order: 1
-        button_label: Một thuyền buôn tầm trung.
+        button_label: Thuyền buôn tầm trung
       - id: event_waylan_york_h-option-2
         text: Thuyền đánh bắt cá thôi.
         next: event_waylan_york_flag_al
         display_order: 2
-        button_label: Thuyền đánh bắt cá thôi.
+        button_label: Thuyền đánh cá
       - id: event_waylan_york_h-option-3
         text: À, thật ra là ông thân sinh làm trong hải quân.
         next: event_waylan_york_flag_am
         display_order: 3
-        button_label: À, thật ra là ông thân sinh…
+        button_label: Cha làm trong hải quân
       - id: event_waylan_york_h-option-4
         text: Thuyền chở khách ở bến sông thôi.
         next: event_waylan_york_flag_an
         display_order: 4
-        button_label: Thuyền chở khách ở bến sông…
+        button_label: Thuyền chở khách
   - id: event_waylan_york_flag_ak
     name: 'Flag: Justice +3 more'
     description: Auto-created for flag action
@@ -1080,7 +1080,7 @@ events:
         text: Khoa học tự nhiên
         next: event_waylan_york_flag_ar
         display_order: 4
-        button_label: Khoa
+        button_label: Khoa học tự nhiên
   - id: event_waylan_york_flag_ao
     name: 'Flag: Justice +2 more'
     description: Auto-created for flag action
@@ -1187,22 +1187,22 @@ events:
         text: Tẻ nhạt và có quá nhiều lễ nghi rườm rà.
         next: event_waylan_york_flag_as
         display_order: 1
-        button_label: Tẻ nhạt và có quá nhiều lễ…
+        button_label: Tẻ nhạt, nhiều lễ nghi
       - id: event_waylan_york_j-option-2
         text: Quý tộc trên danh nghĩa thôi, chứ thật ra nghèo lắm.
         next: event_waylan_york_flag_at
         display_order: 2
-        button_label: Quý tộc trên danh nghĩa thôi,…
+        button_label: Quý tộc nghèo
       - id: event_waylan_york_j-option-3
         text: Là con ngoài giá thú, phiền lắm.
         next: event_waylan_york_flag_au
         display_order: 3
-        button_label: Là con ngoài giá thú, phiền…
+        button_label: Con ngoài giá thú
       - id: event_waylan_york_j-option-4
         text: Quý tộc vùng quê nên thật ra cũng không khác thường dân là mấy
         next: event_waylan_york_flag_av
         display_order: 4
-        button_label: Quý tộc vùng quê nên thật ra…
+        button_label: Quý tộc vùng quê
   - id: event_waylan_york_flag_as
     name: 'Flag: Justice'
     description: Auto-created for flag action
@@ -1294,22 +1294,22 @@ events:
         text: Phục vụ cho nhà quý tộc.
         next: event_waylan_york_flag_aw
         display_order: 1
-        button_label: Phục vụ cho nhà quý tộc.
+        button_label: Phục vụ nhà quý tộc
       - id: event_waylan_york_k-option-2
         text: Là lính đánh thuê, nay đây mai đó theo những diễn biến thời cuộc.
         next: event_waylan_york_flag_ax
         display_order: 2
-        button_label: Là lính đánh thuê, nay đây…
+        button_label: Lính đánh thuê
       - id: event_waylan_york_k-option-3
         text: Là biên phòng, ông thân sinh của tôi bảo vệ biên giới và rất ít khi về.
         next: event_waylan_york_flag_ay
         display_order: 3
-        button_label: Là biên phòng, ông thân sinh…
+        button_label: Biên phòng
       - id: event_waylan_york_k-option-4
         text: Là lính gác thành phố, chăm lo trị an.
         next: event_waylan_york_flag_az
         display_order: 4
-        button_label: Là lính gác thành phố, chăm…
+        button_label: Lính gác thành phố
   - id: event_waylan_york_flag_aw
     name: 'Flag: Justice +2 more'
     description: Auto-created for flag action
@@ -1416,22 +1416,22 @@ events:
         text: Cuộc sống cũng có khi này khi khác, nhưng không có gì đáng nói.
         next: event_waylan_york_flag_ba
         display_order: 1
-        button_label: Cuộc sống cũng có khi này khi…
+        button_label: Không có gì đáng nói
       - id: event_waylan_york_l-option-2
         text: Mặc dù vẫn luôn định nối nghiệp gia đình, một biến cố lớn đã xảy ra.
         next: event_waylan_york_flag_bb
         display_order: 2
-        button_label: Mặc dù vẫn luôn định nối…
+        button_label: Biến cố lớn xảy ra
       - id: event_waylan_york_l-option-3
         text: Tôi vẫn luôn mong muốn nhiều hơn thế, vì vậy đã rời gia đình khi có thể để theo đuổi ước mơ.
         next: event_waylan_york_flag_bc
         display_order: 3
-        button_label: Tôi vẫn luôn mong muốn nhiều…
+        button_label: Theo đuổi ước mơ
       - id: event_waylan_york_l-option-4
         text: Do bất hòa với gia đình và những người xung quanh, nên tôi đã bỏ đi từ sớm.
         next: event_waylan_york_flag_bd
         display_order: 4
-        button_label: Do bất hòa với gia đình và…
+        button_label: Bất hòa, bỏ đi sớm
   - id: event_waylan_york_flag_ba
     name: 'Flag: Temperance +1 more'
     description: Auto-created for flag action
@@ -1513,42 +1513,42 @@ events:
         text: Theo đuổi vinh quang và tài phú.
         next: event_waylan_york_flag_be
         display_order: 1
-        button_label: Theo
+        button_label: Vinh quang và tài phú
       - id: event_waylan_york_m-option-2
         text: Theo tiếng gọi của tình yêu.
         next: event_waylan_york_flag_bf
         display_order: 2
-        button_label: Theo
+        button_label: Tiếng gọi tình yêu
       - id: event_waylan_york_m-option-3
         text: Vì gia đình và những người tôi yêu quý
         next: event_waylan_york_flag_bg
         display_order: 3
-        button_label: Vì gia đình và những người…
+        button_label: Vì gia đình
       - id: event_waylan_york_m-option-4
         text: Vì Gateland! Vì nhà vua và đất nước!
         next: event_waylan_york_flag_bh
         display_order: 4
-        button_label: Gateland
+        button_label: Vì Gateland!
       - id: event_waylan_york_m-option-5
         text: Tôi có một mối thù…
         next: event_waylan_york_flag_bi
         display_order: 5
-        button_label: Tôi có một mối thù…
+        button_label: Một mối thù…
       - id: event_waylan_york_m-option-6
         text: Tôi muốn phiêu lưu và khám phá thế giới.
         next: event_waylan_york_flag_bj
         display_order: 6
-        button_label: Tôi muốn phiêu lưu và khám…
+        button_label: Phiêu lưu, khám phá
       - id: event_waylan_york_m-option-7
         text: Tôi có một số kẻ thù ở đây…
         next: event_waylan_york_flag_bk
         display_order: 7
-        button_label: Tôi có một số kẻ thù ở đây…
+        button_label: Kẻ thù ở đây…
       - id: event_waylan_york_m-option-8
         text: Không còn gì níu kéo tôi ở lại nơi này nữa, vì thế tôi tìm kiếm một cuộc sống mới.
         next: event_waylan_york_flag_bl
         display_order: 8
-        button_label: Không còn gì níu kéo tôi ở…
+        button_label: Tìm cuộc sống mới
   - id: event_waylan_york_flag_be
     name: 'Flag: Prudence'
     description: Auto-created for flag action
@@ -1683,7 +1683,7 @@ events:
         text: Tri thức
         next: event_waylan_york_flag_bn
         display_order: 2
-        button_label: Tri
+        button_label: Tri thức
       - id: event_waylan_york_n-option-3
         text: Tự do
         next: event_waylan_york_flag_bo
@@ -1799,12 +1799,12 @@ events:
         text: Đương đầu trực diện với nó, bằng tất cả khả năng!
         next: event_waylan_york_flag_bs
         display_order: 1
-        button_label: Đương đầu trực diện với nó,…
+        button_label: Đương đầu trực diện
       - id: event_waylan_york_o-option-2
         text: Cẩn trọng suy tính, lên kế hoạch kĩ lưỡng.
         next: event_waylan_york_flag_bt
         display_order: 2
-        button_label: Cẩn trọng suy tính, lên kế…
+        button_label: Cẩn trọng suy tính
       - id: event_waylan_york_o-option-3
         text: Tìm kiếm sự giúp đỡ.
         next: event_waylan_york_flag_bu
@@ -1921,7 +1921,7 @@ events:
         text: Ở thời điểm này tôi vẫn chưa quyết định được về đức tin.
         next: event_waylan_york_flag_cf
         display_order: 10
-        button_label: Ở thời điểm này tôi vẫn chưa…
+        button_label: Chưa quyết định
   - id: event_waylan_york_flag_bw
     name: 'Flag: Temperance'
     description: Auto-created for flag action
@@ -2100,12 +2100,12 @@ events:
         text: Tôi cũng không biết nữa
         next: event_waylan_york_flag_ci
         display_order: 3
-        button_label: Tôi cũng không biết nữa
+        button_label: Không chắc.
       - id: event_waylan_york_q-option-4
         text: Cửu Thánh và số phận dẫn lối
         next: event_waylan_york_flag_cj
         display_order: 4
-        button_label: Cửu Thánh và số phận dẫn lối
+        button_label: Cửu Thánh dẫn lối
   - id: event_waylan_york_flag_cg
     name: 'Flag: Justice'
     description: Auto-created for flag action
@@ -2194,31 +2194,31 @@ events:
         text: '"Thông tin trên thẻ của ${1p} chưa chính xác."'
         next: event_1771347062697
         display_order: 1
-        button_label: '"Thông tin trên thẻ của ${1p}…'
+        button_label: Làm lại thông tin
       - id: event_1771346274842-option-2
         text: '"Họ và tên đầy đủ của ${1p} chưa chính xác"'
         next: event_1771347398385
         display_order: 2
-        button_label: '"Họ và tên đầy đủ của ${1p}…'
+        button_label: Sửa họ tên đầy đủ
       - id: event_1771346274842-option-3
         text: '"Tên của ${1p} đang được ghi sai"'
         next: event_1771347398385_copy_1771355805218
         display_order: 3
-        button_label: '"Tên của ${1p} đang được ghi…'
+        button_label: Sửa tên
       - id: event_1771346274842-option-4
         text: '"Tranh minh họa trên thẻ hơi sai sai?"'
         next: event_1771347398385_copy_1771355936234_copy_1771355969474
         display_order: 4
-        button_label: Tranh
+        button_label: Sửa tranh minh họa
       - id: event_1771346274842-option-5
         text: '"Số tuổi đang không đúng."'
         next: event_1771347398385_copy_1771355936234
         display_order: 5
-        button_label: '"Số tuổi đang không đúng."'
+        button_label: Sửa số tuổi
       - id: event_1771346274842-option-6
         text: '"Xin lỗi đã làm phiền ngài, không có gì đâu."'
         display_order: 6
-        button_label: Xin
+        button_label: Không có gì
   - id: event_1771346748594
     name: New Event
     event_type: story
