@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { Raid, RaidStage, RaidMonsterLib, RaidBoss, RaidMonster, EnemyBase } = require('@root/dbObject.js');
+const { Raid, RaidStage, RaidMonsterLib, RaidBoss, RaidMonster } = require('@root/dbObject.js');
 const RaidManager = require('../../utility/raidManager.js');
 
 module.exports = {
@@ -103,7 +103,7 @@ async function handleStart(interaction) {
 	const raid = await Raid.findByPk(raidId, {
 		include: [
 			{ model: RaidStage, as: 'stages' },
-			{ model: RaidMonsterLib, as: 'monsterLib', include: [{ model: EnemyBase, as: 'enemy' }] },
+			{ model: RaidMonsterLib, as: 'monsterLib' },
 			{ model: RaidBoss, as: 'bosses' },
 		],
 	});
@@ -113,6 +113,12 @@ async function handleStart(interaction) {
 			content: `❌ Raid with ID ${raidId} not found.\nRun \`node scripts/seedRaidTestData.js\` to create test data.`,
 		});
 		return;
+	}
+
+	// Resolve enemy content data for monster lib entries
+	const contentStore = require('@root/contentStore.js');
+	for (const lib of raid.monsterLib) {
+		lib.dataValues.enemy = contentStore.enemies.findByPk(String(lib.enemy_id)) || null;
 	}
 
 	// Clean up any leftover monsters from previous runs
@@ -160,7 +166,7 @@ async function handleStart(interaction) {
 			},
 			{
 				name: '👾 Monster Pool',
-				value: raid.monsterLib.map(m => `• ${m.enemy?.fullname || 'Unknown'} (Lv.${m.enemy?.lv || '?'})`).join('\n') || 'None configured',
+				value: raid.monsterLib.map(m => `• ${m.enemy?.fullname || 'Unknown'} (Lv.${m.enemy?.level || '?'})`).join('\n') || 'None configured',
 				inline: true,
 			},
 			{
@@ -330,7 +336,7 @@ async function handleSpawn(interaction) {
 		const enemy = monster.enemy;
 
 		await interaction.editReply({
-			content: `✅ Spawned: **${enemy?.fullname || 'Unknown Monster'}** (Lv.${enemy?.lv || '?'})\nStatus: ${monster.status === 'queued' ? '📋 Added to queue' : '⚔️ Now active'}`,
+			content: `✅ Spawned: **${enemy?.fullname || 'Unknown Monster'}** (Lv.${enemy?.level || '?'})\nStatus: ${monster.status === 'queued' ? '📋 Added to queue' : '⚔️ Now active'}`,
 		});
 	} catch (error) {
 		await interaction.editReply({
@@ -455,7 +461,8 @@ async function handleSwap(interaction) {
 	});
 
 	// Display the new active monster
-	const enemy = await EnemyBase.findByPk(monsterToActivate.enemy_id);
+	const contentStore = require('@root/contentStore.js');
+	const enemy = contentStore.enemies.findByPk(String(monsterToActivate.enemy_id));
 	await RaidManager.displayMonster(monsterToActivate.id, raid, enemy, interaction.client);
 
 	// Build response

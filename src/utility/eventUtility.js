@@ -1,31 +1,14 @@
 const Discord = require('discord.js');
 const { MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 const {
-	EventBase,
-	EventMessage,
-	EventCheck,
-	EventCombat,
-	EventEnemy,
-	EventOption,
-	EventActionFlag,
-	EventActionItem,
-	EventActionStat,
-	EventActionMove,
-	EventActionStatus,
-	EventActionShop,
-	EventActionVariable,
 	CharacterFlag,
 	GlobalFlag,
-	EnemyBase,
-	NpcBase,
-	NpcStock,
-	NpcPerk,
-	ItemLib,
-	PerkLib,
+	NpcPurchase,
 	TownBuilding,
 	CharacterBase,
 	CharacterItem,
 } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const characterUtil = require('./characterUtility');
 const characterSettingUtil = require('./characterSettingUtility');
 const locationUtil = require('./locationUtility');
@@ -65,9 +48,12 @@ const {
  * An event can be CHECK or COMBAT, not both
  */
 
+const NUMBER_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+
 class EventProcessor {
 	constructor() {
 		this.activeEvents = new Map();
+		this.activeCharacters = new Set(); // Track characters currently in an active event chain
 		this._characterCache = new Map(); // Cache character data within session
 	}
 
@@ -120,6 +106,10 @@ class EventProcessor {
 				character: sessionData.flags?.character || {},
 				global: sessionData.flags?.global || {},
 			},
+			// Pending flag writes: buffered until chain completes, discarded on timeout/error
+			// Keyed by flagName → { op: 'upsert'|'delete', value }
+			pendingCharacterFlags: sessionData.pendingCharacterFlags || new Map(),
+			pendingGlobalFlags: sessionData.pendingGlobalFlags || new Map(),
 			variables: {}, // Session variables for action-to-action data passing
 			metadata: sessionData.metadata || {},
 			ephemeral: sessionData.ephemeral !== false,
@@ -131,14 +121,31 @@ class EventProcessor {
 		};
 
 		try {
+			// Duplicate event guard - only applies to fresh event chain starts (not chain continuations)
+			if (!sessionData.eventDepth && characterId) {
+				if (this.activeCharacters.has(characterId)) {
+					try {
+						if (interaction.replied || interaction.deferred) {
+							await interaction.followUp({ content: '⚠️ You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
+						}
+						else {
+							await interaction.reply({ content: '⚠️ You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
+						}
+					}
+					catch (e) { /* ignore */ }
+					return { success: false, error: 'already_in_event' };
+				}
+				this.activeCharacters.add(characterId);
+			}
+
 			// 1. Get event base
-			const eventBase = await EventBase.findOne({ where: { id: eventId } });
-			if (!eventBase || !eventBase.is_active) {
+			const eventBase = contentStore.events.findByPk(String(eventId));
+			if (!eventBase || eventBase.is_active === false) {
 				throw new Error(`Event ${eventId} not found or inactive`);
 			}
 
 			// Start logging for begin_interview tag
-			if (eventBase.tags && Array.isArray(eventBase.tags) && eventBase.tags.includes('begin_interview') && !session.logSessionId) {
+			if (eventBase.tag && Array.isArray(eventBase.tag) && eventBase.tag.includes('begin_interview') && !session.logSessionId) {
 				session.logSessionId = eventLogger.startSession(characterId, 'interview_registration');
 				console.log(`[EventLogger] Started logging session: ${session.logSessionId}`);
 			}
@@ -149,9 +156,9 @@ class EventProcessor {
 			}
 
 			// 2. Check if this is a combat event
-			const combat = await EventCombat.findOne({ where: { event_id: eventId } });
+			const combat = eventBase.combat || null;
 
-			let nextEventId = eventBase.next_event_id;
+			let nextEventId = eventBase.next;
 			let checkOutcomeEventId = null;
 
 			if (combat) {
@@ -170,11 +177,11 @@ class EventProcessor {
 				}
 
 				// Determine next event based on combat outcome
-				if (combatResult.result === 'victory' && combat.victory_event_id) {
-					nextEventId = combat.victory_event_id;
+				if (combatResult.result === 'victory' && combat.on_victory) {
+					nextEventId = combat.on_victory;
 				}
-				else if (combatResult.result === 'defeat' && combat.defeat_event_id) {
-					nextEventId = combat.defeat_event_id;
+				else if (combatResult.result === 'defeat' && combat.on_defeat) {
+					nextEventId = combat.on_defeat;
 				}
 				else if (combatResult.result === 'flee' && combat.flee_event_id) {
 					nextEventId = combat.flee_event_id;
@@ -187,6 +194,8 @@ class EventProcessor {
 				if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
 					return await this.processEvent(nextEventId, interaction, characterId, {
 						flags: session.flags,
+						pendingCharacterFlags: session.pendingCharacterFlags,
+						pendingGlobalFlags: session.pendingGlobalFlags,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						combatLogSent: true, // Tell next event that combat log is already displayed
@@ -204,12 +213,12 @@ class EventProcessor {
 				checkOutcomeEventId = this.getCheckOutcomeEventId(checkResults);
 
 				// Handle special tag: finish_register
-				if (eventBase.tags && Array.isArray(eventBase.tags) && eventBase.tags.includes('finish_register')) {
+				if (eventBase.tag && Array.isArray(eventBase.tag) && eventBase.tag.includes('finish_register')) {
 					await this.handleFinishRegister(session);
 				}
 
 				// Handle special tag: redo
-				if (eventBase.tags && Array.isArray(eventBase.tags) && eventBase.tags.includes('redo')) {
+				if (eventBase.tag && Array.isArray(eventBase.tag) && eventBase.tag.includes('redo')) {
 					await this.handleRedo(session);
 				}
 			}
@@ -224,11 +233,16 @@ class EventProcessor {
 				if (proceedToEventId) {
 					return await this.processEvent(proceedToEventId, interaction, characterId, {
 						flags: session.flags,
+						pendingCharacterFlags: session.pendingCharacterFlags,
+						pendingGlobalFlags: session.pendingGlobalFlags,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
+						eventDepth: session.eventDepth + 1,
 					});
 				}
 				// No next event, end silently
+				await this.flushPendingFlags(session);
+				if (characterId) this.activeCharacters.delete(characterId);
 				return { sessionId: session.sessionId, success: true, silent: true };
 			}
 
@@ -249,6 +263,7 @@ class EventProcessor {
 		catch (error) {
 			console.error('Event processing error:', error);
 			await this.handleError(interaction, error);
+			if (characterId) this.activeCharacters.delete(characterId);
 			return { success: false, error: error.message };
 		}
 	}
@@ -273,7 +288,7 @@ class EventProcessor {
 
 		try {
 			// Get enemy to fight
-			const enemyId = combat.enemy_base_id;
+			const enemyId = combat.enemy;
 			if (!enemyId) {
 				return { result: 'error', message: 'No enemy defined for combat' };
 			}
@@ -315,17 +330,15 @@ class EventProcessor {
 	 * Process all checks for an event
 	 */
 	async processChecks(eventId, session) {
-		const checks = await EventCheck.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const eventData = contentStore.events.findByPk(String(eventId));
+		const checks = (eventData && eventData.check) ? [...eventData.check].sort((a, b) => (a.execution_order || 0) - (b.execution_order || 0)) : [];
 
 		const results = {};
 		let branchEventId = null;
 
 		for (const check of checks) {
 			const result = await this.executeCheck(check, session);
-			results[check.check_name] = result;
+			results[check.name] = result;
 
 			// Add message to session (only if not silent)
 			if (!check.silent) {
@@ -339,17 +352,17 @@ class EventProcessor {
 			}
 
 			// Check for event branching based on outcome
-			if (result.success && check.success_event_id) {
-				branchEventId = check.success_event_id;
+			if (result.success && check.on_success) {
+				branchEventId = check.on_success;
 				break; // Branch immediately on first successful branch
 			}
-			else if (!result.success && check.failure_event_id) {
-				branchEventId = check.failure_event_id;
+			else if (!result.success && check.on_failure) {
+				branchEventId = check.on_failure;
 				break; // Branch immediately on first failed branch
 			}
 
 			// Stop if required check fails (and no failure_event_id to branch to)
-			if (check.is_required && !result.success && !check.failure_event_id) {
+			if (check.is_required && !result.success && !check.on_failure) {
 				break;
 			}
 		}
@@ -366,7 +379,7 @@ class EventProcessor {
 	 * Execute a single check
 	 */
 	async executeCheck(check, session) {
-		switch (check.check_type) {
+		switch (check.type) {
 		case 'flag':
 			return await this.checkFlag(check, session);
 		case 'stat':
@@ -380,7 +393,7 @@ class EventProcessor {
 		case 'random':
 			return await this.checkRandom(check, session);
 		default:
-			return { success: false, message: `Unknown check type: ${check.check_type}` };
+			return { success: false, message: `Unknown check type: ${check.type}` };
 		}
 	}
 
@@ -752,7 +765,7 @@ class EventProcessor {
 			if (!interaction.replied && !interaction.deferred) {
 				try {
 					await interaction.reply({ 
-						content: `⚠️ Input timed out for ${variable_name}, using default: ${input_default}`,
+						content: `⚠�E�EInput timed out for ${variable_name}, using default: ${input_default}`,
 						ephemeral: true 
 					});
 				} catch (e) {
@@ -832,68 +845,47 @@ class EventProcessor {
 	 * Execute actions by trigger condition
 	 */
 	async executeActionsByTrigger(eventId, session, trigger) {
-		// Note: trigger parameter kept for future use, but currently not filtered in queries
-		// since action tables don't have trigger_condition column in current schema
-		
+		const eventData = contentStore.events.findByPk(String(eventId));
+		const allActions = (eventData && eventData.action) || [];
+
 		// Execute variable actions FIRST to set up session variables for other actions
-		const variableActions = await EventActionVariable.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const variableActions = allActions.filter(a => a.type === 'variable');
 		for (const action of variableActions) {
 			await this.executeVariableAction(action, session);
 		}
 
 		// Execute flag actions
-		const flagActions = await EventActionFlag.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const flagActions = allActions.filter(a => a.type === 'flag');
 		for (const action of flagActions) {
-			await this.executeFlagAction(action, session);
+			await this.executeFlagAction(action, session, eventId);
 		}
 
 		// Execute item actions
-		const itemActions = await EventActionItem.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const itemActions = allActions.filter(a => a.type === 'item');
 		for (const action of itemActions) {
 			await this.executeItemAction(action, session);
 		}
 
 		// Execute stat actions
-		const statActions = await EventActionStat.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const statActions = allActions.filter(a => a.type === 'stat');
 		for (const action of statActions) {
 			await this.executeStatAction(action, session);
 		}
 
 		// Execute move actions
-		const moveActions = await EventActionMove.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const moveActions = allActions.filter(a => a.type === 'move');
 		for (const action of moveActions) {
 			await this.executeMoveAction(action, session);
 		}
 
 		// Execute status actions
-		const statusActions = await EventActionStatus.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const statusActions = allActions.filter(a => a.type === 'status');
 		for (const action of statusActions) {
 			await this.executeStatusAction(action, session);
 		}
 
 		// Execute shop actions
-		const shopActions = await EventActionShop.findAll({
-			where: { event_id: eventId },
-			order: [['execution_order', 'ASC']],
-		});
+		const shopActions = allActions.filter(a => a.type === 'shop');
 		for (const action of shopActions) {
 			await this.executeShopAction(action, session);
 		}
@@ -973,7 +965,7 @@ class EventProcessor {
 				console.warn(`[handleFinishRegister] Scaled to F:${fortitude} J:${justice} P:${prudence} T:${temperance} (total: ${fortitude + justice + prudence + temperance})`);
 				session.messages.push({
 					type: 'warning',
-					text: `⚠️ Virtue values exceeded maximum (${jptfTotal}/24). Values have been normalized.`,
+					text: `⚠�E�EVirtue values exceeded maximum (${jptfTotal}/24). Values have been normalized.`,
 				});
 			}
 			else if (jptfTotal < 24) {
@@ -1034,7 +1026,7 @@ class EventProcessor {
 			console.error('Error in handleFinishRegister:', error);
 			session.messages.push({
 				type: 'error',
-				text: '⚠️ There was an issue completing your registration. Please contact an administrator.',
+				text: '⚠�E�EThere was an issue completing your registration. Please contact an administrator.',
 			});
 		}
 	}
@@ -1049,13 +1041,13 @@ class EventProcessor {
 		try {
 			// 1. Find and remove starter weapons only (items with "starter_X" tags, but NOT plain "starter")
 			const allCharacterItems = await CharacterItem.findAll({ where: { character_id: session.characterId } });
-			const allItems = await ItemLib.findAll();
+			const allItems = contentStore.items.findAll();
 
 			for (const charItem of allCharacterItems) {
-				const itemDef = allItems.find(i => i.id === charItem.item_id);
-				if (itemDef?.tag && Array.isArray(itemDef.tag)) {
+				const itemDef = allItems.find(i => String(i.id) === String(charItem.item_id));
+				if (itemDef?.tags && Array.isArray(itemDef.tags)) {
 					// Check if item has starter_X tags (e.g., starter_sword, starter_bow) but NOT plain "starter"
-					const hasStarterWeaponTag = itemDef.tag.some(tag => 
+					const hasStarterWeaponTag = itemDef.tags.some(tag =>
 						tag.startsWith('starter_') && tag !== 'starter'
 					);
 					
@@ -1086,7 +1078,7 @@ class EventProcessor {
 			console.error('Error in handleRedo:', error);
 			session.messages.push({
 				type: 'error',
-				text: '⚠️ There was an issue resetting your character. Please contact an administrator.',
+				text: '⚠�E�EThere was an issue resetting your character. Please contact an administrator.',
 			});
 		}
 	}
@@ -1094,7 +1086,7 @@ class EventProcessor {
 	/**
 	 * Execute flag action
 	 */
-	async executeFlagAction(action, session) {
+	async executeFlagAction(action, session, eventId) {
 		const { flag_name, flag_value, flag_operation, flag_type, silent, custom_message, output_variable } = action;
 		
 		// Resolve flag_value if it contains expressions
@@ -1102,8 +1094,6 @@ class EventProcessor {
 
 		// Log virtue flag actions
 		if (session.logSessionId && ['Fortitude', 'Justice', 'Prudence', 'Temperance'].includes(flag_name)) {
-			// Find which event this action belongs to by checking current event ID
-			const eventId = action.event_id || 'unknown';
 			eventLogger.logFlagAction(session.logSessionId, eventId, flag_name, resolvedValue, flag_operation, flag_type);
 		}
 		
@@ -1129,7 +1119,7 @@ class EventProcessor {
 
 		// Log virtue flag changes to console
 		if (['Fortitude', 'Justice', 'Prudence', 'Temperance'].includes(flag_name)) {
-			console.log(`[FLAG] ${flag_name}: ${currentValue} → ${newValue} (${flag_operation} ${resolvedValue}, type: ${flag_type}, event: ${action.event_id})`);
+			console.log(`[FLAG] ${flag_name}: ${currentValue} ↁE${newValue} (${flag_operation} ${resolvedValue}, type: ${flag_type}, event: ${eventId})`);
 		}
 
 		// Store result in output variable if specified
@@ -1153,7 +1143,8 @@ class EventProcessor {
 	async executeItemAction(action, session) {
 		if (!session.characterId) return;
 
-		const { item_id, quantity, operation, silent, custom_message, output_variable } = action;
+		const { item, quantity, operation, silent, custom_message, output_variable } = action;
+		const item_id = item; // YAML uses 'item' instead of 'item_id'
 		
 		// Resolve quantity if it contains expressions
 		const resolvedQuantity = this.resolveExpression(quantity, session);
@@ -1257,7 +1248,8 @@ class EventProcessor {
 	async executeMoveAction(action, session) {
 		if (!session.characterId) return;
 
-		const { location_id, silent, custom_message } = action;
+		const { location, silent, custom_message } = action;
+		const location_id = location; // YAML uses 'location' instead of 'location_id'
 		await locationUtil.moveCharacterToLocation(session.characterId, location_id);
 
 		// Add message if not silent
@@ -1304,10 +1296,10 @@ class EventProcessor {
 	 * Execute shop action - stores shop data in session for display
 	 */
 	async executeShopAction(action, session) {
-		const { npc_id, shop_type, silent, custom_message } = action;
+		const { npc: npc_id, shop_type, silent, custom_message } = action;
 
-		// Get NPC info
-		const npc = await NpcBase.findByPk(npc_id);
+		// Get NPC info from YAML content store
+		const npc = contentStore.npcs.findByPk(npc_id);
 		if (!npc) {
 			console.error(`Shop action: NPC ${npc_id} not found`);
 			return;
@@ -1331,10 +1323,15 @@ class EventProcessor {
 
 		// Get item stock if applicable
 		if (shop_type === SHOP_TYPE.ITEM || shop_type === SHOP_TYPE.BOTH) {
-			const stock = await NpcStock.findAll({
-				where: { npc_id },
-				include: [{ model: ItemLib, as: 'item' }],
-			});
+			// Get purchase counts from DB
+			const purchases = await NpcPurchase.findAll({ where: { npc_id: npc_id } });
+			const purchaseMap = new Map(purchases.map(p => [String(p.item_id), p.purchased || 0]));
+
+			const stock = (npc.stocks || []).map(s => ({
+				...s,
+				item: contentStore.items.findByPk(String(s.item)),
+				remaining: s.amount != null ? s.amount - (purchaseMap.get(String(s.item)) || 0) : null,
+			}));
 			// Filter items by building requirements
 			const filteredStock = stock.filter(s => {
 				if (!s.required_building_id) return true;
@@ -1342,20 +1339,21 @@ class EventProcessor {
 				return currentLevel >= (s.required_building_level || 1);
 			});
 			shopData.items = filteredStock.map(s => ({
-				itemId: s.item_id,
+				itemId: s.item?.id || s.item,
 				name: s.item?.name || 'Unknown Item',
 				description: s.item?.description || '',
 				price: s.item?.value || 0,
-				amount: s.amount,
+				amount: s.remaining,
+				maxStock: s.amount,
 			}));
 		}
 
 		// Get teachable perks if applicable
 		if (shop_type === SHOP_TYPE.PERK || shop_type === SHOP_TYPE.BOTH) {
-			const perks = await NpcPerk.findAll({
-				where: { npc_id },
-				include: [{ model: PerkLib, as: 'perk' }],
-			});
+			const perks = (npc.perks || []).map(p => ({
+				...p,
+				perkData: contentStore.perks.findByPk(String(p.perk)),
+			}));
 			// Filter perks by building requirements
 			const filteredPerks = perks.filter(p => {
 				if (!p.required_building_id) return true;
@@ -1363,11 +1361,11 @@ class EventProcessor {
 				return currentLevel >= (p.required_building_level || 1);
 			});
 			shopData.perks = filteredPerks.map(p => ({
-				perkId: p.perk_id,
-				name: p.perk?.name || 'Unknown Perk',
-				description: p.perk?.description || '',
+				perkId: p.perk,
+				name: p.perkData?.name || 'Unknown Perk',
+				description: p.perkData?.description || '',
 				staminaCost: p.stamina_cost,
-				category: p.perk?.category || '',
+				category: p.perkData?.category || '',
 			}));
 		}
 
@@ -1390,12 +1388,12 @@ class EventProcessor {
 	 * Generate default message for check result
 	 */
 	generateCheckMessage(check, result) {
-		const checkType = check.check_type;
+		const checkType = check.type;
 		const success = result.success;
 
 		switch (checkType) {
 		case 'flag':
-			return success ? `Condition met: ${check.check_name}` : `Condition not met: ${check.check_name}`;
+			return success ? `Condition met: ${check.name}` : `Condition not met: ${check.name}`;
 		case 'stat':
 			const statData = check.stat_data || {};
 			return success 
@@ -1550,33 +1548,34 @@ class EventProcessor {
 	async setFlagValue(flagName, value, flagType, session) {
 		console.log(`[setFlagValue] BEFORE: flagName=${flagName}, value=${value}, flagType=${flagType}, local=`, JSON.stringify(session.flags.local, null, 2));
 		
+		const isFalsy = value === 0 || value === null || value === undefined;
+
 		switch (flagType) {
 		case FLAG_TYPE.GLOBAL:
-			// Delete global flag if value is 0, null, or undefined
-			if (value === 0 || value === null || value === undefined) {
+			if (isFalsy) {
 				delete session.flags.global[flagName];
-				await GlobalFlag.destroy({ where: { flag: flagName } });
+				session.pendingGlobalFlags.set(flagName, { op: 'delete' });
 			}
 			else {
 				session.flags.global[flagName] = value;
-				await GlobalFlag.upsert({ flag: flagName, value: String(value) });
+				session.pendingGlobalFlags.set(flagName, { op: 'upsert', value });
 			}
 			break;
 		case FLAG_TYPE.CHARACTER:
 			if (session.characterId) {
-				// Delete character flag if value is 0, null, or undefined
-				if (value === 0 || value === null || value === undefined) {
+				if (isFalsy) {
 					delete session.flags.character[flagName];
+					session.pendingCharacterFlags.set(flagName, { op: 'delete' });
 				}
 				else {
 					session.flags.character[flagName] = value;
+					session.pendingCharacterFlags.set(flagName, { op: 'upsert', value });
 				}
-				await characterUtil.updateCharacterFlag(session.characterId, flagName, value);
 			}
 			break;
 		case FLAG_TYPE.LOCAL:
 		default:
-			if (value === 0 || value === null || value === undefined) {
+			if (isFalsy) {
 				delete session.flags.local[flagName];
 			}
 			else {
@@ -1589,10 +1588,36 @@ class EventProcessor {
 	}
 
 	/**
+	 * Flush all pending character and global flag writes to the database.
+	 * Called only when the event chain completes successfully.
+	 * On timeout or error, pending writes are simply discarded.
+	 */
+	async flushPendingFlags(session) {
+		for (const [flagName, entry] of session.pendingGlobalFlags) {
+			if (entry.op === 'delete') {
+				await GlobalFlag.destroy({ where: { flag: flagName } });
+			}
+			else {
+				await GlobalFlag.upsert({ flag: flagName, value: String(entry.value) });
+			}
+		}
+		if (session.characterId) {
+			for (const [flagName, entry] of session.pendingCharacterFlags) {
+				// updateCharacterFlag handles null/undefined as a delete
+				await characterUtil.updateCharacterFlag(
+					session.characterId,
+					flagName,
+					entry.op === 'delete' ? null : entry.value,
+				);
+			}
+		}
+	}
+
+	/**
 	 * Build the Discord message
 	 */
 	async buildMessage(eventBase, session) {
-		const eventMessage = await EventMessage.findOne({ where: { event_id: eventBase.id } });
+		const eventMessage = eventBase.message || null;
 		
 		const embed = new Discord.EmbedBuilder();
 
@@ -1600,7 +1625,7 @@ class EventProcessor {
 		let resultText = '';
 		if (session.messages && session.messages.length > 0) {
 			resultText = session.messages.map(m => {
-				const icons = { success: '✅', failure: '❌', info: 'ℹ️' };
+				const icons = { success: '✁E, failure: '❁E, info: 'ℹ�E�E };
 				const icon = icons[m.type] || '•';
 				return `${icon} ${m.text}`;
 			}).join('\n') + '\n\n';
@@ -1608,8 +1633,8 @@ class EventProcessor {
 
 		// Add combat result
 		if (session.combatResult) {
-			const icons = { victory: '⚔️', defeat: '💀', flee: '🏃', error: '⚠️' };
-			resultText += `${icons[session.combatResult.result] || '❓'} ${session.combatResult.message}\n\n`;
+			const icons = { victory: '⚔︁E, defeat: '💀', flee: '🏃', error: '⚠�E�E };
+			resultText += `${icons[session.combatResult.result] || '❁E} ${session.combatResult.message}\n\n`;
 		}
 
 		// Add event message content
@@ -1617,7 +1642,7 @@ class EventProcessor {
 			// Handle NPC speaker - NPC name becomes title, NPC avatar becomes message avatar
 			let npc = session.npc;
 			if (eventMessage.npc_speaker) {
-				npc = await NpcBase.findOne({ where: { id: eventMessage.npc_speaker } });
+				npc = contentStore.npcs.findByPk(eventMessage.npc_speaker);
 				if (npc) {
 					session.npc = npc; // Store for pronoun processing
 					embed.setTitle(npc.name);
@@ -1657,10 +1682,9 @@ class EventProcessor {
 		}
 
 		// Add enemy preview if present
-		const enemies = await EventEnemy.findAll({
-			where: { event_id: eventBase.id, is_hidden: false },
-			order: [['display_order', 'ASC']],
-		});
+		const enemies = (eventBase.enemies || [])
+			.filter(e => !e.is_hidden)
+			.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
 		for (const enemy of enemies) {
 			const enemyData = await this.getEnemyData(enemy);
@@ -1682,10 +1706,10 @@ class EventProcessor {
 	async getEnemyData(enemyConfig) {
 		let enemyBase;
 		if (enemyConfig.enemy_type === 'enemy') {
-			enemyBase = await EnemyBase.findOne({ where: { id: enemyConfig.enemy_id } });
+			enemyBase = contentStore.enemies.findByPk(String(enemyConfig.enemy));
 		}
 		else {
-			enemyBase = await NpcBase.findOne({ where: { id: enemyConfig.enemy_id } });
+			enemyBase = contentStore.npcs.findByPk(String(enemyConfig.enemy));
 		}
 
 		if (!enemyBase) return null;
@@ -1700,10 +1724,10 @@ class EventProcessor {
 	 * Get visible options for the event
 	 */
 	async getVisibleOptions(eventId, session) {
-		const options = await EventOption.findAll({
-			where: { event_id: eventId },
-			order: [['display_order', 'ASC']],
-		});
+		const eventData = contentStore.events.findByPk(String(eventId));
+		const options = (eventData && eventData.option)
+			? eventData.option.map(o => ({ ...o })).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+			: [];
 
 		// Get character for pronoun processing
 		let character = null;
@@ -1756,7 +1780,7 @@ class EventProcessor {
 	 */
 	async sendCombatLog(interaction, combatResult, ephemeral = true) {
 		const embed = new Discord.EmbedBuilder()
-			.setTitle('⚔️ Combat Log')
+			.setTitle('⚔︁ECombat Log')
 			.setColor(combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00);
 
 		// Add battle report to description
@@ -1846,32 +1870,18 @@ class EventProcessor {
 		}
 
 		if (options && options.length > 0) {
-			// Show options as select menu
-			const selectMenu = new Discord.StringSelectMenuBuilder()
-				.setCustomId(`event_${session.sessionId}`)
-				.setPlaceholder('Choose your action...');
+			// Append numbered options to the embed description
+			const optionsText = options.map((option, index) =>
+				`${NUMBER_EMOJIS[index]} ${option.text}`
+			).join('\n');
 
-			options.forEach((option, index) => {
-				// Discord has a 100 character limit for select menu labels
-				let labelText = `${index + 1}. ${option.text}`;
-				if (labelText.length > 100) {
-					// Truncate to 97 chars to leave room for "..."
-					labelText = labelText.substring(0, 97) + '...';
-				}
+			const embed = messageData.embeds[0];
+			const currentDesc = embed.data.description || '';
+			const separator = currentDesc ? '\n\n' : '';
+			embed.setDescription(currentDesc + separator + optionsText);
 
-				const menuOption = new Discord.StringSelectMenuOptionBuilder()
-					.setLabel(labelText)
-					.setValue(option.option_id);
-				
-				// Only set description if it exists
-				if (option.description) {
-					menuOption.setDescription(option.description.substring(0, 100));
-				}
-				
-				selectMenu.addOptions(menuOption);
-			});
-
-			components.push(new Discord.ActionRowBuilder().addComponents(selectMenu));
+			// Reactions require a non-ephemeral message
+			session.ephemeral = false;
 		}
 		else if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
 			// No options but has next event - show Continue button
@@ -1906,14 +1916,117 @@ class EventProcessor {
 			dialogMessage = await interaction.fetchReply();
 		}
 
-		// Set up collector if there are components
-		if (components.length > 0) {
+		// Set up collector if there are components or options
+		if (options && options.length > 0) {
+			// Add reaction emojis for each option and set up reaction collector
+			for (let i = 0; i < options.length; i++) {
+				await dialogMessage.react(NUMBER_EMOJIS[i]);
+			}
+			await this.setupReactionCollector(session, eventBase, nextEventId, dialogMessage, options);
+		}
+		else if (components.length > 0) {
 			await this.setupCollector(session, eventBase, nextEventId, dialogMessage);
 		}
 		else {
-			// Event ends here, save flags
+			// Event ends here - flush flags, delete message, clean up
+			await this.flushPendingFlags(session);
 			await this.saveSession(session);
+			if (session.characterId) this.activeCharacters.delete(session.characterId);
+			await dialogMessage.delete().catch(e => console.error('Failed to delete terminal event message:', e));
 		}
+	}
+
+	/**
+	 * Set up reaction collector for option selection
+	 */
+	async setupReactionCollector(session, eventBase, defaultNextEventId, message, options) {
+		const { interaction } = session;
+		const userId = interaction.user.id;
+
+		const collector = message.createReactionCollector({
+			filter: (reaction, user) =>
+				!user.bot &&
+				user.id === userId &&
+				NUMBER_EMOJIS.slice(0, options.length).includes(reaction.emoji.name),
+			time: 600000, // 10 minutes
+			max: 1,
+		});
+
+		collector.on('collect', async (reaction) => {
+			try {
+				// Clean up reactions
+				await message.reactions.removeAll().catch(e => console.error('Failed to remove reactions:', e));
+
+				const index = NUMBER_EMOJIS.indexOf(reaction.emoji.name);
+				if (index === -1 || index >= options.length) return;
+
+				const selectedOption = options[index];
+				let nextEventId = defaultNextEventId;
+
+				// Look up the full option data to find next event
+				const optionData = contentStore.events.findByPk(String(eventBase.id));
+				const option = optionData && optionData.option
+					? optionData.option.find(o => o.id === selectedOption.id)
+					: null;
+
+				if (option?.next) {
+					nextEventId = option.next;
+				}
+
+				// Handle save-X and clear-X tags
+				if (session.characterId && eventBase.tag && Array.isArray(eventBase.tag)) {
+					for (const tag of eventBase.tag) {
+						if (tag.startsWith('save-')) {
+							const settingName = tag.substring(5);
+							if (settingName && option?.text) {
+								const currentValue = await characterSettingUtil.getCharacterSetting(session.characterId, settingName);
+								const newValue = currentValue
+									? currentValue + ', "' + option.text.replace(/"/g, '\\"') + '"'
+									: '"' + option.text.replace(/"/g, '\\"') + '"';
+								await characterSettingUtil.setCharacterSetting(session.characterId, settingName, newValue);
+							}
+						}
+						else if (tag.startsWith('clear-')) {
+							const settingName = tag.substring(6);
+							if (settingName) {
+								await characterSettingUtil.setCharacterSetting(session.characterId, settingName, '');
+							}
+						}
+					}
+				}
+
+				await this.saveSession(session);
+
+				if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
+					await this.processEvent(nextEventId, interaction, session.characterId, {
+						flags: session.flags,
+						pendingCharacterFlags: session.pendingCharacterFlags,
+						pendingGlobalFlags: session.pendingGlobalFlags,
+						metadata: session.metadata,
+						ephemeral: session.ephemeral,
+						eventDepth: session.eventDepth + 1,
+					});
+				}
+				else {
+					// Event chain ended - flush flags, delete message
+					await this.flushPendingFlags(session);
+					await message.delete().catch(e => console.error('Failed to delete event message:', e));
+					this.activeEvents.delete(session.sessionId);
+					if (session.characterId) this.activeCharacters.delete(session.characterId);
+				}
+			}
+			catch (error) {
+				console.error('Reaction collector error:', error);
+			}
+		});
+
+		collector.on('end', (_, reason) => {
+			if (reason === 'time') {
+				message.reactions.removeAll().catch(() => {});
+				this.activeEvents.delete(session.sessionId);
+				if (session.characterId) this.activeCharacters.delete(session.characterId);
+			}
+		});
 	}
 
 	/**
@@ -1947,12 +2060,13 @@ class EventProcessor {
 					// Regular option selected
 					collector.stop();
 					const selectedOptionId = selectedValue;
-					const option = await EventOption.findOne({
-						where: { event_id: eventBase.id, option_id: selectedOptionId },
-					});
+					const optionData = contentStore.events.findByPk(String(eventBase.id));
+					const option = optionData && optionData.option
+						? optionData.option.find(o => o.id === selectedOptionId)
+						: null;
 
-					if (option?.next_event_id) {
-						nextEventId = option.next_event_id;
+					if (option?.next) {
+						nextEventId = option.next;
 					}
 
 					// Check if next event will need modal input - handle modal DIRECTLY
@@ -1963,18 +2077,12 @@ class EventProcessor {
 						
 						if (nextEventNeedsInput) {
 							console.log(`[DEBUG] Starting direct modal handling for ${nextEventId}`);
-							// Get the input action details 
-							const { EventActionVariable, EventActionStat } = require('@root/dbObject.js');
-							const { VARIABLE_SOURCE } = require('@root/models/event/eventConstants.js');
-							
-							const inputAction = await EventActionVariable.findOne({
-								where: { 
-									event_id: nextEventId,
-									source_type: VARIABLE_SOURCE.INPUT,
-								},
-								order: [['execution_order', 'ASC']],
-							});
-							
+							// Get the input action details from YAML
+							const nextEventData = contentStore.events.findByPk(String(nextEventId));
+							const nextActions = (nextEventData && nextEventData.action) || [];
+
+							const inputAction = nextActions.find(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
+
 							console.log(`[DEBUG] Found input action:`, inputAction ? 'YES' : 'NO');
 							
 							if (inputAction) {
@@ -2028,10 +2136,7 @@ class EventProcessor {
 									}
 									
 									// Save to character stats directly
-									const statActions = await EventActionStat.findAll({
-										where: { event_id: nextEventId },
-										order: [['execution_order', 'ASC']],
-									});
+									const statActions = nextActions.filter(a => a.type === 'stat');
 									
 									for (const statAction of statActions) {
 										if (statAction.stat_name) {
@@ -2041,8 +2146,8 @@ class EventProcessor {
 									}
 									
 									// Handle tags
-									if (session.characterId && eventBase.tags && Array.isArray(eventBase.tags)) {
-										for (const tag of eventBase.tags) {
+									if (session.characterId && eventBase.tag && Array.isArray(eventBase.tag)) {
+										for (const tag of eventBase.tag) {
 											if (tag.startsWith('save-')) {
 												const settingName = tag.substring(5);
 												if (settingName && option?.text) {
@@ -2073,7 +2178,10 @@ class EventProcessor {
 									// Continue processing the event that had input actions
 									session.currentEventId = nextEventId;
 									await this.processEvent(nextEventId, modalSubmit, session.characterId, {
-										flags: session.flags
+										flags: session.flags,
+										pendingCharacterFlags: session.pendingCharacterFlags,
+										pendingGlobalFlags: session.pendingGlobalFlags,
+										eventDepth: session.eventDepth + 1,
 									});
 									return; // Event processing continues via processEvent
 								}
@@ -2082,7 +2190,7 @@ class EventProcessor {
 									// Emergency acknowledgment
 									if (!componentInteraction.replied && !componentInteraction.deferred) {
 										await componentInteraction.reply({ 
-											content: '⚠️ Input failed, please try again.',
+											content: '⚠�E�EInput failed, please try again.',
 											ephemeral: true 
 										});
 									}
@@ -2103,8 +2211,8 @@ class EventProcessor {
 					}
 
 					// Handle save-X and clear-X tags
-					if (session.characterId && eventBase.tags && Array.isArray(eventBase.tags)) {
-						for (const tag of eventBase.tags) {
+					if (session.characterId && eventBase.tag && Array.isArray(eventBase.tag)) {
+						for (const tag of eventBase.tag) {
 							// Handle save-X tags
 							if (tag.startsWith('save-')) {
 								const settingName = tag.substring(5); // Remove 'save-' prefix
@@ -2154,6 +2262,7 @@ class EventProcessor {
 							components: [],
 						});
 						this.activeEvents.delete(session.sessionId);
+						if (session.characterId) this.activeCharacters.delete(session.characterId);
 						return;
 					}
 					// Other button press uses default next event
@@ -2174,15 +2283,20 @@ class EventProcessor {
 					
 					await this.processEvent(nextEventId, componentInteraction, session.characterId, {
 						flags: session.flags,
+						pendingCharacterFlags: session.pendingCharacterFlags,
+						pendingGlobalFlags: session.pendingGlobalFlags,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
+						eventDepth: session.eventDepth + 1,
 					});
 				}
 				else {
-					// Event chain ended - clear components and clean up
-					await componentInteraction.update({ components: [] });
+					// Event chain ended - flush flags, delete message, clean up
+					await componentInteraction.deferUpdate();
+					await this.flushPendingFlags(session);
+					await componentInteraction.message.delete().catch(e => console.error('Failed to delete event message:', e));
 					await this.saveSession(session);
-					this.activeEvents.delete(session.sessionId);
+					if (session.characterId) this.activeCharacters.delete(session.characterId);
 				}
 			}
 			catch (error) {
@@ -2193,8 +2307,10 @@ class EventProcessor {
 
 		collector.on('end', (_, reason) => {
 			if (reason === 'time') {
-				// Timeout - clean up
+				// Timeout - clear components since they're no longer functional
+				message.edit({ components: [] }).catch(() => {});
 				this.activeEvents.delete(session.sessionId);
+				if (session.characterId) this.activeCharacters.delete(session.characterId);
 			}
 		});
 	}
@@ -2204,20 +2320,12 @@ class EventProcessor {
 	 */
 	async eventHasInputActions(eventId) {
 		try {
-			const { EventActionVariable } = require('@root/dbObject.js');
-			const { VARIABLE_SOURCE } = require('@root/models/event/eventConstants.js');
-			
-			const inputActions = await EventActionVariable.findAll({
-				where: { 
-					event_id: eventId,
-					source_type: VARIABLE_SOURCE.INPUT,
-				},
-			});
-			
-			return inputActions.length > 0;
+			const eventData = contentStore.events.findByPk(String(eventId));
+			if (!eventData || !eventData.action) return false;
+			return eventData.action.some(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
 		} catch (error) {
 			console.error(`Error checking input actions for event ${eventId}:`, error);
-			return false; // Default to false on error
+			return false;
 		}
 	}
 
@@ -2231,7 +2339,7 @@ class EventProcessor {
 			const character = await CharacterBase.findByPk(session.characterId);
 			if (!character) {
 				await componentInteraction.reply({
-					content: '❌ Character not found.',
+					content: '❁ECharacter not found.',
 					ephemeral: true,
 				});
 				return;
@@ -2244,7 +2352,7 @@ class EventProcessor {
 
 				if (!shopItem) {
 					await componentInteraction.reply({
-						content: '❌ Item not found in shop.',
+						content: '❁EItem not found in shop.',
 						ephemeral: true,
 					});
 					return;
@@ -2253,7 +2361,7 @@ class EventProcessor {
 				// Check if player has enough gold
 				if (character.gold < shopItem.price) {
 					await componentInteraction.reply({
-						content: `❌ Not enough gold. You have ${character.gold} gold, but need ${shopItem.price}.`,
+						content: `❁ENot enough gold. You have ${character.gold} gold, but need ${shopItem.price}.`,
 						ephemeral: true,
 					});
 					return;
@@ -2262,7 +2370,7 @@ class EventProcessor {
 				// Check stock
 				if (shopItem.amount !== null && shopItem.amount <= 0) {
 					await componentInteraction.reply({
-						content: '❌ Item is out of stock.',
+						content: '❁EItem is out of stock.',
 						ephemeral: true,
 					});
 					return;
@@ -2273,15 +2381,16 @@ class EventProcessor {
 				await characterUtil.addCharacterItem(session.characterId, itemId, 1);
 
 				// Update stock if limited
-				if (shopItem.amount !== null) {
-					await NpcStock.decrement('amount', {
+				if (shopItem.maxStock !== null) {
+					await NpcPurchase.findOrCreate({
 						where: { npc_id: session.shopData.npcId, item_id: itemId },
-					});
+						defaults: { purchased: 0 },
+					}).then(([record]) => record.increment('purchased'));
 					shopItem.amount -= 1;
 				}
 
 				await componentInteraction.reply({
-					content: `✅ Purchased **${shopItem.name}** for ${shopItem.price} gold!`,
+					content: `✁EPurchased **${shopItem.name}** for ${shopItem.price} gold!`,
 					ephemeral: true,
 				});
 			}
@@ -2292,7 +2401,7 @@ class EventProcessor {
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
-						content: '❌ Perk not found.',
+						content: '❁EPerk not found.',
 						ephemeral: true,
 					});
 					return;
@@ -2306,7 +2415,7 @@ class EventProcessor {
 				if (charPerk) {
 					if (charPerk.status === 'equipped' || charPerk.status === 'available') {
 						await componentInteraction.reply({
-							content: `❌ You have already learned **${shopPerk.name}**.`,
+							content: `❁EYou have already learned **${shopPerk.name}**.`,
 							ephemeral: true,
 						});
 						return;
@@ -2327,7 +2436,7 @@ class EventProcessor {
 				const trainingCost = 1;
 				if (character.currentStamina < trainingCost) {
 					await componentInteraction.reply({
-						content: `❌ Not enough stamina. You have ${character.currentStamina} stamina.`,
+						content: `❁ENot enough stamina. You have ${character.currentStamina} stamina.`,
 						ephemeral: true,
 					});
 					return;
@@ -2361,7 +2470,7 @@ class EventProcessor {
 		catch (error) {
 			console.error('Shop interaction error:', error);
 			await componentInteraction.reply({
-				content: '❌ An error occurred during the transaction.',
+				content: '❁EAn error occurred during the transaction.',
 				ephemeral: true,
 			});
 		}
@@ -2418,7 +2527,7 @@ class EventProcessor {
 
 			if (isNaN(quantity) || quantity < 1) {
 				await componentInteraction.reply({
-					content: '❌ Please enter a valid positive number.',
+					content: '❁EPlease enter a valid positive number.',
 					ephemeral: true,
 				});
 				return;
@@ -2427,7 +2536,7 @@ class EventProcessor {
 			const character = await CharacterBase.findByPk(session.characterId);
 			if (!character) {
 				await componentInteraction.reply({
-					content: '❌ Character not found.',
+					content: '❁ECharacter not found.',
 					ephemeral: true,
 				});
 				return;
@@ -2440,7 +2549,7 @@ class EventProcessor {
 
 				if (!shopItem) {
 					await componentInteraction.reply({
-						content: '❌ Item not found in shop.',
+						content: '❁EItem not found in shop.',
 						ephemeral: true,
 					});
 					return;
@@ -2452,7 +2561,7 @@ class EventProcessor {
 				if (character.gold < totalCost) {
 					const maxAffordable = Math.floor(character.gold / shopItem.price);
 					await componentInteraction.reply({
-						content: `❌ Not enough gold. You have ${character.gold} gold, but need ${totalCost} for ${quantity}x. You can afford ${maxAffordable}x.`,
+						content: `❁ENot enough gold. You have ${character.gold} gold, but need ${totalCost} for ${quantity}x. You can afford ${maxAffordable}x.`,
 						ephemeral: true,
 					});
 					return;
@@ -2461,7 +2570,7 @@ class EventProcessor {
 				// Check stock
 				if (shopItem.amount !== null && shopItem.amount < quantity) {
 					await componentInteraction.reply({
-						content: `❌ Not enough stock. Only ${shopItem.amount} available.`,
+						content: `❁ENot enough stock. Only ${shopItem.amount} available.`,
 						ephemeral: true,
 					});
 					return;
@@ -2472,16 +2581,16 @@ class EventProcessor {
 				await characterUtil.addCharacterItem(session.characterId, itemId, quantity);
 
 				// Update stock if limited
-				if (shopItem.amount !== null) {
-					await NpcStock.decrement('amount', {
-						by: quantity,
+				if (shopItem.maxStock !== null) {
+					await NpcPurchase.findOrCreate({
 						where: { npc_id: session.shopData.npcId, item_id: itemId },
-					});
+						defaults: { purchased: 0 },
+					}).then(([record]) => record.increment('purchased', { by: quantity }));
 					shopItem.amount -= quantity;
 				}
 
 				await componentInteraction.reply({
-					content: `✅ Purchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold - totalCost})`,
+					content: `✁EPurchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold - totalCost})`,
 					ephemeral: true,
 				});
 			}
@@ -2492,7 +2601,7 @@ class EventProcessor {
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
-						content: '❌ Perk not found.',
+						content: '❁EPerk not found.',
 						ephemeral: true,
 					});
 					return;
@@ -2505,7 +2614,7 @@ class EventProcessor {
 
 				if (charPerk && (charPerk.status === 'equipped' || charPerk.status === 'available')) {
 					await componentInteraction.reply({
-						content: `❌ You have already learned **${shopPerk.name}**.`,
+						content: `❁EYou have already learned **${shopPerk.name}**.`,
 						ephemeral: true,
 					});
 					return;
@@ -2527,13 +2636,13 @@ class EventProcessor {
 				if (actualStaminaToSpend <= 0) {
 					if (character.currentStamina <= 0) {
 						await componentInteraction.reply({
-							content: '❌ You have no stamina left.',
+							content: '❁EYou have no stamina left.',
 							ephemeral: true,
 						});
 					}
 					else {
 						await componentInteraction.reply({
-							content: `❌ Training already complete. No more stamina needed.`,
+							content: `❁ETraining already complete. No more stamina needed.`,
 							ephemeral: true,
 						});
 					}
@@ -2567,7 +2676,7 @@ class EventProcessor {
 		catch (error) {
 			console.error('Shop modal submit error:', error);
 			await componentInteraction.reply({
-				content: '❌ An error occurred during the transaction.',
+				content: '❁EAn error occurred during the transaction.',
 				ephemeral: true,
 			});
 		}
@@ -2588,7 +2697,7 @@ class EventProcessor {
 	 */
 	async handleError(interaction, error) {
 		const errorEmbed = new Discord.EmbedBuilder()
-			.setTitle('⚠️ Event Error')
+			.setTitle('⚠�E�EEvent Error')
 			.setDescription(error.message || 'Something went wrong.')
 			.setColor(0xFF0000);
 

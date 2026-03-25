@@ -1,4 +1,5 @@
-const { CharacterQuest, QuestLib } = require('@root/dbObject.js');
+const { CharacterQuest } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 
 /**
  * Character Quest Management Utility
@@ -26,7 +27,7 @@ class CharacterQuestManager {
 		}
 
 		// Get quest information from library
-		const questLib = await QuestLib.findByPk(questId);
+		const questLib = contentStore.quests.findByPk(questId);
 		if (!questLib) {
 			throw new Error('Quest not found in library');
 		}
@@ -226,14 +227,14 @@ class CharacterQuestManager {
 			whereConditions.status = status;
 		}
 
-		return await CharacterQuest.findAll({
+		const results = await CharacterQuest.findAll({
 			where: whereConditions,
-			include: [{
-				model: QuestLib,
-				as: 'quest',
-				required: false,
-			}],
 			order: [['started_at', 'DESC']],
+		});
+		return results.map(cq => {
+			const raw = cq.get ? cq.get({ plain: true }) : cq;
+			raw.quest = contentStore.quests.findByPk(raw.quest_id);
+			return raw;
 		});
 	}
 

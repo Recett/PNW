@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
-const { CharacterBase, CharacterItem, ItemLib, LocationBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, LocationBase } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -41,7 +42,7 @@ module.exports = {
 			}
 
 			// Find all items with "starter" tag and give them to the character equipped
-			const allItems = await ItemLib.findAll();
+			const allItems = contentStore.items.findAll();
 			const starterItems = allItems.filter(item =>
 				item.tag && Array.isArray(item.tag) && item.tag.includes('starter'),
 			);

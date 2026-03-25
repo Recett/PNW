@@ -1,0 +1,183 @@
+# ===============================================
+# WEAPONS DEFINITION FILE
+# ===============================================
+# This file defines all weapons in the game including melee weapons, ranged weapons, and shields.
+#
+# Complete Example (all possible fields):
+#   - id: "1"                            # Required: Unique identifier (string)
+#     name: "Iron Sword"                 # Required: Display name
+#     description: "A sturdy iron blade" # Optional: Flavor text
+#     item_type: weapon                  # Required: Must be "weapon"
+#     value: 100                         # Optional: Gold value for trading
+#     weight: 5                          # Optional: Inventory weight
+#     tag:                               # Optional: Classification array
+#       - melee
+#       - sword
+#     weapon:                            # Required: Combat properties
+#       slot: mainhand                   # Required: "mainhand"|"offhand"|"twohand"
+#       subtype: sword                   # Optional: dagger|sword|rapier|spear|axe|mace|shortbow|longbow|shield
+#       base_damage: 15                  # Required: Base damage before scaling
+#       scaling: 0.5                     # Required: Stat scaling (0.0-1.0)
+#       hit_mod: 0.75                    # Required: Hit chance modifier (0.0-1.0)
+#       cooldown: 100                    # Required: Attack speed (lower = faster)
+#
+# Last modified: 2026-03-23
+# ===============================================
+
+weapons:
+
+  - id: "1"
+    name: Frayed Bow
+    description: Cây cung đã sờn và dây không chắc chắn.
+    item_type: weapon
+    value: 10
+    weight: 3
+    tag:
+      - starter_shortbow
+    weapon:
+      slot: twohand
+      subtype: shortbow
+      base_damage: 4 # Base damage before scaling
+      scaling: 0.2 # Damage scaling with stats (0.0-1.0)
+      hit_mod: 0.85 # Hit chance modifier (0.0-1.0)
+      cooldown: 65 # Attack speed (lower = faster)
+
+  - id: "2"
+    name: Warped Longbow
+    description: Cây cung này cong vẹo, bắn không được chuẩn.
+    item_type: weapon
+    value: 10
+    weight: 8
+    tag:
+      - starter_longbow
+    weapon:
+      slot: twohand
+      subtype: longbow
+      base_damage: 7
+      scaling: 0.45
+      hit_mod: 0.55
+      cooldown: 140
+
+  - id: "3"
+    name: Nick Dagger
+    description: Lưỡi dao ngắn bị sứt mẻ do mài kém.
+    item_type: weapon
+    value: 10
+    weight: 3
+    tag:
+      - starter_dagger
+    weapon:
+      slot: mainhand
+      subtype: dagger
+      base_damage: 6
+      scaling: 0.25
+      hit_mod: 0.65
+      cooldown: 60
+
+  - id: "4"
+    name: Dull Rapier
+    description: Lưỡi dao tập luyện cùn, bị bỏ quên lâu ngày.
+    item_type: weapon
+    value: 10
+    weight: 4
+    tag:
+      - starter_rapier
+    weapon:
+      slot: mainhand
+      subtype: rapier
+      base_damage: 7
+      scaling: 0.3
+      hit_mod: 0.6
+      cooldown: 85
+
+  - id: "5"
+    name: Plain Shortsword
+    description: Lưỡi dao thẳng, vẫn dùng được nhưng không được cải tiến.
+    item_type: weapon
+    value: 10
+    weight: 5
+    tag:
+      - starter_shortsword
+    weapon:
+      slot: mainhand
+      subtype: sword
+      base_damage: 6
+      scaling: 0.45
+      hit_mod: 0.75
+      cooldown: 110
+
+  - id: "6"
+    name: Splintered Spear
+    description: Sản xuất hàng loạt, hầu như không được bảo dưỡng.
+    item_type: weapon
+    value: 10
+    weight: 6
+    tag:
+      - starter_spear
+    weapon:
+      slot: mainhand
+      subtype: spear
+      base_damage: 5
+      scaling: 0.5
+      hit_mod: 0.8
+      cooldown: 120
+
+  - id: "7"
+    name: Cracked Mace
+    description: Đầu dao mất cân bằng, cán dao được quấn.
+    item_type: weapon
+    value: 10
+    weight: 8
+    tag:
+      - starter_mace
+    weapon:
+      slot: mainhand
+      subtype: mace
+      base_damage: 6
+      scaling: 0.75
+      hit_mod: 0.75
+      cooldown: 145
+
+  - id: "8"
+    name: Chipped Axe
+    description: Cùn do dùng quá nhiều và sử dụng sai cách.
+    item_type: weapon
+    value: 10
+    weight: 9
+    tag:
+      - starter_axe
+    weapon:
+      slot: mainhand
+      subtype: axe
+      base_damage: 7
+      scaling: 0.85
+      hit_mod: 0.7
+      cooldown: 150
+
+  - id: "9"
+    name: Bent Greatsword
+    description: Thép bị cong vênh khó điều khiển.
+    item_type: weapon
+    value: 10
+    weight: 11
+    weapon:
+      slot: twohand
+      subtype: sword
+      base_damage: 8
+      scaling: 0.95
+      hit_mod: 0.65
+      cooldown: 170
+
+  - id: "10"
+    name: Bent Buckler
+    description: Tấm chắn nhỏ bị móp với dây đeo lỏng lẻo.
+    item_type: weapon
+    value: 10
+    weight: 4
+    weapon:
+      slot: offhand
+      subtype: shield
+      base_damage: 4
+      scaling: 0.3
+      hit_mod: 0.75
+      cooldown: 120

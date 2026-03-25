@@ -125,10 +125,10 @@ async function handleTradeInteraction(interaction) {
 
 	const { getCharacterBase } = require('../utility/characterUtility');
 	const tradeUtility = require('../utility/tradeUtility');
-	const { Trade, TradeItem, CharacterItem, ItemLib, CharacterBase } = require('../dbObject');
+	const { Trade, TradeItem, CharacterItem, CharacterBase } = require('../dbObject');
 
 	// Initialize trade utility models if not already done
-	tradeUtility.initModels({ Trade, TradeItem, CharacterItem, ItemLib, CharacterBase });
+	tradeUtility.initModels({ Trade, TradeItem, CharacterItem, CharacterBase });
 
 	const character = await getCharacterBase(interaction.user.id);
 	if (!character) {
@@ -266,7 +266,7 @@ async function handleLocationExitButton(interaction) {
 			}
 		}
 		
-		// Filter out locked locations
+		// Filter out locked locations (lock is runtime DB state, not YAML)
 		const unlockedLocationIds = [];
 		for (const locId of allPossibleLocations) {
 			const loc = await LocationBase.findByPk(locId);
@@ -311,6 +311,47 @@ async function handleLocationExitButton(interaction) {
 	return true;
 }
 
+// Handle cooking-related button and select menu interactions  
+async function handleCookingInteraction(interaction) {
+	const customId = interaction.customId;
+	if (!customId.startsWith('cook_')) return false;
+
+	try {
+		const cookCommand = require('../commands/utility/cook.js');
+		
+		if (customId === 'cook_select_ingredient') {
+			await cookCommand.handleIngredientSelection(interaction);
+		}
+		else if (customId === 'cook_add_spice' || customId === 'cook_add_additive') {
+			await cookCommand.handleAdditiveAddition(interaction);
+		}
+		else if (customId === 'cook_finish') {
+			await cookCommand.handleCookingFinish(interaction);
+		}
+		else if (customId === 'cook_cancel') {
+			await cookCommand.handleCookingCancel(interaction);
+		}
+		else if (customId === 'cook_cancel_selection') {
+			await cookCommand.handleCookingCancelSelection(interaction);
+		}
+		else {
+			return false; // Not a cooking interaction
+		}
+		
+		return true;
+	}
+	catch (error) {
+		console.error('Cooking interaction error:', error);
+		if (!interaction.replied && !interaction.deferred) {
+			await interaction.reply({
+				content: 'An error occurred while processing the cooking interaction.',
+				ephemeral: true,
+			});
+		}
+		return true;
+	}
+}
+
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
@@ -320,6 +361,8 @@ module.exports = {
 			if (await handleInterviewInteraction(interaction)) return;
 			// Check for trade interactions
 			if (await handleTradeInteraction(interaction)) return;
+			// Check for cooking interactions
+			if (await handleCookingInteraction(interaction)) return;
 			// Check for location exit button
 			if (await handleLocationExitButton(interaction)) return;
 			// Add other button/select handlers here as needed
@@ -342,6 +385,11 @@ module.exports = {
 				if (interaction.customId.startsWith('location_lock_modal_')) {
 					const locationCommand = require('../commands/admin/location.js');
 					await locationCommand.handleLockModal(interaction);
+					return;
+				}
+				if (interaction.customId === 'character_edit_modal') {
+					const characterCommand = require('../commands/utility/character.js');
+					await characterCommand.handleModal(interaction);
 					return;
 				}
 				// Add other modal handlers here

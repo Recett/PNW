@@ -1,0 +1,98 @@
+{
+  // YAML Configuration for Discord RPG Bot Content
+  "yaml.validate": true,
+  "yaml.hover": true,
+  "yaml.completion": true,
+  "yaml.format.enable": true,
+  "yaml.format.singleQuote": false,
+  "yaml.format.bracketSpacing": true,
+  "yaml.format.proseWrap": "preserve",
+  "yaml.maxItemsComputed": 5000,
+
+  // File associations for YAML content
+  "files.associations": {
+    "*.yaml": "yaml",
+    "*.yml": "yaml"
+  },
+
+  // YAML Schema mapping for content validation
+  "yaml.schemas": {
+    // Custom Schema for Your Content Types
+    "./schema/items.json": [
+      "src/content/items/*.yaml"
+    ],
+    "./schema/events.json": [
+      "src/content/events/*.yaml"
+    ],
+    "./schema/npcs.json": [
+      "src/content/npcs/*.yaml"
+    ],
+    "./schema/enemies.json": [
+      "src/content/enemies/*.yaml"
+    ]
+  },
+
+  // Spell Checker Configuration for RPG Content
+  "cSpell.words": [
+    // Game-specific terms
+    "subtype", "cooldown", "crit", "evade", "stamina", "mana",
+    "mainhand", "offhand", "twohand", "fullname", "npc",
+    // RPG terminology
+    "adventurer", "mercenary", "goblin", "orc", "dwarf", "elf",
+    "potion", "elixir", "enchanted", "legendary", "artifact",
+    // Discord/Bot terms
+    "emoji", "guild", "webhook", "embeds", "ephemeral",
+    // Your specific content
+    "Waylan", "York", "Shuleria", "Recett"
+  ],
+
+  // File exclusions (don't spell-check these)
+  "cSpell.ignorePaths": [
+    "node_modules/**",
+    ".git/**",
+    "*.min.*",
+    "package-lock.json"
+  ],
+
+  // YAML-specific settings
+  "[yaml]": {
+    "editor.insertSpaces": true,
+    "editor.tabSize": 2,
+    "editor.autoIndent": "advanced",
+    "editor.quickSuggestions": {
+      "other": true,
+      "comments": false,
+      "strings": true
+    },
+    "editor.formatOnSave": false, // Let your custom formatter handle this
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+
+  // File explorer settings for better YAML navigation
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.patterns": {
+    "*.yaml": "${capture}.yml",
+    "all_*.yaml": "${capture}_*.yaml"
+  },
+
+  // Editor improvements for YAML content
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.indentation": true,
+  "editor.rulers": [80, 100],
+  "editor.wordWrap": "bounded",
+  "editor.wordWrapColumn": 100,
+
+  // Minimap settings for large YAML files  
+  "editor.minimap.enabled": true,
+  "editor.minimap.maxColumn": 120,
+  "editor.minimap.renderCharacters": false,
+
+  // Search settings for content management
+  "search.useGlobalIgnoreFiles": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/backup*": true,
+    "**/.git": true,
+    "**/database.sqlite": true
+  }
+}

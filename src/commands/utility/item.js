@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, StringSelectMenuBuilder, ActionRowBuilder, ComponentType, MessageFlags } = require('discord.js');
-const { ItemLib, CharacterItem } = require('@root/dbObject.js');
-const { Op } = require('sequelize');
+const { CharacterItem } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const characterUtility = require('../../utility/characterUtility');
 const itemUtility = require('../../utility/itemUtility');
 
@@ -33,16 +33,22 @@ module.exports = {
 			const itemName = interaction.options.getString('name');
 
 			// Try to find exact match first
-			const exactMatch = await ItemLib.findOne({ where: { name: itemName } });
-			const item = exactMatch ? await itemUtility.getItemWithDetails(exactMatch.id) : null;
+			const exactMatch = contentStore.items.findOne({ where: { name: itemName } });
+			const item = exactMatch || null;
 
 			if (!item) {
 				// Search for items with names containing the input (only from user's inventory)
-				const matches = await CharacterItem.findAll({
+				const charItems = await CharacterItem.findAll({
 					where: { character_id: userId },
-					include: [{ model: ItemLib, as: 'item', where: { name: { [Op.substring]: itemName } } }],
 					limit: 25,
 				});
+				const matches = charItems
+					.map(ci => {
+						const raw = ci.get ? ci.get({ plain: true }) : ci;
+						raw.item = contentStore.items.findByPk(raw.item_id);
+						return raw;
+					})
+					.filter(ci => ci.item && ci.item.name.toLowerCase().includes(itemName.toLowerCase()));
 
 				if (!matches || matches.length === 0) {
 					await interaction.editReply({ content: `No item found with the name '${itemName}'.` });

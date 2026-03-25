@@ -39,7 +39,7 @@ const locationResourceNodeSpawn = (sequelize) => {
 	return sequelize.define('location_resource_node_spawn', {
 		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 		location_id: { type: Sequelize.STRING, allowNull: false },
-		resource_node_lib_id: { type: Sequelize.INTEGER, allowNull: false },
+		resource_node_lib_id: { type: Sequelize.STRING, allowNull: false },
 		spawn_chance: { type: Sequelize.INTEGER, defaultValue: 100 },
 		min_count: { type: Sequelize.INTEGER, defaultValue: 1 },
 		max_count: { type: Sequelize.INTEGER, defaultValue: 1 },
@@ -54,7 +54,7 @@ const locationEnemySpawn = (sequelize) => {
 	return sequelize.define('location_enemy_spawn', {
 		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 		location_id: { type: Sequelize.STRING, allowNull: false },
-		enemy_base_id: { type: Sequelize.INTEGER, allowNull: false },
+		enemy_base_id: { type: Sequelize.STRING, allowNull: false },
 		spawn_chance: { type: Sequelize.INTEGER, defaultValue: 100 },
 		min_count: { type: Sequelize.INTEGER, defaultValue: 1 },
 		max_count: { type: Sequelize.INTEGER, defaultValue: 1 },
@@ -72,7 +72,7 @@ const locationEnemy = (sequelize) => {
 	return sequelize.define('location_enemy', {
 		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 		location_id: { type: Sequelize.STRING, allowNull: false },
-		enemy_base_id: { type: Sequelize.INTEGER, allowNull: false },
+		enemy_base_id: { type: Sequelize.STRING, allowNull: false },
 
 		// Enemy availability and spawn settings
 		min_level: { type: Sequelize.INTEGER, defaultValue: 1 },
@@ -193,7 +193,7 @@ const locationInstanceResourceNode = (sequelize) => {
 	return sequelize.define('location_instance_resource_node', {
 		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 		instance_id: { type: Sequelize.STRING, allowNull: false },
-		resource_node_lib_id: { type: Sequelize.INTEGER, allowNull: false },
+		resource_node_lib_id: { type: Sequelize.STRING, allowNull: false },
 		position_x: { type: Sequelize.FLOAT, allowNull: true },
 		position_y: { type: Sequelize.FLOAT, allowNull: true },
 		current_yield: { type: Sequelize.INTEGER, allowNull: false },

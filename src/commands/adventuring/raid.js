@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, EmbedBuilder } = require('discord.js');
-const { Raid, RaidStage, RaidMonster, EnemyBase } = require('@root/dbObject.js');
+const { Raid, RaidStage, RaidMonster } = require('@root/dbObject.js');
 const RaidManager = require('../../utility/raidManager.js');
 
 module.exports = {
@@ -130,7 +130,8 @@ async function handleSwitch(interaction) {
 	});
 
 	// Display the new active monster
-	const enemy = await EnemyBase.findByPk(monsterToActivate.enemy_id);
+	const contentStore = require('@root/contentStore.js');
+	const enemy = contentStore.enemies.findByPk(String(monsterToActivate.enemy_id));
 	await RaidManager.displayMonster(monsterToActivate.id, raid, enemy, interaction.client);
 
 	// Build response
@@ -247,7 +248,7 @@ async function handleQueue(interaction) {
 	if (activeMonster) {
 		embed.addFields({
 			name: '⚔️ Currently Active',
-			value: `**${activeMonster.enemy?.fullname || 'Unknown'}** (Lv.${activeMonster.enemy?.lv || '?'})\nHP: ${activeMonster.current_hp}/${activeMonster.max_hp}`,
+			value: `**${activeMonster.enemy?.fullname || 'Unknown'}** (Lv.${activeMonster.enemy?.level || '?'})\nHP: ${activeMonster.current_hp}/${activeMonster.max_hp}`,
 			inline: false,
 		});
 	}
@@ -262,7 +263,7 @@ async function handleQueue(interaction) {
 	// Queue
 	if (queuedMonsters.length > 0) {
 		const queueList = queuedMonsters.map((m, i) => {
-			return `**${i + 1}.** ${m.enemy?.fullname || 'Unknown'} (Lv.${m.enemy?.lv || '?'})`;
+			return `**${i + 1}.** ${m.enemy?.fullname || 'Unknown'} (Lv.${m.enemy?.level || '?'})`;
 		}).join('\n');
 
 		embed.addFields({

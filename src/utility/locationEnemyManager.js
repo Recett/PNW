@@ -3,7 +3,8 @@
  * Demonstrates how to use the locationEnemy table for managing feasible enemies per location
  */
 
-const { LocationEnemy, EnemyBase, LocationBase } = require('@root/dbObject.js');
+const { LocationEnemy } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 
 class LocationEnemyManager {
@@ -37,15 +38,21 @@ class LocationEnemyManager {
 
 		const feasibleEnemies = await LocationEnemy.findAll({
 			where: whereConditions,
-			include: [{
-				model: EnemyBase,
-				as: 'enemy',
-				required: true,
-			}],
 			order: [['encounter_weight', 'DESC']],
 		});
 
-		return feasibleEnemies;
+		// Resolve enemy data from contentStore and filter out missing enemies
+		const resolved = feasibleEnemies
+			.map(entry => {
+				const enemy = contentStore.enemies.findByPk(String(entry.enemy_base_id));
+				if (!enemy) return null;
+				const plain = entry.get ? entry.get({ plain: true }) : entry;
+				plain.enemy = enemy;
+				return plain;
+			})
+			.filter(e => e != null);
+
+		return resolved;
 	}
 
 	/**
@@ -163,15 +170,21 @@ class LocationEnemyManager {
 				min_level: { [Op.lte]: playerLevel },
 				max_level: { [Op.gte]: playerLevel },
 			},
-			include: [{
-				model: EnemyBase,
-				as: 'enemy',
-				required: true,
-			}],
 			order: [['encounter_weight', 'DESC']],
 		});
 
-		return feasibleEnemies;
+		// Resolve enemy data from contentStore and filter out missing enemies
+		const resolved = feasibleEnemies
+			.map(entry => {
+				const enemy = contentStore.enemies.findByPk(String(entry.enemy_base_id));
+				if (!enemy) return null;
+				const plain = entry.get ? entry.get({ plain: true }) : entry;
+				plain.enemy = enemy;
+				return plain;
+			})
+			.filter(e => e != null);
+
+		return resolved;
 	}
 
 	/**

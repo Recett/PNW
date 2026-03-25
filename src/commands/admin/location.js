@@ -61,7 +61,32 @@ module.exports = {
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('unlock')
-				.setDescription('Unlock the current location')),
+				.setDescription('Unlock the current location'))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('duplicate')
+				.setDescription('Duplicate a location with a different time of day')
+				.addStringOption(option =>
+					option
+						.setName('location')
+						.setDescription('Location ID or name to duplicate')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('time')
+						.setDescription('Time of day for the new version')
+						.setRequired(true)
+						.addChoices(
+							{ name: 'Morning (6am-2pm)', value: 'morning' },
+							{ name: 'Afternoon (2pm-10pm)', value: 'afternoon' },
+							{ name: 'Night (10pm-6am)', value: 'night' },
+						))
+				.addStringOption(option =>
+					option
+						.setName('description')
+						.setDescription('Optional: Override description for this time version')
+						.setRequired(false))),
+
 
 	async execute(interaction) {
 		const subcommand = interaction.options.getSubcommand();
@@ -80,6 +105,9 @@ module.exports = {
 		}
 		else if (subcommand === 'unlock') {
 			return this.handleUnlock(interaction);
+		}
+		else if (subcommand === 'duplicate') {
+			return this.handleDuplicate(interaction);
 		}
 	},
 
@@ -399,6 +427,73 @@ module.exports = {
 			}
 			else {
 				await interaction.reply(errorMessage);
+			}
+		}
+	},
+
+	async handleDuplicate(interaction) {
+		try {
+			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+			const locationInput = interaction.options.getString('location', true);
+			const timeOfDay = interaction.options.getString('time', true);
+			const customDescription = interaction.options.getString('description', false);
+
+			let sourceLocation;
+			if (!isNaN(locationInput)) {
+				sourceLocation = await LocationBase.findOne({ where: { id: parseInt(locationInput) } });
+			}
+			else {
+				sourceLocation = await LocationBase.findOne({ where: { name: locationInput } });
+			}
+
+			if (!sourceLocation) {
+				return await interaction.editReply({ content: `Location not found: ${locationInput}` });
+			}
+
+			const existingTimeVersion = await LocationBase.findOne({
+				where: { channel: sourceLocation.channel, time: timeOfDay },
+			});
+
+			if (existingTimeVersion) {
+				return await interaction.editReply({
+					content: `A ${timeOfDay} version already exists for this location (ID: ${existingTimeVersion.id}).\nUse /location edit to modify it instead.`,
+				});
+			}
+
+			const newLocation = await LocationBase.create({
+				name: sourceLocation.name,
+				channel: sourceLocation.channel,
+				description: customDescription || sourceLocation.description,
+				type: sourceLocation.type,
+				role: sourceLocation.role,
+				lock: sourceLocation.lock,
+				tag: sourceLocation.tag,
+				time: timeOfDay,
+			});
+
+			const embed = new EmbedBuilder()
+				.setTitle('✅ Location Duplicated')
+				.setColor(0x00FF00)
+				.addFields(
+					{ name: 'New Location ID', value: `${newLocation.id}`, inline: true },
+					{ name: 'Time of Day', value: timeOfDay, inline: true },
+					{ name: 'Name', value: newLocation.name, inline: false },
+					{ name: 'Channel', value: `<#${newLocation.channel}>`, inline: true },
+					{ name: 'Source ID', value: `${sourceLocation.id}`, inline: true },
+				)
+				.setDescription('The location has been duplicated. Note: LocationContain (NPCs/enemies), LocationLink, and other junction tables were NOT copied.');
+
+			await interaction.editReply({ embeds: [embed] });
+		}
+		catch (error) {
+			interaction.client.error(error);
+			const errorMessage = `Error duplicating location: ${error.message}`;
+			if (interaction.deferred) {
+				return await interaction.editReply({ content: errorMessage });
+			}
+			else {
+				return await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
 			}
 		}
 	},

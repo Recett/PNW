@@ -1,0 +1,66 @@
+enemies:
+  - id: "1"
+    name: Mercenary Captain
+    unknown_name: "???"
+    level: 1
+    stats:
+      health: 30
+      defense: 3
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 5
+      speed: 30
+  - id: "1001"
+    name: Goblin Scout
+    unknown_name: Small Creature
+    level: 1
+    enemy_type: minion
+    tags:
+      type: goblin
+      difficulty: easy
+    reward:
+      gold: 10
+      exp: 5
+    stats:
+      health: 30
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 10
+      speed: 15
+  - id: "1002"
+    name: Goblin Warrior
+    unknown_name: Green Creature
+    level: 3
+    enemy_type: soldier
+    tags:
+      type: goblin
+      difficulty: normal
+    reward:
+      gold: 25
+      exp: 15
+    stats:
+      health: 60
+      defense: 5
+      defense_percent: 5
+      crit_resistance: 5
+      evade: 5
+      speed: 12
+  - id: "1003"
+    name: Orc Brute
+    unknown_name: Large Beast
+    level: 5
+    enemy_type: elite
+    tags:
+      type: orc
+      difficulty: hard
+    reward:
+      gold: 50
+      exp: 30
+    stats:
+      health: 120
+      defense: 10
+      defense_percent: 10
+      crit_resistance: 10
+      evade: 0
+      speed: 8

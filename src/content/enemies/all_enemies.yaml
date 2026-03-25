@@ -1,0 +1,98 @@
+# ===============================================
+# ENEMIES DEFINITION FILE
+# ===============================================
+# This file defines all enemy creatures including their combat stats.
+#
+# Complete Example (all possible fields):
+#   - id: "1001"                         # Required: Unique identifier (string)
+#     name: "Goblin Scout"               # Required: Display name
+#     unknown_name: Small Creature       # Optional: Name shown before identification
+#     level: 1                           # Required: Enemy difficulty level
+#     enemy_type: minion                 # Optional: "minion"|"soldier"|"elite"|"boss"
+#     tag:                               # Optional: Classification array
+#       - goblin
+#       - easy
+#     reward:                            # Optional: Victory rewards
+#       gold: 10                         # Optional: Gold amount
+#       exp: 5                           # Optional: Experience points
+#     stats:                             # Required: Combat statistics
+#       health: 30                       # Required: Max HP
+#       defense: 2                       # Required: Physical damage reduction (flat)
+#       defense_percent: 0               # Optional: Percentage damage reduction
+#       crit_resistance: 0               # Optional: Critical hit resistance
+#       evade: 10                        # Required: Dodge chance
+#       speed: 15                        # Required: Combat speed/initiative
+#
+# Last modified: 2026-03-23
+# ===============================================
+
+enemies:
+
+  - id: "1"
+    name: Mercenary Captain
+    unknown_name: "???"
+    level: 1 # Enemy difficulty level
+    stats:
+      health: 30
+      defense: 3
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 5
+      speed: 30
+
+  - id: "1001"
+    name: Goblin Scout
+    unknown_name: Small Creature
+    level: 1
+    enemy_type: minion # minion, soldier, elite, boss
+    tag:
+      - goblin
+      - easy
+    reward:
+      gold: 10
+      exp: 5
+    stats:
+      health: 30
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 10
+      speed: 15
+
+  - id: "1002"
+    name: Goblin Warrior
+    unknown_name: Green Creature
+    level: 3
+    enemy_type: soldier
+    tag:
+      - goblin
+      - normal
+    reward:
+      gold: 25
+      exp: 15
+    stats:
+      health: 60
+      defense: 5
+      defense_percent: 5
+      crit_resistance: 5
+      evade: 5
+      speed: 12
+
+  - id: "1003"
+    name: Orc Brute
+    unknown_name: Large Beast
+    level: 5
+    enemy_type: elite
+    tag:
+      - orc
+      - hard
+    reward:
+      gold: 50
+      exp: 30
+    stats:
+      health: 120
+      defense: 10
+      defense_percent: 10
+      crit_resistance: 10
+      evade: 0
+      speed: 8

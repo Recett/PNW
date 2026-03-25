@@ -1,0 +1,21 @@
+other_items: []
+# Placeholder for consumables, crafting materials, quest items, and other miscellaneous items
+# Structure example:
+# other_items:
+#   - id: "item_id"
+#     name: "Item Name"
+#     description: "Item description"
+#     item_type: consumable|misc|material|quest_item
+#     value: 100
+#     weight: 5
+#     tags:
+#       - "tag_name"
+#     # Type-specific properties:
+#     consumable:
+#       use_type: "immediate"
+#       effects:
+#         - type: "heal"
+#           value: 50
+#     metadata:
+#       stackable: true
+#       tradeable: true

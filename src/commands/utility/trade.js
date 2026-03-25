@@ -119,7 +119,8 @@ async function handleAdd(interaction, character) {
 	const quantity = interaction.options.getInteger('quantity') || 1;
 
 	// Get character's inventory
-	const { CharacterItem, ItemLib } = require('../../dbObject');
+	const { CharacterItem } = require('../../dbObject');
+	const contentStore = require('../../contentStore');
 	const inventory = await CharacterItem.findAll({
 		where: { character_id: character.id },
 	});
@@ -131,7 +132,7 @@ async function handleAdd(interaction, character) {
 	// Build select menu for items
 	const options = [];
 	for (const charItem of inventory.slice(0, 25)) {
-		const item = await ItemLib.findByPk(charItem.item_id);
+		const item = contentStore.items.findByPk(charItem.item_id);
 		if (item) {
 			options.push({
 				label: `${item.name} (x${charItem.quantity})`,
@@ -178,12 +179,12 @@ async function handleRemove(interaction, character) {
 	}
 
 	// Build select menu
-	const { CharacterItem, ItemLib } = require('../../dbObject');
+	const { CharacterItem } = require('../../dbObject');
 	const options = [];
 	for (const ti of tradeItems) {
 		const charItem = await CharacterItem.findByPk(ti.character_item_id);
 		if (charItem) {
-			const item = await ItemLib.findByPk(charItem.item_id);
+			const item = contentStore.items.findByPk(charItem.item_id);
 			if (item) {
 				options.push({
 					label: `${item.name} (x${ti.quantity} in trade)`,

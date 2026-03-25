@@ -1,0 +1,19 @@
+# ===============================================
+# OTHER ITEMS DEFINITION FILE
+# ===============================================
+# This file defines consumables, materials, quest items, and miscellaneous items.
+#
+# Complete Example (all possible fields):
+#   - id: "101"                          # Required: Unique identifier (string)
+#     name: "Health Potion"              # Required: Display name
+#     description: "Restores 50 HP"     # Optional: Item description
+#     item_type: consumable              # Required: "consumable"|"material"|"quest_item"|"misc"
+#     value: 25                          # Optional: Gold value for trading
+#     weight: 1                          # Optional: Inventory weight
+#     tag:                               # Optional: Classification array
+#       - healing
+#
+# Last modified: 2026-03-23
+# ===============================================
+
+other_items: []

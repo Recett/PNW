@@ -1,7 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const contentStore = require('@root/contentStore.js');
 
 // Will be initialized after dbObject is loaded
-let Trade, TradeItem, CharacterItem, ItemLib, CharacterBase;
+let Trade, TradeItem, CharacterItem, CharacterBase;
 
 /**
  * Initialize models - call this after dbObject is ready
@@ -10,7 +11,6 @@ function initModels(models) {
 	Trade = models.Trade;
 	TradeItem = models.TradeItem;
 	CharacterItem = models.CharacterItem;
-	ItemLib = models.ItemLib;
 	CharacterBase = models.CharacterBase;
 }
 
@@ -366,7 +366,7 @@ async function formatItemList(tradeItems) {
 	for (const ti of tradeItems) {
 		const charItem = await CharacterItem.findByPk(ti.character_item_id);
 		if (charItem) {
-			const item = await ItemLib.findByPk(charItem.item_id);
+			const item = contentStore.items.findByPk(charItem.item_id);
 			const name = item?.name || `Item #${charItem.item_id}`;
 			lines.push(`• ${name} x${ti.quantity}`);
 		}

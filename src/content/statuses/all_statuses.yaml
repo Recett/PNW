@@ -1,0 +1,15 @@
+statuses:
+  - id: "bleed"                          # Required: Kebab-case unique identifier
+    name: "Bleeding"                     # Required: Display name
+    description: "Deals damage each tick."  # Optional
+    category: "debuff"                   # Required: buff | debuff | neutral
+    scope: "combat"                      # Required: combat | persistent
+    stat_target: "hp"                    # Optional: Which stat is affected
+    value_type: "flat"                   # Optional: flat | percent
+    default_potency: 5                   # Optional: Default effect magnitude (default: 1)
+    max_potency: 30                      # Optional: null = no cap
+    stackable: true                      # Optional: Whether stacks accumulate (default: false)
+    duration_unit: "tick"                # Required: tick | player_turn | enemy_turn | hit_received | battle | seconds | permanent
+    default_duration: 3                  # Optional: null = permanent
+    difficulty: 1.0                      # Optional: Resist check difficulty
+    resist_timing: "on_apply"            # Optional: on_apply | on_tick | both

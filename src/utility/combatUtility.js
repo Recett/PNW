@@ -1,5 +1,5 @@
 // Utility functions for handling combat logic
-const { EnemyBaseStat, EnemyAttackLib, EnemyBase } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const characterUtility = require('./characterUtility');
 const itemUtility = require('./itemUtility');
 const { getCharacterSetting } = require('./characterSettingUtility');
@@ -36,8 +36,8 @@ async function performAttack(attackerId, defenderId) {
 	const attack = attackStats && attackStats.length > 0 ? attackStats[0].attack : 0;
 	const defense = defenseStats ? defenseStats.defense : 0;
 
-	// Simple formula: damage = attack - defense (minimum 1)
-	return Math.max(1, attack - defense);
+	// Simple formula: damage = attack - defense (minimum 0)
+	return Math.max(0, attack - defense);
 }
 
 // --- Initiative Tracker System ---
@@ -53,7 +53,7 @@ async function performAttack(attackerId, defenderId) {
 function calculateDamage(attacker, tracker, target, ignoreDefense = false, critMultiplier = 1) {
 	const attackVal = tracker.attack || 0;
 	const defenseVal = ignoreDefense ? 0 : (target.defense || 0);
-	let baseDamage = Math.max(1, attackVal - defenseVal);
+	let baseDamage = Math.max(0, attackVal - defenseVal);
 	return Math.floor(baseDamage * critMultiplier);
 }
 
@@ -238,25 +238,24 @@ async function mainCombat(playerId, enemyId) {
 	// Get player combat stats for speed
 	const playerCombatStats = await getDefenseStat(playerId);
 
-	// Get Enemy base info and stats
-	const enemyBase = await EnemyBase.findOne({ where: { id: enemyId } });
+	// Get Enemy base info and stats from YAML content store
+	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
 	if (!enemyBase) throw new Error('Enemy not found');
 
-	const enemyBaseStat = await EnemyBaseStat.findOne({ where: { enemy_id: enemyId } });
+	const enemyBaseStat = enemyBase.stats;
 	if (!enemyBaseStat) throw new Error('Enemy stats not found');
 
-	// Get Enemy attacks through the many-to-many relationship
-	const enemyWithAttacks = await EnemyBase.findOne({
-		where: { id: enemyId },
-		include: [{
-			model: EnemyAttackLib,
-			as: 'attackLibs',
-			through: { attributes: [] },
-		}],
-	});
-
-	if (!enemyWithAttacks || !enemyWithAttacks.attackLibs || enemyWithAttacks.attackLibs.length === 0) {
+	// Get Enemy attacks from embedded YAML data
+	let enemyAttacks = enemyBase.attacks;
+	if (!enemyAttacks || enemyAttacks.length === 0) {
 		throw new Error('Enemy has no attacks');
+	}
+
+	// If enemy has "pick_one" tag, randomly select a single attack at combat start
+	const enemyTags = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
+	if (enemyTags.includes('pick_one') && enemyAttacks.length > 1) {
+		const pickedIndex = Math.floor(Math.random() * enemyAttacks.length);
+		enemyAttacks = [enemyAttacks[pickedIndex]];
 	}
 
 	const playerBase = await characterUtility.getCharacterBase(playerId);
@@ -323,24 +322,15 @@ async function mainCombat(playerId, enemyId) {
 		critResistance: enemyBaseStat.crit_resistance || 0,
 		shieldStrength: 0,
 		shieldIsGreatshield: false,
-		attacks: enemyWithAttacks.attackLibs.map(atk => {
-			// Get modifiers from the junction table
-			const junction = atk.EnemyAttack || {};
-			const damageModifier = junction.damage_modifier || 0;
-			const accuracyModifier = junction.accuracy_modifier || 0;
-			const cooldownModifier = junction.cooldown_modifier || 0;
-
+		attacks: enemyAttacks.map(atk => {
 			return {
 				id: atk.id,
 				name: atk.name || 'Attack',
 				// Use enemy's speed from base stats
 				speed: enemyBaseStat.speed || 12,
-				// Apply cooldown modifier from junction table
-				cooldown: Math.max(10, (atk.cooldown || 90) + cooldownModifier),
-				// Apply damage modifier from junction table
-				attack: (atk.base_damage || 0) + damageModifier,
-				// Apply accuracy modifier from junction table
-				accuracy: (atk.accuracy || 0) + accuracyModifier,
+				cooldown: Math.max(10, atk.cooldown || 90),
+				attack: atk.base_damage || 0,
+				accuracy: atk.accuracy || 0,
 				crit: atk.critical_chance || 0,
 			};
 		}),
@@ -589,7 +579,8 @@ async function getEquippedArmorTypes(playerId) {
  * @returns {Object} Map of skill_name -> xp gained
  */
 async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
-	const { SkillLib, CharacterSkill } = require('@root/dbObject.js');
+	const { CharacterSkill } = require('@root/dbObject.js');
+	const contentStore = require('@root/contentStore.js');
 	const skillXpGained = {};
 	
 	// Total damage value for XP calculation (dodged + reduced + crit resisted)
@@ -601,7 +592,7 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 	
 	for (const [, armorData] of Object.entries(armorTypeCount)) {
 		// Find skill by armor subtype name
-		const skill = await SkillLib.findOne({
+		const skill = contentStore.skills.findOne({
 			where: { name: armorData.skillName },
 		});
 		
@@ -642,7 +633,8 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
  * @returns {Object} Map of skill_name -> xp gained
  */
 async function applyWeaponSkillXp(playerId, weaponDamageMap) {
-	const { SkillLib, CharacterSkill } = require('@root/dbObject.js');
+	const { CharacterSkill } = require('@root/dbObject.js');
+	const contentStore = require('@root/contentStore.js');
 	const skillXpGained = {};
 	
 	for (const [itemId, weaponData] of Object.entries(weaponDamageMap)) {
@@ -664,7 +656,7 @@ async function applyWeaponSkillXp(playerId, weaponDamageMap) {
 		}
 		
 		// Find skill by name (case-insensitive)
-		const skill = await SkillLib.findOne({
+		const skill = contentStore.skills.findOne({
 			where: { name: skillName },
 		});
 		
@@ -731,8 +723,8 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 
 	lootResults.playerVictory = true;
 
-	// Get enemy reward data from database
-	const enemyBase = await EnemyBase.findOne({ where: { id: enemyId } });
+	// Get enemy reward data from YAML content store
+	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
 	if (!enemyBase || !enemyBase.reward) {
 		return lootResults;
 	}
@@ -742,7 +734,7 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 	// Get player and enemy levels for XP calculation
 	const playerBase = await characterUtility.getCharacterBase(playerId);
 	const playerLevel = playerBase?.level || 1;
-	const mobLevel = enemyBase.lv || 1;
+	const mobLevel = enemyBase.level || enemyBase.lv || 1;
 
 	// Handle gold reward
 	if (reward.gold && reward.gold > 0) {

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
-const { CharacterBase, EnemyBase } = require('@root/dbObject.js');
+const { CharacterBase } = require('@root/dbObject.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -19,9 +19,10 @@ module.exports = {
 			}
 
 			// Find Enemy with ID 2
-			const enemy = await EnemyBase.findOne({ where: { id: 2 } });
+			const contentStore = require('@root/contentStore.js');
+			const enemy = contentStore.enemies.findByPk('2');
 			if (!enemy) {
-				await interaction.editReply({ content: 'Enemy with ID 2 not found in the database.' });
+				await interaction.editReply({ content: 'Enemy with ID 2 not found.' });
 				return;
 			}
 

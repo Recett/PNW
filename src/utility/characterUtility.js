@@ -141,8 +141,9 @@ let calculateAttackStat = async (characterId) => {
 		// Check if any weapon has "No Dualwielding Penalty" tag
 		for (const weaponDetail of weaponDetails) {
 			if (weaponDetail.item) {
-				const tags = weaponDetail.item.tags;
-				if (tags && tags.toLowerCase().includes('no dualwielding penalty')) {
+				const tag = weaponDetail.item.tag;
+				const tagList = Array.isArray(tag) ? tag : (tag ? [tag] : []);
+				if (tagList.some(t => t && t.toLowerCase().includes('no dualwielding penalty'))) {
 					hasDualWieldingException = true;
 					break;
 				}

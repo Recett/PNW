@@ -1,4 +1,5 @@
-const { Raid, RaidBoss, RaidMonster, RaidMonsterLib, RaidStage, EnemyBase, EnemyBaseStat, EventBase, CronLog } = require('@root/dbObject');
+const { Raid, RaidBoss, RaidMonster, RaidMonsterLib, RaidStage, CronLog } = require('@root/dbObject');
+const contentStore = require('@root/contentStore');
 const { EmbedBuilder } = require('discord.js');
 const CronJobManager = require('./cronJobManager');
 
@@ -9,6 +10,29 @@ const CronJobManager = require('./cronJobManager');
 class RaidManager {
 	// Track active spawn intervals by raid ID
 	static spawnIntervals = new Map();
+
+	/**
+	 * Resolve enemy content data from YAML contentStore
+	 * @param {number|string} enemyId - Enemy ID
+	 * @returns {Object|null} Enemy content object or null
+	 */
+	static resolveEnemy(enemyId) {
+		return contentStore.enemies.findByPk(String(enemyId));
+	}
+
+	/**
+	 * Attach enemy content data from contentStore to Sequelize record(s).
+	 * Sets `record.dataValues.enemy` so consumers can access `record.enemy`.
+	 * @param {Object|Array} records - Sequelize instance(s) with `enemy_id`
+	 * @returns {Object|Array} Same records with enemy data attached
+	 */
+	static attachEnemyData(records) {
+		for (const record of Array.isArray(records) ? records : [records]) {
+			const enemy = this.resolveEnemy(record.enemy_id);
+			record.dataValues.enemy = enemy || null;
+		}
+		return records;
+	}
 
 	/**
 	 * Create a new raid
@@ -556,8 +580,8 @@ class RaidManager {
 		// Select random event ID from pool
 		const eventId = raid.event_pool[Math.floor(Math.random() * raid.event_pool.length)];
 
-		// Fetch event from EventBase model
-		const event = await EventBase.findByPk(eventId);
+		// Fetch event from YAML content store
+		const event = contentStore.events.findByPk(String(eventId));
 		if (!event) {
 			throw new Error(`Event with ID ${eventId} not found`);
 		}
@@ -581,10 +605,11 @@ class RaidManager {
 	 * @returns {Array} Monster lib entries
 	 */
 	static async getMonsterLib(raidId) {
-		return await RaidMonsterLib.findAll({
+		const libs = await RaidMonsterLib.findAll({
 			where: { raid_id: raidId },
-			include: [{ model: EnemyBase, as: 'enemy' }],
 		});
+		this.attachEnemyData(libs);
+		return libs;
 	}
 
 	/**
@@ -641,13 +666,14 @@ class RaidManager {
 	 * @returns {Object|null} Active monster or null
 	 */
 	static async getActiveMonster(raidId) {
-		return await RaidMonster.findOne({
+		const monster = await RaidMonster.findOne({
 			where: {
 				raid_id: raidId,
 				status: 'active',
 			},
-			include: [{ model: EnemyBase, as: 'enemy' }],
 		});
+		if (monster) this.attachEnemyData(monster);
+		return monster;
 	}
 
 	/**
@@ -656,14 +682,15 @@ class RaidManager {
 	 * @returns {Array} Queued monsters
 	 */
 	static async getQueuedMonsters(raidId) {
-		return await RaidMonster.findAll({
+		const monsters = await RaidMonster.findAll({
 			where: {
 				raid_id: raidId,
 				status: 'queued',
 			},
-			include: [{ model: EnemyBase, as: 'enemy' }],
 			order: [['queue_position', 'ASC']],
 		});
+		this.attachEnemyData(monsters);
+		return monsters;
 	}
 
 	/**
@@ -687,8 +714,8 @@ class RaidManager {
 		// Get monster lib entries for this raid
 		const monsterLibs = await RaidMonsterLib.findAll({
 			where: { raid_id: raidId },
-			include: [{ model: EnemyBase, as: 'enemy', include: [{ model: EnemyBaseStat, as: 'baseStat' }] }],
 		});
+		this.attachEnemyData(monsterLibs);
 
 		if (monsterLibs.length === 0) {
 			throw new Error('No monsters configured in raid monster lib');
@@ -730,8 +757,8 @@ class RaidManager {
 			? Math.max(...queuedMonsters.map(m => m.queue_position)) + 1
 			: 0;
 
-		// Get HP from enemy stats
-		const maxHp = enemy.baseStat?.health || 100;
+		// Get HP from enemy stats (YAML uses `stats.health`)
+		const maxHp = enemy.stats?.health || 100;
 
 		// Create the monster record
 		const raidMonster = await RaidMonster.create({
@@ -757,12 +784,13 @@ class RaidManager {
 			updated_at: now,
 		});
 
-		return raidMonster.reload({
+		const reloaded = await raidMonster.reload({
 			include: [
-				{ model: EnemyBase, as: 'enemy' },
 				{ model: RaidMonsterLib, as: 'lib' },
 			],
 		});
+		this.attachEnemyData(reloaded);
+		return reloaded;
 	}
 
 	/**
@@ -787,7 +815,7 @@ class RaidManager {
 			.setDescription(enemy.description || 'A monster has appeared!')
 			.setColor(0xFF4444)
 			.addFields(
-				{ name: 'Level', value: `${enemy.lv || 1}`, inline: true },
+				{ name: 'Level', value: `${enemy.level || 1}`, inline: true },
 				{ name: 'HP', value: `${raidMonster.current_hp}/${raidMonster.max_hp}`, inline: true },
 			);
 
@@ -824,7 +852,6 @@ class RaidManager {
 	static async handleFight(raidMonsterId) {
 		const raidMonster = await RaidMonster.findByPk(raidMonsterId, {
 			include: [
-				{ model: EnemyBase, as: 'enemy' },
 				{ model: Raid, as: 'raid' },
 				{ model: RaidMonsterLib, as: 'lib' },
 			],
@@ -837,6 +864,8 @@ class RaidManager {
 		if (raidMonster.status !== 'active') {
 			return { success: false, error: 'This monster is no longer available.' };
 		}
+
+		this.attachEnemyData(raidMonster);
 
 		return {
 			success: true,
@@ -860,7 +889,6 @@ class RaidManager {
 		// Get the raid monster with all needed data
 		const raidMonster = await RaidMonster.findByPk(raidMonsterId, {
 			include: [
-				{ model: EnemyBase, as: 'enemy', include: [{ model: EnemyBaseStat, as: 'baseStat' }] },
 				{ model: Raid, as: 'raid' },
 				{ model: RaidMonsterLib, as: 'lib' },
 			],
@@ -982,11 +1010,11 @@ class RaidManager {
 				raid_id: raid.id,
 				status: 'queued',
 			},
-			include: [{ model: EnemyBase, as: 'enemy' }],
 			order: [['queue_position', 'ASC']],
 		});
 
 		if (nextMonster) {
+			this.attachEnemyData(nextMonster);
 			// Activate next monster
 			await nextMonster.update({
 				status: 'active',
@@ -1029,7 +1057,6 @@ class RaidManager {
 				status: ['active', 'queued'],
 			},
 			include: [
-				{ model: EnemyBase, as: 'enemy' },
 				{ model: RaidMonsterLib, as: 'lib' },
 			],
 		});
@@ -1097,12 +1124,13 @@ class RaidManager {
 	static async updateMonsterMessage(raidMonsterId, client) {
 		const raidMonster = await RaidMonster.findByPk(raidMonsterId, {
 			include: [
-				{ model: EnemyBase, as: 'enemy' },
 				{ model: Raid, as: 'raid' },
 			],
 		});
 
 		if (!raidMonster || !raidMonster.message_id) return;
+
+		this.attachEnemyData(raidMonster);
 
 		try {
 			const channel = await client.channels.fetch(raidMonster.raid.channel_id);
@@ -1115,7 +1143,7 @@ class RaidManager {
 				.setDescription(enemy.description || 'A monster has appeared!')
 				.setColor(raidMonster.status === 'defeated' ? 0x00FF00 : 0xFF4444)
 				.addFields(
-					{ name: 'Level', value: `${enemy.lv || 1}`, inline: true },
+					{ name: 'Level', value: `${enemy.level || 1}`, inline: true },
 					{ name: 'HP', value: `${raidMonster.current_hp}/${raidMonster.max_hp}`, inline: true },
 				);
 

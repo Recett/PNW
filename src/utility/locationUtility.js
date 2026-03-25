@@ -1,4 +1,5 @@
-const { ObjectBase, CharacterBase, EnemyBase, NpcBase, LocationBase, LocationContain, LocationLink, LocationCluster } = require('@root/dbObject.js');
+const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
 
@@ -34,34 +35,32 @@ async function getLocationByChannelWithTime(channelId, timeOfDay = null) {
 		timeOfDay = getCurrentTimeOfDay();
 	}
 
-	// Get all locations with this channel
-	const locations = await LocationBase.findAll({
-		where: { channel: channelId },
-	});
+	// Get all locations with this channel from DB
+	const locations = await LocationBase.findAll({ where: { channel: channelId } });
 
 	if (locations.length === 0) return null;
 	if (locations.length === 1) return locations[0];
 
-	// Try exact time match first
+	// Check flag overrides first (superimposition model)
+	const flagOverride = locations.find(loc => loc.flag_override);
+	if (flagOverride) return flagOverride;
+
+	// Try exact time match
 	const exactMatch = locations.find(loc => loc.time === timeOfDay);
 	if (exactMatch) return exactMatch;
 
 	// Fallback chain based on current time
 	if (timeOfDay === 'night') {
-		// night → afternoon → morning → default
 		const afternoon = locations.find(loc => loc.time === 'afternoon');
 		if (afternoon) return afternoon;
 		const morning = locations.find(loc => loc.time === 'morning');
 		if (morning) return morning;
 	}
 	else if (timeOfDay === 'afternoon') {
-		// afternoon → morning → default
 		const morning = locations.find(loc => loc.time === 'morning');
 		if (morning) return morning;
 	}
-	// morning just falls through to default
 
-	// Return default version (time = null or empty)
 	const defaultVersion = locations.find(loc => !loc.time || loc.time === '');
 	return defaultVersion || locations[0];
 }
@@ -78,30 +77,24 @@ async function getLocationContents(locationId, timeOfDay = null) {
 	}
 
 	let objectsList = (await getObjects(locationId, timeOfDay)) || [];
-	let pcsList = (await getPCs(locationId, timeOfDay)) || [];
+	let pcs = (await getPCs(locationId, timeOfDay)) || []; // Now returns CharacterBase objects directly
 	let npcsList = (await getNPCs(locationId, timeOfDay)) || [];
 	let enemiesList = (await getEnemies(locationId, timeOfDay)) || [];
 
 	const objectsId = objectsList.map(obj => obj.object_id).filter(object_id => object_id != null);
-	const pcsId = pcsList.map(pc => pc.object_id).filter(object_id => object_id != null);
 	const npcsId = npcsList.map(npc => npc.object_id).filter(object_id => object_id != null);
 	const enemiesId = enemiesList.map(enemy => enemy.object_id).filter(object_id => object_id != null);
 
-	let objects = objectsId.length > 0 ? await ObjectBase.findAll({ where: { id: { [Op.in]: objectsId } } }) : [];
-	let pcs = pcsId.length > 0 ? await CharacterBase.findAll({ where: { id: { [Op.in]: pcsId } } }) : [];
-	let npcs = npcsId.length > 0 ? await NpcBase.findAll({ where: { id: { [Op.in]: npcsId } } }) : [];
-	let enemies = enemiesId.length > 0 ? await EnemyBase.findAll({ where: { id: { [Op.in]: enemiesId } } }) : [];
+	let objects = objectsId.map(id => contentStore.objects.findByPk(String(id))).filter(o => o != null);
+	// PCs are already CharacterBase objects, no need for additional lookup
+	let npcs = npcsId.map(id => contentStore.npcs.findByPk(String(id))).filter(n => n != null);
+	let enemies = enemiesId.map(id => contentStore.enemies.findByPk(String(id))).filter(e => e != null);
 
 	return { objects, pcs, npcs, enemies };
 }
-// ...imports moved to top...
 
 let getLocationBase = async (locationId) => {
-	return await LocationBase.findOne({
-		where: {
-			id: locationId,
-		},
-	});
+	return await LocationBase.findByPk(locationId);
 };
 
 /**
@@ -115,11 +108,7 @@ async function getLocationName(locationId) {
 }
 
 let getLocationByName = async (name) => {
-	return await LocationBase.findOne({
-		where: {
-			name: name,
-		},
-	});
+	return await LocationBase.findOne({ where: { name: name } });
 };
 
 let getLocationByChannel = async (channelId) => {
@@ -132,7 +121,6 @@ let getObjects = async (locationId, timeOfDay = null) => {
 		type: gamecon.OBJECT,
 	};
 
-	// Add time filter: include items with time=null OR time=timeOfDay
 	if (timeOfDay) {
 		whereClause[Op.or] = [
 			{ time: null },
@@ -148,23 +136,10 @@ let getObjects = async (locationId, timeOfDay = null) => {
 };
 
 let getPCs = async (locationId, timeOfDay = null) => {
-	const whereClause = {
-		location_id: locationId,
-		type: gamecon.PC,
-	};
-
-	// Add time filter: include items with time=null OR time=timeOfDay
-	if (timeOfDay) {
-		whereClause[Op.or] = [
-			{ time: null },
-			{ time: '' },
-			{ time: timeOfDay },
-		];
-	}
-
-	return await LocationContain.findAll({
-		attributes: ['object_id'],
-		where: whereClause,
+	// Query CharacterBase directly for characters at this location
+	return await CharacterBase.findAll({
+		attributes: ['id'],
+		where: { location_id: locationId }
 	});
 };
 
@@ -174,7 +149,6 @@ let getNPCs = async (locationId, timeOfDay = null) => {
 		type: gamecon.NPC,
 	};
 
-	// Add time filter: include items with time=null OR time=timeOfDay
 	if (timeOfDay) {
 		whereClause[Op.or] = [
 			{ time: null },
@@ -195,7 +169,6 @@ let getEnemies = async (locationId, timeOfDay = null) => {
 		type: gamecon.ENEMY,
 	};
 
-	// Add time filter: include items with time=null OR time=timeOfDay
 	if (timeOfDay) {
 		whereClause[Op.or] = [
 			{ time: null },
@@ -212,28 +185,18 @@ let getEnemies = async (locationId, timeOfDay = null) => {
 
 let getLinkedLocations = async (locationId) => {
 	return await LocationLink.findAll({
-		where: {
-			location_id: locationId,
-		},
+		where: { location_id: locationId },
 	});
 };
 
 let getLocationinCluster = async (locationId) => {
-	const cluster = await LocationCluster.findOne({
-		where: {
-			location_id: locationId,
-		},
+	const clusterEntry = await LocationCluster.findOne({
+		where: { location_id: locationId },
 	});
-
-	if (cluster && cluster.cluster_id) {
-		return await LocationCluster.findAll({
-			where: {
-				cluster_id: cluster.cluster_id,
-			},
-		});
-	}
-
-	return [];
+	if (!clusterEntry) return [];
+	return await LocationCluster.findAll({
+		where: { cluster_id: clusterEntry.cluster_id },
+	});
 };
 
 let addLocationToCluster = async (locationIdA, locationIdB) => {
@@ -288,7 +251,7 @@ async function updateLocationRoles({ guild, memberId, newLocationId }) {
 	// Add new location role FIRST
 	let newRoleId = null;
 	if (newLocationId) {
-		const newLoc = await LocationBase.findOne({ where: { id: newLocationId } });
+		const newLoc = await LocationBase.findByPk(newLocationId);
 		if (newLoc && newLoc.role) {
 			newRoleId = newLoc.role;
 			try {
@@ -343,7 +306,7 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 	console.log(`[Move Debug] Character ${memberId} transitioning to location ${newLocationId}`);
 
 	// Get new location data (needed for channel link)
-	const newLoc = newLocationId ? await LocationBase.findOne({ where: { id: newLocationId } }) : null;
+	const newLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
 
 	// Add new location role FIRST
 	let newRoleId = null;
@@ -440,7 +403,7 @@ async function moveCharacterToLocation(characterId, newLocationId, guild = null)
 		// Add new location role FIRST
 		let newRoleId = null;
 		if (newLocationId) {
-			const newLoc = await LocationBase.findOne({ where: { id: newLocationId } });
+			const newLoc = await LocationBase.findByPk(newLocationId);
 			if (newLoc && newLoc.role) {
 				newRoleId = newLoc.role;
 				try {

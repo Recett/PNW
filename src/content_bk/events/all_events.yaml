@@ -1,0 +1,2233 @@
+events:
+  - id: event_1770152866067
+    name: New Event
+    description: ""
+    event_type: story
+    message:
+      text: Hello
+      npc_speaker: npc_1770154169882
+      message_type: normal
+    options:
+      - id: event_1770152866067-option-1
+        text: Fight
+        next: event_1770152866067_a
+        display_order: 1
+      - id: event_1770152866067-option-2
+        text: Goodbye
+        display_order: 2
+  - id: event_1770152866067_a
+    name: "Related: event_1770152866067"
+    description: ""
+    event_type: story
+    combat:
+      combat_type: a
+      enemy: "1"
+      on_victory: event_1770152866067_a_a
+      on_defeat: event_1770152866067_a_b
+  - id: event_1770152866067_a_a
+    name: "Related: event_1770152866067_a"
+    description: ""
+    event_type: story
+    message:
+      text: Congratulation, you won.
+      npc_speaker: npc_1770154169882
+      message_type: normal
+  - id: event_1770152866067_a_b
+    name: "Related: event_1770152866067_a"
+    description: ""
+    event_type: story
+    message:
+      text: Good luck next time
+      npc_speaker: npc_1770154169882
+      message_type: normal
+  - id: event_1771259932726
+    name: New Event
+    description: ""
+    event_type: story
+  - id: event_waylan_york_a
+    name: |-
+      Đằng sau một bàn giấy lớn là một người 
+      "Ah! Không...
+    description: Imported from Excel
+    event_type: dialogue
+    tags:
+      - begin_interview
+    message:
+      text: >-
+        Đằng sau một bàn giấy lớn là một người trạc tầm tuổi ba mươi với những nếp nhăn nơi khóe mắt hằn sâu dấu vết của
+        nắng muối và những dặm dài trên biển. Mái tóc màu nâu hạt dẻ được chải chuốt gọn gàng, điểm xuyết những sợi bạc
+        lấp lánh dưới ánh sáng. Anh ta khoác trên mình chiếc áo brigandine bằng nhung xanh thẫm, với những chiếc đinh
+        tán bạc phản chiếu ánh nắng từ ngoài cửa sổ. Bộ giáp sạch sẽ, tươm tất, mang theo dáng vẻ tĩnh lặng của một sĩ
+        quan trẻ.
+
+
+        "Ah! Không biết ${2p} tới đây có vất vả không? Kể từ khi có xung đột với Arbrance,  an ninh được thắt chặt khiến
+        cho việc đi lại trở nên khó khăn hơn đáng kể. Xin lỗi, mời ${2p} ngồi xuống. Tôi là York Waylan, cứ gọi tôi là
+        York là được. Rất hân hạnh được gặp ${2p}."
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_a-option-1
+        text: Tôi là ${player_fullname}, rất vui được gặp anh York.
+        next: event_waylan_york_flag_a
+        display_order: 1
+      - id: event_waylan_york_a-option-2
+        text: Tạ ơn Cửu Thánh, đường đi cũng khá là suôn sẻ. Tôi tên là ${player_fullname}.
+        next: event_waylan_york_flag_b
+        display_order: 2
+      - id: event_waylan_york_a-option-3
+        text: Đường đi khá trắc trở. Cướp, đầm lầy, cây đổ. Có gì uống được không? À, tôi là ${player_fullname}.
+        next: event_waylan_york_flag_c
+        display_order: 3
+      - id: event_waylan_york_a-option-4
+        text: Tôi là ${player_fullname}. Một cái tên sẽ đi vào lịch sử, nhưng giờ cứ gọi tôi là ${player_name}.
+        next: event_waylan_york_flag_d
+        display_order: 4
+  - id: event_waylan_york_flag_a
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_b
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "0"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_b
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_b
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "0"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_c
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_b
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "0"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_d
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_b
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "0"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_b
+    name: "\"Để bắt đầu, ${2p} có thể giới thiệu đôi nét về bả..."
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Để bắt đầu, ${2p} có thể giới thiệu đôi nét về bản thân? ${2p} ${player_name} đến từ đâu nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_b-option-1
+        text: Vương đô Griffin's Lair, nơi kinh kỳ nhộn nhịp.
+        next: event_waylan_york_flag_e
+        display_order: 1
+      - id: event_waylan_york_b-option-2
+        text: Công quốc Crimsonland, tôi lớn lên tại vùng đồi núi hiểm trở, nơi biên cương với Arbrence hùng mạnh
+        next: event_waylan_york_flag_f
+        display_order: 2
+      - id: event_waylan_york_b-option-3
+        text: Thân vương quốc Messana, tôi đến từ những bến cảng tấp nập
+        next: event_waylan_york_flag_g
+        display_order: 3
+      - id: event_waylan_york_b-option-4
+        text: Xứ Impalester, vùng đất tinh hoa của quý tộc Gateland với những lâu đài vững chắc
+        next: event_waylan_york_flag_h
+        display_order: 4
+      - id: event_waylan_york_b-option-5
+        text: Công quốc Ressland, quê hương tôi là vùng đồng bằng màu mỡ, vựa lúa của vương quốc
+        next: event_waylan_york_flag_i
+        display_order: 5
+      - id: event_waylan_york_b-option-6
+        text: Công quốc Lowriver vùng sông nước, con đường vận chuyển hàng hóa vào sâu trong nội địa vương quốc.
+        next: event_waylan_york_flag_j
+        display_order: 6
+      - id: event_waylan_york_b-option-7
+        text: Tỉnh Highstone, những ngọn đồi lộng gió với những khu mỏ kim loại quý giá.
+        next: event_waylan_york_flag_k
+        display_order: 7
+      - id: event_waylan_york_b-option-8
+        text: Thân vương quốc Cyanland, cao nguyên xa xôi và lạnh giá đằng sau dãy Cyan
+        next: event_waylan_york_flag_l
+        display_order: 8
+  - id: event_waylan_york_flag_e
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_f
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_g
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_h
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_i
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_j
+    name: "Flag: Prudence +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_k
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_l
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_c
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_c
+    name: "\"Khi bạn còn nhỏ, gia đình bạn làm công việc nào?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Khi ${2p} còn nhỏ, gia đình ${2p} làm công việc nào?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_c-option-1
+        text: Nhà nông dân
+        next: event_waylan_york_flag_m
+        display_order: 1
+      - id: event_waylan_york_c-option-2
+        text: Tiểu thương
+        next: event_waylan_york_flag_n
+        display_order: 2
+      - id: event_waylan_york_c-option-3
+        text: Thợ thủ công
+        next: event_waylan_york_flag_o
+        display_order: 3
+      - id: event_waylan_york_c-option-4
+        text: Người lao động
+        next: event_waylan_york_flag_p
+        display_order: 4
+      - id: event_waylan_york_c-option-5
+        text: Thủy thủ
+        next: event_waylan_york_flag_q
+        display_order: 5
+      - id: event_waylan_york_c-option-6
+        text: Học già
+        next: event_waylan_york_flag_r
+        display_order: 6
+      - id: event_waylan_york_c-option-7
+        text: Quý tộc
+        next: event_waylan_york_flag_s
+        display_order: 7
+      - id: event_waylan_york_c-option-8
+        text: Nhà binh
+        next: event_waylan_york_flag_t
+        display_order: 8
+  - id: event_waylan_york_flag_m
+    name: "Flag: starting_spear"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_d
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_spear
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_n
+    name: "Flag: starting_dagger"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_e
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_dagger
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_o
+    name: "Flag: starting_axe"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_f
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_axe
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_p
+    name: "Flag: starting_mace"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_g
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_mace
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_q
+    name: "Flag: starting_sword"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_h
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_sword
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_r
+    name: "Flag: starting_shortbow"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_i
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_shortbow
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_s
+    name: "Flag: starting_rapier"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_j
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_rapier
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_t
+    name: "Flag: starting_longbow"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_k
+    silent: true
+    actions:
+      - type: flag
+        flag_name: starter_longbow
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_d
+    name: "\"Chính xác là làm gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Chính xác là làm gì nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_d-option-1
+        text: Nhà tôi trồng lúa và hoa màu, mỗi năm 2 vụ.
+        next: event_waylan_york_flag_u
+        display_order: 1
+      - id: event_waylan_york_d-option-2
+        text: Nhà tôi trồng nho và cất rượu.
+        next: event_waylan_york_flag_v
+        display_order: 2
+      - id: event_waylan_york_d-option-3
+        text: Nhà tôi có vườn cây ăn quả.
+        next: event_waylan_york_flag_w
+        display_order: 3
+      - id: event_waylan_york_d-option-4
+        text: Nhà tôi làm chăn nuôi gia súc gia cầm các loại.
+        next: event_waylan_york_flag_x
+        display_order: 4
+  - id: event_waylan_york_flag_u
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_v
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_w
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "6"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_x
+    name: "Flag: Prudence +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_e
+    name: "\"Chính xác là làm gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Chính xác là làm gì nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_e-option-1
+        text: Chỉ là tiểu thương nhỏ trong vùng thôi
+        next: event_waylan_york_flag_y
+        display_order: 1
+      - id: event_waylan_york_e-option-2
+        text: Một thương đoàn bán buôn vận chuyển những lô hàng lớn đi xa
+        next: event_waylan_york_flag_z
+        display_order: 2
+      - id: event_waylan_york_e-option-3
+        text: Nhà tôi buôn những mặt hàng quý hiếm.
+        next: event_waylan_york_flag_aa
+        display_order: 3
+      - id: event_waylan_york_e-option-4
+        text: Chúng tôi làm bên môi giới.
+        next: event_waylan_york_flag_ab
+        display_order: 4
+  - id: event_waylan_york_flag_y
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_z
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_aa
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ab
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "6"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_f
+    name: "\"Chính xác là làm gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Chính xác là làm gì nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_f-option-1
+        text: Nhà tôi làm nghề rèn lâu đời.
+        next: event_waylan_york_flag_ac
+        display_order: 1
+      - id: event_waylan_york_f-option-2
+        text: Nhà tôi có xưởng dệt may.
+        next: event_waylan_york_flag_ad
+        display_order: 2
+      - id: event_waylan_york_f-option-3
+        text: Nhà tôi đập đá. Ý tôi là điêu khắc.
+        next: event_waylan_york_flag_ae
+        display_order: 3
+      - id: event_waylan_york_f-option-4
+        text: Làm thủ công mỹ nghệ.
+        next: event_waylan_york_flag_af
+        display_order: 4
+  - id: event_waylan_york_flag_ac
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ad
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ae
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_af
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_g
+    name: "\"Chính xác là làm gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Chính xác là làm gì nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_g-option-1
+        text: Nhà tôi làm bốc vác bên cảng. Thu nhập không nhiều nhưng nó trung thực.
+        next: event_waylan_york_flag_ag
+        display_order: 1
+      - id: event_waylan_york_g-option-2
+        text: Gia đình tôi làm bên xây dựng.
+        next: event_waylan_york_flag_ah
+        display_order: 2
+      - id: event_waylan_york_g-option-3
+        text: Chúng tôi làm nghề mộc.
+        next: event_waylan_york_flag_ai
+        display_order: 3
+      - id: event_waylan_york_g-option-4
+        text: Chúng tôi làm thợ mỏ.
+        next: event_waylan_york_flag_aj
+        display_order: 4
+  - id: event_waylan_york_flag_ag
+    name: "Flag: Prudence +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ah
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ai
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_aj
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "6"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_h
+    name: "\"Tàu gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Tàu to không?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_h-option-1
+        text: Một thuyền buôn tầm trung.
+        next: event_waylan_york_flag_ak
+        display_order: 1
+      - id: event_waylan_york_h-option-2
+        text: Thuyền đánh bắt cá thôi.
+        next: event_waylan_york_flag_al
+        display_order: 2
+      - id: event_waylan_york_h-option-3
+        text: À, thật ra là ông thân sinh làm trong hải quân.
+        next: event_waylan_york_flag_am
+        display_order: 3
+      - id: event_waylan_york_h-option-4
+        text: Thuyền chở khách ở bến sông thôi.
+        next: event_waylan_york_flag_an
+        display_order: 4
+  - id: event_waylan_york_flag_ak
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_al
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_am
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_an
+    name: "Flag: Prudence +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_i
+    name: "\"Lĩnh vực nào nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Lĩnh vực nào nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_i-option-1
+        text: Triết học
+        next: event_waylan_york_flag_ao
+        display_order: 1
+      - id: event_waylan_york_i-option-2
+        text: Khảo cổ học
+        next: event_waylan_york_flag_ap
+        display_order: 2
+      - id: event_waylan_york_i-option-3
+        text: Thiên văn học
+        next: event_waylan_york_flag_aq
+        display_order: 3
+      - id: event_waylan_york_i-option-4
+        text: Khoa học tự nhiên
+        next: event_waylan_york_flag_ar
+        display_order: 4
+  - id: event_waylan_york_flag_ao
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ap
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_aq
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ar
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_j
+    name: "\"Cuộc sống thế nào?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Cuộc sống thế nào?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_j-option-1
+        text: Tẻ nhạt và có quá nhiều lễ nghi rườm rà.
+        next: event_waylan_york_flag_as
+        display_order: 1
+      - id: event_waylan_york_j-option-2
+        text: Quý tộc trên danh nghĩa thôi, chứ thật ra nghèo lắm.
+        next: event_waylan_york_flag_at
+        display_order: 2
+      - id: event_waylan_york_j-option-3
+        text: Là con ngoài giá thú, phiền lắm.
+        next: event_waylan_york_flag_au
+        display_order: 3
+      - id: event_waylan_york_j-option-4
+        text: Quý tộc vùng quê nên thật ra cũng không khác thường dân là mấy
+        next: event_waylan_york_flag_av
+        display_order: 4
+  - id: event_waylan_york_flag_as
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "6"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_at
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_au
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_av
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_k
+    name: "\"Chính xác là làm gì nhỉ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Chính xác là làm gì nhỉ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_k-option-1
+        text: Phục vụ cho nhà quý tộc.
+        next: event_waylan_york_flag_aw
+        display_order: 1
+      - id: event_waylan_york_k-option-2
+        text: Là lính đánh thuê, nay đây mai đó theo những diễn biến thời cuộc.
+        next: event_waylan_york_flag_ax
+        display_order: 2
+      - id: event_waylan_york_k-option-3
+        text: Là biên phòng, ông thân sinh của tôi bảo vệ biên giới và rất ít khi về.
+        next: event_waylan_york_flag_ay
+        display_order: 3
+      - id: event_waylan_york_k-option-4
+        text: Là lính gác thành phố, chăm lo trị an.
+        next: event_waylan_york_flag_az
+        display_order: 4
+  - id: event_waylan_york_flag_aw
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ax
+    name: "Flag: Justice +3 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ay
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_az
+    name: "Flag: Justice +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_l
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_l
+    name: "\"Thế sau đó rồi sao?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Thế sau đó rồi sao?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_l-option-1
+        text: Cuộc sống cũng có khi này khi khác, nhưng không có gì đáng nói.
+        next: event_waylan_york_flag_ba
+        display_order: 1
+      - id: event_waylan_york_l-option-2
+        text: Mặc dù vẫn luôn định nối nghiệp gia đình, một biến cố lớn đã xảy ra.
+        next: event_waylan_york_flag_bb
+        display_order: 2
+      - id: event_waylan_york_l-option-3
+        text: Tôi vẫn luôn mong muốn nhiều hơn thế, vì vậy đã rời gia đình khi có thể để theo đuổi ước mơ.
+        next: event_waylan_york_flag_bc
+        display_order: 3
+      - id: event_waylan_york_l-option-4
+        text: Do bất hòa với gia đình và những người xung quanh, nên tôi đã bỏ đi từ sớm.
+        next: event_waylan_york_flag_bd
+        display_order: 4
+  - id: event_waylan_york_flag_ba
+    name: "Flag: Temperance +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_m
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bb
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_m
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bc
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_m
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bd
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_m
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_m
+    name: "\"Vì sao ${2p} muốn rời Gateland để đi Tân Thế Giới?..."
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Vì sao ${2p} muốn rời Gateland để đi Tân Thế Giới?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_m-option-1
+        text: Theo đuổi vinh quang và tài phú.
+        next: event_waylan_york_flag_be
+        display_order: 1
+      - id: event_waylan_york_m-option-2
+        text: Theo tiếng gọi của tình yêu.
+        next: event_waylan_york_flag_bf
+        display_order: 2
+      - id: event_waylan_york_m-option-3
+        text: Vì gia đình và những người tôi yêu quý
+        next: event_waylan_york_flag_bg
+        display_order: 3
+      - id: event_waylan_york_m-option-4
+        text: Vì Gateland! Vì nhà vua và đất nước!
+        next: event_waylan_york_flag_bh
+        display_order: 4
+      - id: event_waylan_york_m-option-5
+        text: Tôi có một mối thù…
+        next: event_waylan_york_flag_bi
+        display_order: 5
+      - id: event_waylan_york_m-option-6
+        text: Tôi muốn phiêu lưu và khám phá thế giới.
+        next: event_waylan_york_flag_bj
+        display_order: 6
+      - id: event_waylan_york_m-option-7
+        text: Tôi có một số kẻ thù ở đây…
+        next: event_waylan_york_flag_bk
+        display_order: 7
+      - id: event_waylan_york_m-option-8
+        text: Không còn gì níu kéo tôi ở lại nơi này nữa, vì thế tôi tìm kiếm một cuộc sống mới.
+        next: event_waylan_york_flag_bl
+        display_order: 8
+  - id: event_waylan_york_flag_be
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bf
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bg
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bh
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bi
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bj
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bk
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bl
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_n
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_n
+    name: "\"Theo ${2p}, điều gì là quan trọng nhất?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Theo ${2p}, điều gì là quan trọng nhất?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_n-option-1
+        text: Công lý
+        next: event_waylan_york_flag_bm
+        display_order: 1
+      - id: event_waylan_york_n-option-2
+        text: Tri thức
+        next: event_waylan_york_flag_bn
+        display_order: 2
+      - id: event_waylan_york_n-option-3
+        text: Tự do
+        next: event_waylan_york_flag_bo
+        display_order: 3
+      - id: event_waylan_york_n-option-4
+        text: Hạnh phúc
+        next: event_waylan_york_flag_bp
+        display_order: 4
+      - id: event_waylan_york_n-option-5
+        text: Tiền tài và danh vọng
+        next: event_waylan_york_flag_bq
+        display_order: 5
+      - id: event_waylan_york_n-option-6
+        text: Quyền lực
+        next: event_waylan_york_flag_br
+        display_order: 6
+  - id: event_waylan_york_flag_bm
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bn
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bo
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bp
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bq
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_br
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_o
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_o
+    name: "\"Khi gặp khó khăn lớn, ${2p} sẽ?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"Khi gặp khó khăn lớn, ${2p} sẽ?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_o-option-1
+        text: Đương đầu trực diện với nó, bằng tất cả khả năng!
+        next: event_waylan_york_flag_bs
+        display_order: 1
+      - id: event_waylan_york_o-option-2
+        text: Cẩn trọng suy tính, lên kế hoạch kĩ lưỡng.
+        next: event_waylan_york_flag_bt
+        display_order: 2
+      - id: event_waylan_york_o-option-3
+        text: Tìm kiếm sự giúp đỡ.
+        next: event_waylan_york_flag_bu
+        display_order: 3
+      - id: event_waylan_york_o-option-4
+        text: Tìm cách né tránh.
+        next: event_waylan_york_flag_bv
+        display_order: 4
+  - id: event_waylan_york_flag_bs
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_p
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bt
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_p
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bu
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_p
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bv
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_p
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_p
+    name: "\"${2p} tâm đắc với giáo lý của ai nhất trong Cửu T..."
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"${2p} tâm đắc với giáo lý của ai nhất trong Cửu Thánh?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_p-option-1
+        text: Giáo lý của Callira về sự hòa hợp và hòa bình bằng ngôn từ.
+        next: event_waylan_york_flag_bw
+        display_order: 1
+      - id: event_waylan_york_p-option-2
+        text: Giáo lý của Cassisars về vinh quang và tìm kiếm hòa bình trong chiến tranh.
+        next: event_waylan_york_flag_bx
+        display_order: 2
+      - id: event_waylan_york_p-option-3
+        text: Giáo lý của Mierra về đại dương vô tận và huyền bí.
+        next: event_waylan_york_flag_by
+        display_order: 3
+      - id: event_waylan_york_p-option-4
+        text: Giáo lý của Tierra về đất mẹ vững chắc, nơi sự sống sinh sôi.
+        next: event_waylan_york_flag_bz
+        display_order: 4
+      - id: event_waylan_york_p-option-5
+        text: Giáo lý của Cielia về tinh thần tự do trên bầu trời bao la.
+        next: event_waylan_york_flag_ca
+        display_order: 5
+      - id: event_waylan_york_p-option-6
+        text: Giáo lý của Jaeha về sự sáng suốt và sâu sắc trong màn đêm, tìm kiếm chân lý trong tĩnh lặng.
+        next: event_waylan_york_flag_cb
+        display_order: 6
+      - id: event_waylan_york_p-option-7
+        text: Giáo lý của Deieus về ánh sáng và công lý thiêng liêng.
+        next: event_waylan_york_flag_cc
+        display_order: 7
+      - id: event_waylan_york_p-option-8
+        text: Giáo lý của Initia về sự hài hòa của vạn vật, điều tiết các nguyên tố hình thành nên con người.
+        next: event_waylan_york_flag_cd
+        display_order: 8
+      - id: event_waylan_york_p-option-9
+        text: Giáo lý của Chaos về việc tôn kính sự tồn tại của ma thuật, một phần nhỏ sức mạnh của Thiên Chúa.
+        next: event_waylan_york_flag_ce
+        display_order: 9
+      - id: event_waylan_york_p-option-10
+        text: Ở thời điểm này tôi vẫn chưa quyết định được về đức tin.
+        next: event_waylan_york_flag_cf
+        display_order: 10
+  - id: event_waylan_york_flag_bw
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bx
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_by
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_bz
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ca
+    name: "Flag: Prudence +2 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_cb
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_cc
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "4"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_cd
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "3"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ce
+    name: "Flag: Prudence +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_cf
+    name: "Flag: Justice +1 more"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_q
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+      - type: flag
+        flag_name: Temperance
+        flag_value: "2"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_q
+    name: "\"${2p} có dự định quay về Gateland sau này không?\""
+    description: Imported from Excel
+    event_type: dialogue
+    message:
+      text: "\"${2p} có dự định quay về Gateland sau này không?\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_waylan_york_q-option-1
+        text: Có
+        next: event_waylan_york_flag_cg
+        display_order: 1
+      - id: event_waylan_york_q-option-2
+        text: Không
+        next: event_waylan_york_flag_ch
+        display_order: 2
+      - id: event_waylan_york_q-option-3
+        text: Tôi cũng không biết nữa
+        next: event_waylan_york_flag_ci
+        display_order: 3
+      - id: event_waylan_york_q-option-4
+        text: Cửu Thánh và số phận dẫn lối
+        next: event_waylan_york_flag_cj
+        display_order: 4
+  - id: event_waylan_york_flag_cg
+    name: "Flag: Justice"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_r
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Justice
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ch
+    name: "Flag: Prudence"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_r
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Prudence
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_ci
+    name: "Flag: Temperance"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_r
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Temperance
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_flag_cj
+    name: "Flag: Fortitude"
+    description: Auto-created for flag action
+    event_type: story
+    next: event_waylan_york_r
+    silent: true
+    actions:
+      - type: flag
+        flag_name: Fortitude
+        flag_value: "1"
+        flag_operation: add
+        flag_type: Local
+  - id: event_waylan_york_r
+    name: Ngài York bắt tay và đưa cho bạn một chiếc thẻ."...
+    description: Imported from Excel
+    event_type: dialogue
+    tags:
+      - finish_register
+    message:
+      text: >-
+        Ngài York bắt tay và đưa cho bạn một chiếc thẻ.
+
+
+        "Một lần nữa xin được cảm ơn sự hợp tác của ${2p}. Đây là thẻ căn cước kiêm hộ chiếu và giấy thông hành. ${2p}
+        có thể kiểm tra xem, nếu thông tin nào không chính xác thì báo lại để làm lại giấy tờ nhé."
+
+
+        (Sử dụng /stat để kiểm tra, /talk để nói chuyện với York, /move để rời khỏi đây. Lưu ý: Khi đã rời khỏi, bạn
+        không thể chỉnh sửa thông số nhân vật.)
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    actions:
+      - type: flag
+        flag_name: unregistered
+        flag_value: "0"
+        flag_operation: set
+        flag_type: character
+        output_variable: "1"
+  - id: event_1771346274842
+    name: York convo starter
+    event_type: story
+    tags:
+      - Waylan_edit
+    message:
+      text: "\"Tôi có thể giúp gì được nhỉ?"
+      npc_speaker: npc_1771024316235
+      message_type: normal
+    options:
+      - id: event_1771346274842-option-1
+        text: "\"Thông tin trên thẻ của ${1p} chưa chính xác.\""
+        next: event_1771347062697
+        display_order: 1
+      - id: event_1771346274842-option-2
+        text: "\"Họ và tên đầy đủ của ${1p} chưa chính xác\""
+        next: event_1771347398385
+        display_order: 2
+      - id: event_1771346274842-option-3
+        text: "\"Tên của ${1p} đang được ghi sai\""
+        next: event_1771347398385_copy_1771355805218
+        display_order: 3
+      - id: event_1771346274842-option-4
+        text: "\"Tranh minh họa trên thẻ hơi sai sai?\""
+        next: event_1771347398385_copy_1771355936234_copy_1771355969474
+        display_order: 4
+      - id: event_1771346274842-option-5
+        text: "\"Số tuổi đang không đúng.\""
+        next: event_1771347398385_copy_1771355936234
+        display_order: 5
+      - id: event_1771346274842-option-6
+        text: "\"Xin lỗi đã làm phiền ngài, không có gì đâu.\""
+        display_order: 6
+  - id: event_1771346748594
+    name: New Event
+    event_type: story
+    next: event_waylan_york_b
+    message:
+      text: |-
+        Gật gù, ngài York tỏ ra cảm thông với những vất vả bạn đã gặp trên đường.
+
+        "Cảm ơn ${2sp} đã không quản ngại đường xá xa xôi mà tới đây."
+      npc_speaker: npc_1771024316235
+      message_type: normal
+  - id: event_1771346854922
+    name: New Event
+    event_type: story
+    next: event_waylan_york_b
+    message:
+      text: |-
+        Ngài York nở một nụ cười, tỏ ra hào hứng.
+
+        "Tôi thích sự tự tin này đấy, ${sp} bạn."
+      npc_speaker: npc_1771024316235
+      message_type: normal
+  - id: event_1771347062697
+    name: Waylan_Redo
+    event_type: story
+    next: event_waylan_york_b
+    tags:
+      - redo
+    message:
+      text: "\"Vậy sao? Nếu thế để tôi thu thập lại thông tin nhé.\""
+      npc_speaker: npc_1771024316235
+      message_type: normal
+  - id: event_1771347398385
+    name: Waylan full name
+    event_type: story
+    next: event_1771346274842
+    silent: true
+    tags:
+      - fullname
+    actions:
+      - type: variable
+        variable_name: fullname
+        source_type: input
+        silent: false
+        input_label: "Tên đầy đủ của tôi là:"
+      - type: stat
+        stat_name: fullname
+        value: ${fullname}
+        operation: set
+        silent: false
+        custom_message: Your full name has been recorded.
+  - id: event_1771347398385_copy_1771355805218
+    name: Waylan name (Copy)
+    event_type: story
+    next: event_1771346274842
+    silent: true
+    tags:
+      - name
+    actions:
+      - type: variable
+        variable_name: name
+        source_type: input
+        silent: false
+        input_label: "Tên đầy đủ của tôi là:"
+      - type: stat
+        stat_name: name
+        value: ${name}
+        operation: set
+        silent: false
+        custom_message: Your name has been recorded.
+  - id: event_1771347398385_copy_1771355936234
+    name: Waylan age (Copy)
+    event_type: story
+    next: event_1771346274842
+    silent: true
+    tags:
+      - age
+    actions:
+      - type: variable
+        variable_name: age
+        source_type: input
+        silent: false
+        input_label: "Tên đầy đủ của tôi là:"
+      - type: stat
+        stat_name: age
+        value: ${age}
+        operation: set
+        silent: false
+        custom_message: Your age has been recorded.
+  - id: event_1771347398385_copy_1771355936234_copy_1771355969474
+    name: Waylan photo
+    event_type: story
+    next: event_1771346274842
+    silent: true
+    tags:
+      - image
+    actions:
+      - type: variable
+        variable_name: image
+        source_type: input
+        silent: false
+        input_label: "Tên đầy đủ của tôi là:"
+      - type: stat
+        stat_name: avatar
+        value: ${image}
+        operation: set
+        silent: false
+        custom_message: Your avatar has been recorded.

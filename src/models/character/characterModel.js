@@ -30,7 +30,7 @@ const characterBase = (sequelize) => {
 const characterPerk = (sequelize) => {
 	return sequelize.define('character_perk', {
 		character_id: Sequelize.STRING,
-		perk_id: Sequelize.INTEGER,
+		perk_id: Sequelize.STRING,
 		stamina_spent: { type: Sequelize.INTEGER, defaultValue: 0 },
 		status: { type: Sequelize.ENUM('learning', 'available', 'equipped'), defaultValue: 'learning' },
 	}, { timestamps: false });
@@ -52,7 +52,7 @@ const characterCombatStat = (sequelize) => {
 const characterAttackStat = (sequelize) => {
 	return sequelize.define('character_attack_stat', {
 		character_id: Sequelize.STRING,
-		item_id: Sequelize.INTEGER,
+		item_id: Sequelize.STRING,
 		attack: { type: Sequelize.INTEGER, defaultValue: 0 },
 		accuracy: { type: Sequelize.FLOAT, defaultValue: 0 },
 		critical: { type: Sequelize.INTEGER, defaultValue: 0 },
@@ -64,7 +64,7 @@ const characterAttackStat = (sequelize) => {
 const characterEquipment = (sequelize) => {
 	return sequelize.define('character_equipment', {
 		character_id: { type: Sequelize.STRING, primaryKey: true },
-		item_id: { type: Sequelize.INTEGER, allowNull: false },
+		item_id: { type: Sequelize.STRING, allowNull: false },
 		slot: Sequelize.STRING,
 	}, { timestamps: false });
 };
@@ -86,7 +86,7 @@ const characterFlag = (sequelize) => {
 const characterItem = (sequelize) => {
 	return sequelize.define('character_item', {
 		character_id: Sequelize.STRING,
-		item_id: Sequelize.INTEGER,
+		item_id: Sequelize.STRING,
 		amount: { type: Sequelize.INTEGER, defaultValue: 1 },
 		equipped: { type: Sequelize.BOOLEAN, defaultValue: false },
 	}, { timestamps: false });
@@ -96,7 +96,7 @@ const characterQuest = (sequelize) => {
 	return sequelize.define('character_quest', {
 		id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
 		character_id: { type: Sequelize.STRING, allowNull: false },
-		quest_id: { type: Sequelize.INTEGER, allowNull: false },
+		quest_id: { type: Sequelize.STRING, allowNull: false },
 		// Quest status: 'not_started', 'in_progress', 'completed', 'failed', 'abandoned'
 		status: { type: Sequelize.STRING, defaultValue: 'in_progress' },
 		// Current progress (for tracked objectives) - JSON for complex tracking
@@ -142,16 +142,21 @@ const characterRelation = (sequelize) => {
 	return sequelize.define('character_relation', {
 		character_id: Sequelize.STRING,
 		npc_id: Sequelize.STRING,
-		xp: { type: Sequelize.STRING, primaryKey: true, unique: false },
+		xp: { type: Sequelize.INTEGER, defaultValue: 0 },
 		level: { type: Sequelize.INTEGER, defaultValue: 0 },
 		value: Sequelize.STRING,
-	}, { timestamps: false });
+	}, {
+		timestamps: false,
+		indexes: [
+			{ unique: true, fields: ['character_id', 'npc_id'] },
+		],
+	});
 };
 
 const characterSkill = (sequelize) => {
 	return sequelize.define('character_skill', {
 		character_id: Sequelize.STRING,
-		skill_id: Sequelize.INTEGER,
+		skill_id: Sequelize.STRING,
 		lv: { type: Sequelize.INTEGER, defaultValue: 0 },
 		xp: { type: Sequelize.INTEGER, defaultValue: 0 },
 		type: Sequelize.STRING,
@@ -161,11 +166,61 @@ const characterSkill = (sequelize) => {
 
 const characterStatus = (sequelize) => {
 	return sequelize.define('character_status', {
-		character_id: Sequelize.STRING,
-		status: Sequelize.STRING,
-		type: Sequelize.STRING,
-		value: Sequelize.STRING,
-	}, { timestamps: false });
+
+		id: {
+			type: Sequelize.INTEGER,
+			primaryKey: true,
+			autoIncrement: true,
+		},
+		character_id: {
+			type: Sequelize.STRING,
+			allowNull: false,
+		},
+
+		// --- Lib reference ---
+		status_id: {
+			type: Sequelize.STRING,       // FK to status_lib.id, nullable
+			allowNull: true,
+		},
+
+		// --- Inline classification (used when status_id is null) ---
+		category: {
+			type: Sequelize.ENUM('buff', 'debuff', 'neutral'),
+			allowNull: true,
+		},
+		scope: {
+			type: Sequelize.ENUM('combat', 'persistent'),
+			allowNull: true,
+		},
+		stat_target: {
+			type: Sequelize.STRING,
+			allowNull: true,
+		},
+		value_type: {
+			type: Sequelize.ENUM('flat', 'percent'),
+			allowNull: true,
+		},
+
+		// --- Runtime state ---
+		potency: {
+			type: Sequelize.FLOAT,
+			allowNull: true,              // null = defer to status_lib default_potency
+		},
+		duration: {
+			type: Sequelize.INTEGER,
+			allowNull: true,              // null = permanent
+		},
+
+		// --- Source (stub) ---
+		source: {
+			type: Sequelize.STRING,
+			allowNull: true,
+		},
+
+	}, {
+		timestamps: true,
+		updatedAt: false,
+	});
 };
 
 const characterThread = (sequelize) => {

@@ -1,0 +1,51 @@
+# ===============================================
+# NPCS DEFINITION FILE
+# ===============================================
+# This file defines all non-player characters.
+# This file is the source of truth for NPC data. Shop stock (stocks) and
+# teachable perks (perks) are defined here as nested arrays and loaded into
+# the database at runtime via contentStore.
+#
+# Complete Example (all possible fields):
+#   - id: npc_1234567890                 # Required: Unique identifier
+#     name: "Marcus"                     # Required: Short/display name
+#     fullname: "Marcus the Merchant"    # Optional: Full display name
+#     unknown_name: "Hooded Figure"      # Optional: Name shown before player meets NPC
+#     avatar: "https://..."              # Optional: Character portrait URL
+#     description: "A grizzled merchant" # Optional: Appearance/flavour text
+#     npc_type: merchant                 # Optional: NPC role category
+#     start_event: event_meet_marcus     # Optional: Event triggered on first interaction
+#     age: 45                            # Optional: Age (used for Vietnamese pronoun system)
+#     gender: male                       # Optional: "male"|"female" (default: male)
+#     status: active                     # Optional: "active"|"inactive"
+#     stocks:                            # Optional: Shop inventory (loaded into npc_stocks table)
+#       - item: "1"                      # Item ID
+#         purchased: 0                   # Purchase counter
+#     perks:                             # Optional: Teachable perks (loaded into npc_perks table)
+#       - perk: "101"                    # Perk ID
+#         stamina_cost: 5                # Stamina cost for the player to learn
+#         required_building_id: 1        # Optional: Required building ID
+#         required_building_level: 1     # Optional: Minimum building level
+#
+# Last modified: 2026-03-23
+# ===============================================
+
+npcs:
+
+  - id: npc_1770154169882
+    name: Mercenary Captain
+    fullname: Mercenary Captain
+    npc_type: villager
+    start_event: event_1770152866067
+    status: active
+
+  - id: npc_1771024316235
+    name: Sir York
+    fullname: "Waylan York "
+    unknown_name: Sir York
+    avatar: >-
+      https://static.wikia.nocookie.net/fireemblem/images/f/f2/Portrait_Glen_Heroes.png/revision/latest?cb=20240716044328
+    npc_type: villager
+    start_event: event_1771346274842
+    age: 30
+    status: active

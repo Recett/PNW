@@ -1,5 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, MessageFlags } = require('discord.js');
-const { ItemLib, CharacterItem, WeaponLib, ArmorLib } = require('@root/dbObject.js');
+const { CharacterItem } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
 const characterUtility = require('./characterUtility');
 
 /**
@@ -231,12 +232,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
  * @returns {Object|null} The item with associations or null
  */
 async function getItemWithDetails(itemId) {
-	return await ItemLib.findByPk(itemId, {
-		include: [
-			{ model: WeaponLib, as: 'weapon', required: false },
-			{ model: ArmorLib, as: 'armor', required: false },
-		],
-	});
+	return contentStore.items.findByPk(itemId);
 }
 
 /**
@@ -245,7 +241,7 @@ async function getItemWithDetails(itemId) {
  * @returns {Promise<string>} The item name or fallback
  */
 async function getItemName(itemId) {
-	const item = await ItemLib.findByPk(itemId);
+	const item = contentStore.items.findByPk(itemId);
 	return item ? item.name : `Item #${itemId}`;
 }
 
@@ -255,10 +251,10 @@ async function getItemName(itemId) {
  * @returns {Promise<Object|null>} Item or null
  */
 async function findItemByTag(tag) {
-	const allItems = await ItemLib.findAll();
+	const allItems = contentStore.items.findAll();
 	const tagLower = tag.toLowerCase();
 	return allItems.find(item =>
-		item.tag && Array.isArray(item.tag) && 
+		item.tag && Array.isArray(item.tag) &&
 		item.tag.some(t => t && t.toLowerCase() === tagLower),
 	) || null;
 }
@@ -279,12 +275,16 @@ function isItemEquippable(item) {
  * @returns {Promise<Array>} CharacterItem array with item association
  */
 async function getCharacterEquippedItemsByType(characterId, itemType) {
-	return await CharacterItem.findAll({
+	const equipped = await CharacterItem.findAll({
 		where: { character_id: characterId, equipped: true },
-		include: [
-			{ model: ItemLib, as: 'item', where: { item_type: itemType } },
-		],
 	});
+	return equipped
+		.map(ci => {
+			const raw = ci.get ? ci.get({ plain: true }) : ci;
+			raw.item = contentStore.items.findByPk(raw.item_id);
+			return raw;
+		})
+		.filter(ci => ci.item && ci.item.item_type === itemType);
 }
 
 /**
@@ -312,12 +312,16 @@ async function getCharacterEquippedArmor(characterId) {
  * @returns {Promise<Array>} CharacterItem array with item association
  */
 async function getCharacterItemsByType(characterId, itemType) {
-	return await CharacterItem.findAll({
+	const items = await CharacterItem.findAll({
 		where: { character_id: characterId },
-		include: [
-			{ model: ItemLib, as: 'item', where: { item_type: itemType } },
-		],
 	});
+	return items
+		.map(ci => {
+			const raw = ci.get ? ci.get({ plain: true }) : ci;
+			raw.item = contentStore.items.findByPk(raw.item_id);
+			return raw;
+		})
+		.filter(ci => ci.item && ci.item.item_type === itemType);
 }
 
 /**
@@ -326,9 +330,13 @@ async function getCharacterItemsByType(characterId, itemType) {
  * @returns {Promise<Array>} CharacterItem array with item associations
  */
 async function getCharacterInventory(characterId) {
-	return await CharacterItem.findAll({
+	const items = await CharacterItem.findAll({
 		where: { character_id: characterId },
-		include: [{ model: ItemLib, as: 'item' }],
+	});
+	return items.map(ci => {
+		const raw = ci.get ? ci.get({ plain: true }) : ci;
+		raw.item = contentStore.items.findByPk(raw.item_id);
+		return raw;
 	});
 }
 

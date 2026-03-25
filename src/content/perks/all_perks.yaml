@@ -1,0 +1,22 @@
+# ===============================================
+# PERKS DEFINITION FILE
+# ===============================================
+# This file defines all character perks unlocked through skill progression.
+#
+# Complete Example (all possible fields):
+#   - id: "1"                            # Required: Unique identifier (string)
+#     name: "Power Strike"               # Required: Display name
+#     description: "Deal increased damage" # Optional: Perk description
+#     skill_id: "9"                      # Required: Associated skill ID (from skills file)
+#     skill_level_required: 3            # Required: Minimum skill level to unlock
+#     max_level: 5                       # Optional: Maximum perk level (default: 1)
+#     power: 3                           # Optional: Perk strength/tier rating
+#     cost: 2                            # Optional: Perk point cost to acquire
+#     stamina_cost: 5                    # Optional: Stamina cost per activation
+#     effects:                           # Optional: Effect definitions (JSON)
+#       damage_multiplier: 1.5
+#
+# Last modified: 2026-03-23
+# ===============================================
+
+perks: []

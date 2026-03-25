@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { Raid, RaidStage, RaidMonsterLib, RaidBoss, RaidMonster, EnemyBase } = require('@root/dbObject.js');
+const { Raid, RaidStage, RaidMonsterLib, RaidBoss, RaidMonster } = require('@root/dbObject.js');
 const RaidManager = require('../../utility/raidManager.js');
 
 module.exports = {
@@ -104,7 +104,7 @@ async function handleStart(interaction) {
 	const raid = await Raid.findByPk(raidId, {
 		include: [
 			{ model: RaidStage, as: 'stages' },
-			{ model: RaidMonsterLib, as: 'monsterLib', include: [{ model: EnemyBase, as: 'enemy' }] },
+			{ model: RaidMonsterLib, as: 'monsterLib' },
 			{ model: RaidBoss, as: 'bosses' },
 		],
 	});

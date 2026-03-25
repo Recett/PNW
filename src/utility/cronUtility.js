@@ -1,7 +1,7 @@
 const { CronJob } = require('cron');
 
 // This job runs every day at 00:00 (midnight)
-const { CronLog } = require('@root/dbObject.js');
+const { CronLog, NpcPurchase } = require('@root/dbObject.js');
 
 const job = new CronJob('0 0 * * *', async () => {
 	await performCronJob();
@@ -9,6 +9,11 @@ const job = new CronJob('0 0 * * *', async () => {
 
 const hourlyJob = new CronJob('0 * * * *', async () => {
 	await performHourlyJob();
+});
+
+// This job runs every Sunday at 00:00 — resets NPC shop purchase counts
+const weeklyStockResetJob = new CronJob('0 0 * * 0', async () => {
+	await performWeeklyStockReset();
 });
 
 // Do NOT start the job automatically
@@ -90,6 +95,42 @@ async function performHourlyJob() {
 	catch (error) {
 		console.error(`Error in ${jobName}:`, error);
 		// Mark job as error
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		if (job) {
+			await job.update({
+				status: 'error',
+				execution_count: (job.execution_count || 0) + 1,
+				error_count: (job.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
+		throw error;
+	}
+}
+
+async function performWeeklyStockReset() {
+	const jobName = 'weekly_stock_reset';
+	try {
+		await CronLog.upsert({
+			job_name: jobName,
+			status: 'running',
+			last_run: new Date(),
+		});
+
+		// Clear all NPC purchase records — restocks all shops to YAML max
+		const deleted = await NpcPurchase.destroy({ where: {} });
+		console.log(`[WeeklyStockReset] Cleared ${deleted} purchase record(s).`);
+
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		await job.update({
+			status: 'stopped',
+			execution_count: (job.execution_count || 0) + 1,
+			success_count: (job.success_count || 0) + 1,
+		});
+	}
+	catch (error) {
+		console.error(`Error in ${jobName}:`, error);
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		if (job) {
 			await job.update({
@@ -218,10 +259,31 @@ async function startCronJob() {
 		console.log('Hourly cron job started.');
 	}
 
+	if (!weeklyStockResetJob.running) {
+		// Initialize weekly stock reset job in database
+		await CronLog.upsert({
+			job_name: 'weekly_stock_reset',
+			status: 'stopped',
+			schedule: '0 0 * * 0',
+			description: 'Weekly NPC shop stock reset (every Sunday at 00:00)',
+			is_enabled: true,
+		});
+
+		// Catch-up: if last run was more than 7 days ago, run now
+		const lastWeekly = await CronLog.findOne({ where: { job_name: 'weekly_stock_reset' } });
+		if (!lastWeekly || !lastWeekly.last_run || (Date.now() - new Date(lastWeekly.last_run).getTime()) > 7 * 24 * 60 * 60 * 1000) {
+			await performWeeklyStockReset();
+		}
+
+		weeklyStockResetJob.start();
+		console.log('Weekly stock reset cron job started.');
+	}
+
 }
 
 module.exports = {
 	job,
 	hourlyJob,
+	weeklyStockResetJob,
 	startCronJob,
 };
