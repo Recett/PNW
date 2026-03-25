@@ -1841,9 +1841,9 @@ class EventProcessor {
 		if (!hasOtherOptions && components.length > 0) {
 			const leaveButton = new Discord.ButtonBuilder()
 				.setCustomId('shop_leave')
-				.setLabel('Leave Shop')
+				.setLabel('R\u1EDDi c\u1EEDa h\u00E0ng')
 				.setStyle(Discord.ButtonStyle.Secondary)
-				.setEmoji('🚪');
+				.setEmoji(EMOJI.DOOR);
 
 			components.push(new Discord.ActionRowBuilder().addComponents(leaveButton));
 		}
@@ -1881,14 +1881,33 @@ class EventProcessor {
 			const separator = currentDesc ? '\n\n' : '';
 			embed.setDescription(currentDesc + separator + optionsText);
 
-			// Reactions require a non-ephemeral message
-			session.ephemeral = false;
+			// Build numbered buttons split into balanced rows
+			const row1Count = Math.ceil(options.length / 2);
+			const buildRow = (opts) => new Discord.ActionRowBuilder().addComponents(
+				opts.map((option, idx) => {
+					const globalIdx = options.indexOf(option);
+					const rawLabel = option.button_label || option.text;
+					const label = rawLabel.length > 40 ? rawLabel.substring(0, 38) + '\u2026' : rawLabel;
+					return new Discord.ButtonBuilder()
+						.setCustomId(`event_opt_${session.sessionId}|${option.id}`)
+						.setLabel(`${globalIdx + 1}. ${label}`)
+						.setStyle(Discord.ButtonStyle.Secondary);
+				})
+			);
+
+			if (options.length <= 5) {
+				components.push(buildRow(options));
+			}
+			else {
+				components.push(buildRow(options.slice(0, row1Count)));
+				components.push(buildRow(options.slice(row1Count)));
+			}
 		}
 		else if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
 			// No options but has next event - show Continue button
 			const button = new Discord.ButtonBuilder()
 				.setCustomId(`event_continue_${session.sessionId}`)
-				.setLabel('Continue')
+				.setLabel('Ti\u1EBFp t\u1EE5c')
 				.setStyle(Discord.ButtonStyle.Primary);
 
 			components.push(new Discord.ActionRowBuilder().addComponents(button));
@@ -1917,15 +1936,8 @@ class EventProcessor {
 			dialogMessage = await interaction.fetchReply();
 		}
 
-		// Set up collector if there are components or options
-		if (options && options.length > 0) {
-			// Add reaction emojis for each option and set up reaction collector
-			for (let i = 0; i < options.length; i++) {
-				await dialogMessage.react(NUMBER_EMOJIS[i]);
-			}
-			await this.setupReactionCollector(session, eventBase, nextEventId, dialogMessage, options);
-		}
-		else if (components.length > 0) {
+		// Set up collector if there are components
+		if (components.length > 0) {
 			await this.setupCollector(session, eventBase, nextEventId, dialogMessage);
 		}
 		else {
@@ -2095,11 +2107,11 @@ class EventProcessor {
 								const modalId = `input_modal_${inputAction.variable_name}_${Date.now()}`;
 								const modal = new ModalBuilder()
 									.setCustomId(modalId)
-									.setTitle((inputAction.input_label || 'Enter value').substring(0, 45));
+									.setTitle((inputAction.input_label || 'Nh\u1EADp gi\u00E1 tr\u1ECB').substring(0, 45));
 
 								const textInput = new TextInputBuilder()
 									.setCustomId('input_value')
-									.setLabel((inputAction.input_label || 'Enter value').substring(0, 45))
+									.setLabel((inputAction.input_label || 'Nh\u1EADp gi\u00E1 tr\u1ECB').substring(0, 45))
 									.setStyle(TextInputStyle.Short)
 									.setRequired(true);
 
@@ -2259,15 +2271,50 @@ class EventProcessor {
 						// Clear shop data and components
 						session.shopData = null;
 						await componentInteraction.update({ 
-							content: '👋 You leave the shop.',
+							content: `${EMOJI.WAVE} B\u1EA1n r\u1EDDi kh\u1ECFi c\u1EEDa h\u00E0ng.`,
 							components: [],
 						});
 						this.activeEvents.delete(session.sessionId);
 						if (session.characterId) this.activeCharacters.delete(session.characterId);
 						return;
 					}
-					// Other button press uses default next event
-					collector.stop();
+					// Option button — customId format: event_opt_<sessionId>|<optionId>
+					if (componentInteraction.customId.startsWith('event_opt_')) {
+						collector.stop();
+						const selectedOptionId = componentInteraction.customId.split('|')[1];
+						const optionData = contentStore.events.findByPk(String(eventBase.id));
+						const option = optionData && optionData.option
+							? optionData.option.find(o => o.id === selectedOptionId)
+							: null;
+						if (option?.next) {
+							nextEventId = option.next;
+						}
+						// Handle save-X and clear-X tags
+						if (session.characterId && eventBase.tag && Array.isArray(eventBase.tag)) {
+							for (const tag of eventBase.tag) {
+								if (tag.startsWith('save-')) {
+									const settingName = tag.substring(5);
+									if (settingName && option?.text) {
+										const currentValue = await characterSettingUtil.getCharacterSetting(session.characterId, settingName);
+										const newValue = currentValue
+											? currentValue + ', "' + option.text.replace(/"/g, '\\"') + '"'
+											: '"' + option.text.replace(/"/g, '\\"') + '"';
+										await characterSettingUtil.setCharacterSetting(session.characterId, settingName, newValue);
+									}
+								}
+								else if (tag.startsWith('clear-')) {
+									const settingName = tag.substring(6);
+									if (settingName) {
+										await characterSettingUtil.setCharacterSetting(session.characterId, settingName, '');
+									}
+								}
+							}
+						}
+					}
+					else {
+						// Continue / other button uses default next event
+						collector.stop();
+					}
 				}
 				else {
 					// Fallback for any other interaction type
@@ -2497,13 +2544,13 @@ class EventProcessor {
 
 		const modal = new ModalBuilder()
 			.setCustomId(`shop_modal_${selectedValue}`)
-			.setTitle(isItem ? `Buy ${itemName}` : `Train ${itemName}`);
+			.setTitle(isItem ? `Mua ${itemName}` : `Luy\u1EC7n ${itemName}`);
 
 		const quantityInput = new TextInputBuilder()
 			.setCustomId('quantity')
-			.setLabel(isItem ? 'How many would you like to buy?' : 'How many stamina to spend?')
+			.setLabel(isItem ? 'B\u1EA1n mu\u1ED1n mua bao nhi\u00EAu?' : 'B\u1EA1n mu\u1ED1n d\u00F9ng bao nhi\u00EAu stamina?')
 			.setStyle(TextInputStyle.Short)
-			.setPlaceholder('Enter a number (e.g., 1, 5, 10)')
+			.setPlaceholder('Nh\u1EADp s\u1ED1 (v\u00ED d\u1EE5: 1, 5, 10)')
 			.setRequired(true)
 			.setMinLength(1)
 			.setMaxLength(10);

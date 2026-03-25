@@ -1,7 +1,7 @@
 const { ActionRowBuilder, ButtonBuilder, MessageFlags } = require('discord.js');
 const { CharacterItem } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
-const characterUtility = require('./characterUtility');
+const getCharacterUtility = () => require('./characterUtility');
 
 /**
  * Builds an embed object for displaying item details
@@ -147,7 +147,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 			await characterItem.save();
 
 			// Recalculate stats
-			await characterUtility.recalculateCharacterStats(character);
+			await getCharacterUtility().recalculateCharacterStats(character);
 
 			await btnInteraction.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 			if (onComplete) onComplete();
@@ -168,7 +168,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				await characterItem.save();
 
 				// Recalculate stats
-				await characterUtility.recalculateCharacterStats(character);
+				await getCharacterUtility().recalculateCharacterStats(character);
 
 				await btnInteraction.reply({ content: `You have unequipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 			}

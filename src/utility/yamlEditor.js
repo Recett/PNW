@@ -367,7 +367,8 @@ class YamlEditor {
 #       message_type: normal             # Optional: "normal" (default)
 #     option:                            # Optional: Player choices (omit for auto-advance)
 #       - id: event_example-option-1     # Required: Unique option ID
-#         text: "Choice text"            # Required: Button label (keep under 95 chars)
+#         text: "Choice text"            # Required: Full option text shown in embed (keep under 95 chars)
+#         button_label: "Short label"    # Optional: Short button label (max ~40 chars). Overrides truncated text on button.
 #         next: event_result_a           # Optional: Event to go to when chosen
 #         display_order: 1               # Required: Sort order for display
 #     combat:                            # Optional: Trigger a combat encounter

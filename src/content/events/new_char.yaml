@@ -443,7 +443,7 @@ events:
     silent: true
     action:
       - type: flag
-        flag_name: starter_sword
+        flag_name: starter_shortsword
         flag_value: "1"
         flag_operation: add
         flag_type: Local

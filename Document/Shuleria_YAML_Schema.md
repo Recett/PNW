@@ -295,7 +295,8 @@ required_checks: all conditions must pass for the option to appear. hidden_check
 | Field | Type | Required | Description |
 |-------|------|:--------:|-------------|
 | `id` | `string` | yes | Unique within the event. |
-| `text` | `string` | yes | Label shown to player. |
+| `text` | `string` | yes | Full option text shown in embed. Also used as button label if `button_label` is absent. |
+| `button_label` | `string` | — | Short label for the button (max ~40 chars). Overrides truncated `text` on the button. |
 | `description` | `string` | — | Hint text shown below label. |
 | `next` | `string` | — | Event ID triggered when option is selected. |
 | `required_checks` | `list` | — | Inline condition data. All must pass for option to appear. |

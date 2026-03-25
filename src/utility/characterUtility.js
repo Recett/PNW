@@ -389,19 +389,23 @@ let equipCharacterItem = async (characterId, itemId, type) => {
 		const { CharacterStatus } = getDbModels();
 		if (mainhandCount >= 2) {
 			// Upsert dualwielding status
-			await CharacterStatus.upsert({
-				character_id: characterId,
-				status: 'Dualwielding',
-				type: 'persistent',
-				value: '',
+			const existing = await CharacterStatus.findOne({
+				where: { character_id: characterId, status_id: 'Dualwielding' },
 			});
+			if (!existing) {
+				await CharacterStatus.create({
+					character_id: characterId,
+					status_id: 'Dualwielding',
+					scope: 'persistent',
+				});
+			}
 		}
 		else {
 			// Remove dualwielding status if it exists
 			await CharacterStatus.destroy({
 				where: {
 					character_id: characterId,
-					status: 'Dualwielding',
+					status_id: 'Dualwielding',
 				},
 			});
 		}
