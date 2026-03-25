@@ -92,13 +92,13 @@ const COOKING_ADDITIVES = {
  * @param {Object} options - Additional cooking options
  * @returns {Promise<Object>} Cooking result with updated traits and effects
  */
-async function applyCookingSpice(characterId, spiceId, currentTraits = [], options = {}) {
+async function applyCookingAdditive(characterId, additiveId, currentTraits = [], options = {}) {
 	try {
-		const spice = COOKING_SPICES[spiceId.toLowerCase()];
+		const spice = COOKING_ADDITIVES[additiveId.toLowerCase()];
 		if (!spice) {
 			return {
 				success: false,
-				message: `Unknown spice: ${spiceId}`,
+				message: `Unknown additive: ${additiveId}`,
 				traits: currentTraits
 			};
 		}
@@ -113,7 +113,7 @@ async function applyCookingSpice(characterId, spiceId, currentTraits = [], optio
 			maxTraitsReached: currentTraits.length >= 6
 		};
 
-		// Add the primary trait from the spice (if not already present and under trait limit)
+		// Add the primary trait from the additive (if not already present and under trait limit)
 		if (!result.traits.includes(spice.primaryTrait) && result.traits.length < 6) {
 			result.traits.push(spice.primaryTrait);
 			result.newTraits.push(spice.primaryTrait);
@@ -137,12 +137,12 @@ async function applyCookingSpice(characterId, spiceId, currentTraits = [], optio
 		result.message = `Added ${spice.name}. The dish is now: ${result.traits.map(t => `[${t}]`).join(' ')}`;
 
 		// Log the cooking action to character flags for tracking
-		await logCookingAction(characterId, spiceId, result);
+		await logCookingAction(characterId, additiveId, result);
 
 		return result;
 	}
 	catch (error) {
-		console.error(`Error applying cooking spice ${spiceId}:`, error);
+		console.error(`Error applying cooking additive ${additiveId}:`, error);
 		return {
 			success: false,
 			message: 'An error occurred while cooking.',
@@ -279,6 +279,7 @@ async function addAdditiveToSession(characterId, additiveId, options = {}) {
 		return {
 			success: false,
 			message: 'An error occurred while adding the additive.'
+		};
 	}
 }
 

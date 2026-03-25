@@ -150,8 +150,10 @@ catch (e) {
 // Log available fonts for debugging
 try {
 	const registeredFonts = GlobalFonts.families;
-	console.log('[Canvas] Available font families:', registeredFonts.length > 0 ? registeredFonts : 'NONE - This will cause rendering to fail!');
-	
+	if (registeredFonts.length === 0) {
+		console.warn('[Canvas] Available font families: NONE - This will cause rendering to fail!');
+	}
+
 	// Test canvas rendering on Linux
 	if (process.platform === 'linux') {
 		try {

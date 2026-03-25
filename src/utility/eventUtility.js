@@ -1625,7 +1625,7 @@ class EventProcessor {
 		let resultText = '';
 		if (session.messages && session.messages.length > 0) {
 			resultText = session.messages.map(m => {
-				const icons = { success: '✁E, failure: '❁E, info: 'ℹ�E�E };
+				const icons = { success: '✅', failure: '❌', info: 'ℹ️' };
 				const icon = icons[m.type] || '•';
 				return `${icon} ${m.text}`;
 			}).join('\n') + '\n\n';
@@ -1633,8 +1633,8 @@ class EventProcessor {
 
 		// Add combat result
 		if (session.combatResult) {
-			const icons = { victory: '⚔︁E, defeat: '💀', flee: '🏃', error: '⚠�E�E };
-			resultText += `${icons[session.combatResult.result] || '❁E} ${session.combatResult.message}\n\n`;
+			const icons = { victory: '⚔️', defeat: '💀', flee: '🏃', error: '⚠️' };
+			resultText += `${icons[session.combatResult.result] || '❌'} ${session.combatResult.message}\n\n`;
 		}
 
 		// Add event message content
