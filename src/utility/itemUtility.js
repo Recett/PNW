@@ -34,12 +34,12 @@ function buildItemEmbed(item, inventoryEntry = null) {
 		// Text fields first
 		embed.fields.push(
 			{ name: 'Slot', value: capitalizeFirst(item.weapon.slot), inline: true },
-			{ name: 'Weapon Type', value: capitalizeFirst(item.weapon.weapon_type), inline: true },
+			{ name: 'Weapon Type', value: capitalizeFirst(item.weapon.subtype), inline: true },
 		);
 		// Numeric fields on next line
 		embed.fields.push(
 			{ name: 'Base Damage', value: String(item.weapon.base_damage || 0), inline: true },
-			{ name: 'Scaling', value: `${(item.weapon.scaling || 0) * 100}%`, inline: true },
+			{ name: 'Scaling', value: String(item.weapon.scaling || 0), inline: true },
 			{ name: 'Hit Modifier', value: `${(item.weapon.hit_mod || 0) * 100}%`, inline: true },
 			{ name: 'Cooldown', value: String(item.weapon.cooldown || 0), inline: true },
 			{ name: 'Weight', value: String(item.weapon.weight || 0), inline: true },
@@ -59,10 +59,8 @@ function buildItemEmbed(item, inventoryEntry = null) {
 		// Numeric fields on next line
 		embed.fields.push(
 			{ name: 'Defense', value: String(item.armor.defense || 0), inline: true },
-			{ name: 'Defense %', value: `${item.armor.defense_percent || 0}%`, inline: true },
 			{ name: 'Crit Resistance', value: String(item.armor.crit_resistance || 0), inline: true },
 			{ name: 'Evade', value: String(item.armor.evade || 0), inline: true },
-			{ name: 'Evade %', value: `${item.armor.evade_percent || 0}%`, inline: true },
 			{ name: 'Weight', value: String(item.armor.weight || 0), inline: true },
 		);
 	}

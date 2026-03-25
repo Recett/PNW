@@ -1,8 +1,4 @@
-# PROLOGUE_CREW_DIALOGUE DEFINITION FILE
-# Last modified: 2026-03-23
-
 events:
-
   - id: talk-hale
     name: Nói chuyện với Đô đốc Hale
     event_type: dialogue
@@ -10,11 +6,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_hale
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: hale-idle-menu
         failure_event: hale-first-meeting
-
   - id: hale-first-meeting
     name: Đô đốc Hale — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -40,11 +35,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_hale
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: hale-idle-menu
-
   - id: hale-idle-menu
     name: Đô đốc Hale — Chủ Đề
     event_type: dialogue
@@ -55,26 +49,30 @@ events:
         Đô đốc đứng trên boong lái, nhìn ra mặt biển.
     option:
       - id: hale-idle-menu-option-1
-        text: "\"${npc_2p} có khỏe không?\""
+        text: '"${npc_2p} có khỏe không?"'
         next: hale-topic-how-are-you
         display_order: 1
+        button_label: '"${npc_2p} có khỏe không?"'
       - id: hale-idle-menu-option-2
-        text: "\"${npc_2p} đã đi biển bao lâu rồi?\""
+        text: '"${npc_2p} đã đi biển bao lâu rồi?"'
         next: hale-topic-sea
         display_order: 2
+        button_label: '"${npc_2p} đã đi biển bao lâu…'
       - id: hale-idle-menu-option-3
-        text: "\"${npc_2p} có nhớ nhà không?\""
+        text: '"${npc_2p} có nhớ nhà không?"'
         next: hale-topic-home
         display_order: 3
+        button_label: '"${npc_2p} có nhớ nhà không?"'
       - id: hale-idle-menu-option-4
-        text: "\"${npc_2p} nghĩ sao về chuyến đi này?\""
+        text: '"${npc_2p} nghĩ sao về chuyến đi này?"'
         next: hale-topic-voyage
         display_order: 4
+        button_label: '"${npc_2p} nghĩ sao về chuyến…'
       - id: hale-idle-menu-option-5
         text: Để ông ấy yên.
         next: null
         display_order: 5
-
+        button_label: Để ông ấy yên.
   - id: hale-topic-how-are-you
     name: Hale — Khỏe Không
     event_type: dialogue
@@ -87,7 +85,6 @@ events:
         đời nổi giận với một sự thật không thể thay đổi. ${npc_1p}
         chọn cách khác."
     next: hale-idle-menu
-
   - id: hale-topic-sea
     name: Hale — Thời Gian Trên Biển
     event_type: dialogue
@@ -100,7 +97,6 @@ events:
         nên người. Ông ấy không sai — chỉ là chắc ông ấy sẽ không nhận
         ra đó là thứ gì."
     next: hale-idle-menu
-
   - id: hale-topic-home
     name: Hale — Nhà
     event_type: dialogue
@@ -112,7 +108,6 @@ events:
         chỉ là nó đã thôi là một nơi chốn và trở thành một thói quen.
         Con tàu là nhà. Thủy thủ đoàn là nhà. ${2p} rồi cũng sẽ quen."
     next: hale-idle-menu
-
   - id: hale-topic-voyage
     name: Hale — Chuyến Đi
     event_type: dialogue
@@ -127,7 +122,6 @@ events:
         này có lợi thế là chỉ về phía nơi chưa ai vẽ được bản đồ. Với
         ${npc_1p}, vậy là tốt hơn."
     next: hale-idle-menu
-
   - id: talk-york
     name: Nói chuyện với Quân nhu trưởng Waylan
     event_type: dialogue
@@ -135,11 +129,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_york
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: york-idle-menu
         failure_event: york-first-meeting
-
   - id: york-first-meeting
     name: Quân nhu trưởng York — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -169,11 +162,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_york
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: york-idle-menu
-
   - id: york-idle-menu
     name: Quân nhu trưởng York — Chủ Đề
     event_type: dialogue
@@ -185,26 +177,30 @@ events:
         Hai cuốn khác đang chờ.
     option:
       - id: york-idle-menu-option-1
-        text: "\"Mọi thứ thế nào rồi, ${npc_2p}?\""
+        text: '"Mọi thứ thế nào rồi, ${npc_2p}?"'
         next: york-topic-things
         display_order: 1
+        button_label: '"Mọi thứ thế nào rồi,…'
       - id: york-idle-menu-option-2
-        text: "\"Công việc của ${npc_2p} cụ thể là gì?\""
+        text: '"Công việc của ${npc_2p} cụ thể là gì?"'
         next: york-topic-job
         display_order: 2
+        button_label: '"Công việc của ${npc_2p} cụ…'
       - id: york-idle-menu-option-3
-        text: "\"Lương thực trên tàu còn đủ không?\""
+        text: '"Lương thực trên tàu còn đủ không?"'
         next: york-topic-supplies
         display_order: 3
+        button_label: '"Lương thực trên tàu còn đủ…'
       - id: york-idle-menu-option-4
-        text: "\"Chuyện gì xảy ra khi chúng ta cập bến?\""
+        text: '"Chuyện gì xảy ra khi chúng ta cập bến?"'
         next: york-topic-colony
         display_order: 4
+        button_label: '"Chuyện gì xảy ra khi chúng…'
       - id: york-idle-menu-option-5
         text: Để ông ấy làm việc tiếp.
         next: null
         display_order: 5
-
+        button_label: Để ông ấy làm việc tiếp.
   - id: york-topic-things
     name: York — Mọi Thứ Thế Nào
     event_type: dialogue
@@ -216,7 +212,6 @@ events:
         và thực lòng đó cũng là mức ${npc_1p} đang nhắm đến. Nếu ${2p}
         muốn câu trả lời thú vị hơn, hãy hỏi ${npc_1p} điều gì cụ thể."
     next: york-idle-menu
-
   - id: york-topic-job
     name: York — Công Việc
     event_type: dialogue
@@ -234,7 +229,6 @@ events:
 
         "Danh sách rất dài."
     next: york-idle-menu
-
   - id: york-topic-supplies
     name: York — Lương Thực
     event_type: dialogue
@@ -252,7 +246,6 @@ events:
         "Nếu ${2p} có thời gian rảnh, hầm tàu là nơi đáng để dành thời
         gian đó."
     next: york-idle-menu
-
   - id: york-topic-colony
     name: York — Khi Cập Bến
     event_type: dialogue
@@ -272,7 +265,6 @@ events:
         "${npc_1p} sẽ là người tổ chức quá trình đó. ${npc_1p} khuyên
         ${2p} nên suy nghĩ về nó trước khi chúng ta đến nơi."
     next: york-idle-menu
-
   - id: talk-vorne
     name: Nói chuyện với Thuyền trưởng Vorne
     event_type: dialogue
@@ -280,11 +272,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_vorne
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: vorne-idle-menu
         failure_event: vorne-first-meeting
-
   - id: vorne-first-meeting
     name: Thuyền trưởng Vorne — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -310,11 +301,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_vorne
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: vorne-idle-menu
-
   - id: vorne-idle-menu
     name: Thuyền trưởng Vorne — Chủ Đề
     event_type: dialogue
@@ -326,30 +316,35 @@ events:
         ba việc cùng một lúc.
     option:
       - id: vorne-idle-menu-option-1
-        text: "\"${npc_2p} có chút thời gian không?\""
+        text: '"${npc_2p} có chút thời gian không?"'
         next: vorne-topic-moment
         display_order: 1
+        button_label: '"${npc_2p} có chút thời gian…'
       - id: vorne-idle-menu-option-2
-        text: "\"Cho ${1p} biết về con tàu này.\""
+        text: '"Cho ${1p} biết về con tàu này."'
         next: vorne-topic-ship
         display_order: 2
+        button_label: Cho
       - id: vorne-idle-menu-option-3
-        text: "\"${npc_2p} đã chỉ huy con tàu này bao lâu rồi?\""
+        text: '"${npc_2p} đã chỉ huy con tàu này bao lâu rồi?"'
         next: vorne-topic-how-long
         display_order: 3
+        button_label: '"${npc_2p} đã chỉ huy con tàu…'
       - id: vorne-idle-menu-option-4
-        text: "\"${npc_2p} cần gì từ thủy thủ đoàn?\""
+        text: '"${npc_2p} cần gì từ thủy thủ đoàn?"'
         next: vorne-topic-crew
         display_order: 4
+        button_label: '"${npc_2p} cần gì từ thủy thủ…'
       - id: vorne-idle-menu-option-5
-        text: "\"${npc_2p} có ổn không?\""
+        text: '"${npc_2p} có ổn không?"'
         next: vorne-topic-holding-up
         display_order: 5
+        button_label: '"${npc_2p} có ổn không?"'
       - id: vorne-idle-menu-option-6
         text: Để ông ấy làm việc.
         next: null
         display_order: 6
-
+        button_label: Để ông ấy làm việc.
   - id: vorne-topic-moment
     name: Vorne — Chút Thời Gian
     event_type: dialogue
@@ -359,7 +354,6 @@ events:
       text: |
         "Chút thôi. ${2p} cần gì?"
     next: vorne-idle-menu
-
   - id: vorne-topic-ship
     name: Vorne — Con Tàu
     event_type: dialogue
@@ -372,7 +366,6 @@ events:
         trong hoàn cảnh tốt hơn, và tàu tốt hơn trong hoàn cảnh tệ hơn.
         Con tàu này sẽ đưa chúng ta đến nơi."
     next: vorne-idle-menu
-
   - id: vorne-topic-how-long
     name: Vorne — Bao Lâu Rồi
     event_type: dialogue
@@ -385,7 +378,6 @@ events:
         việc chỉ huy, nếu rút gọn đến cùng — biết điều gì có thể yêu cầu,
         và của ai."
     next: vorne-idle-menu
-
   - id: vorne-topic-crew
     name: Vorne — Thủy Thủ Đoàn
     event_type: dialogue
@@ -399,7 +391,6 @@ events:
         đích đến xứng với những gì đã bỏ ra. ${npc_1p} đang làm việc
         với điều đó."
     next: vorne-idle-menu
-
   - id: vorne-topic-holding-up
     name: Vorne — Có Ổn Không
     event_type: dialogue
@@ -411,14 +402,15 @@ events:
         vận hành được. Đó là điều quan trọng. Cảm ơn ${2p} đã hỏi."
     option:
       - id: vorne-topic-holding-up-option-1
-        text: "\"${1p} không hỏi vậy.\""
+        text: '"${1p} không hỏi vậy."'
         next: vorne-topic-holding-up-pressed
         display_order: 1
+        button_label: '"${1p} không hỏi vậy."'
       - id: vorne-topic-holding-up-option-2
         text: Chấp nhận câu trả lời.
         next: vorne-idle-menu
         display_order: 2
-
+        button_label: Chấp nhận câu trả lời.
   - id: vorne-topic-holding-up-pressed
     name: Vorne — Có Ổn Không (Hỏi Thêm)
     event_type: dialogue
@@ -436,7 +428,6 @@ events:
 
         Ông quay nhìn về phía chân trời.
     next: vorne-idle-menu
-
   - id: talk-dag
     name: Nói chuyện với Dag Holt
     event_type: dialogue
@@ -444,11 +435,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_dag
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: dag-idle-menu
         failure_event: dag-first-meeting
-
   - id: dag-first-meeting
     name: Dag Holt — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -473,11 +463,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_dag
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: dag-idle-menu
-
   - id: dag-idle-menu
     name: Dag Holt — Chủ Đề
     event_type: dialogue
@@ -489,34 +478,40 @@ events:
         nhiều ý kiến chưa ai hỏi đến.
     option:
       - id: dag-idle-menu-option-1
-        text: "\"${npc_2p} có rảnh không?\""
+        text: '"${npc_2p} có rảnh không?"'
         next: dag-topic-minute
         display_order: 1
+        button_label: '"${npc_2p} có rảnh không?"'
       - id: dag-idle-menu-option-2
-        text: "\"Kể ${1p} nghe về ${npc_2p} đi.\""
+        text: '"Kể ${1p} nghe về ${npc_2p} đi."'
         next: dag-topic-himself
         display_order: 2
+        button_label: '"Kể ${1p} nghe về ${npc_2p}…'
       - id: dag-idle-menu-option-3
-        text: "\"Sao ${npc_2p} lại làm lính đánh thuê?\""
+        text: '"Sao ${npc_2p} lại làm lính đánh thuê?"'
         next: dag-topic-mercenary
         display_order: 3
+        button_label: Sao
       - id: dag-idle-menu-option-4
-        text: "\"Sao ${npc_2p} lại tham gia chuyến đi này?\""
+        text: '"Sao ${npc_2p} lại tham gia chuyến đi này?"'
         next: dag-topic-voyage
         display_order: 4
+        button_label: Sao
       - id: dag-idle-menu-option-5
-        text: "\"${npc_2p} nghĩ gì về việc chiến đấu?\""
+        text: '"${npc_2p} nghĩ gì về việc chiến đấu?"'
         next: dag-topic-fighting
         display_order: 5
+        button_label: '"${npc_2p} nghĩ gì về việc…'
       - id: dag-idle-menu-option-6
-        text: "\"${1p} muốn luyện tập.\""
+        text: '"${1p} muốn luyện tập."'
         next: dag-sparring-intro
         display_order: 6
+        button_label: '"${1p} muốn luyện tập."'
       - id: dag-idle-menu-option-7
         text: Để gã yên.
         next: null
         display_order: 7
-
+        button_label: Để gã yên.
   - id: dag-topic-minute
     name: Dag — Có Rảnh Không
     event_type: dialogue
@@ -526,7 +521,6 @@ events:
       text: |
         "Tùy ${2p} muốn gì."
     next: dag-idle-menu
-
   - id: dag-topic-himself
     name: Dag — Về Bản Thân
     event_type: dialogue
@@ -538,7 +532,6 @@ events:
         thuê, giải quyết vấn đề thuê. ${npc_1p} ngừng theo dõi cụ thể ai
         thuê ${npc_1p} vào khoảng năm thứ tám — bắt đầu phức tạp rồi."
     next: dag-idle-menu
-
   - id: dag-topic-mercenary
     name: Dag — Tại Sao Đánh Thuê
     event_type: dialogue
@@ -550,7 +543,6 @@ events:
         Đánh thuê có tiền. ${npc_1p} thấy tỷ giá đó chấp nhận được trong
         một thời gian dài."
     next: dag-idle-menu
-
   - id: dag-topic-voyage
     name: Dag — Tại Sao Chuyến Đi Này
     event_type: dialogue
@@ -563,14 +555,15 @@ events:
         số ít người đáng làm việc cùng."
     option:
       - id: dag-topic-voyage-option-1
-        text: "\"Ông ấy nhờ ${npc_2p} làm gì?\""
+        text: '"Ông ấy nhờ ${npc_2p} làm gì?"'
         next: dag-topic-voyage-pressed
         display_order: 1
+        button_label: '"Ông ấy nhờ ${npc_2p} làm gì?"'
       - id: dag-topic-voyage-option-2
         text: Để đó thôi.
         next: dag-idle-menu
         display_order: 2
-
+        button_label: Để đó thôi.
   - id: dag-topic-voyage-pressed
     name: Dag — Hale Nhờ Gì
     event_type: dialogue
@@ -581,7 +574,6 @@ events:
         "Giữ người ta sống. Huấn luyện ai chịu học nghiêm túc. Có ích
         trong giai đoạn đổ bộ. Đó là điều ${npc_1p} đang làm."
     next: dag-idle-menu
-
   - id: dag-topic-fighting
     name: Dag — Về Chiến Đấu
     event_type: dialogue
@@ -598,7 +590,6 @@ events:
         "Câu hỏi đáng tự hỏi không phải là ${2p} có thể chiến đấu không.
         Mà là liệu ${2p} có biết khi nào không nên chiến đấu."
     next: dag-idle-menu
-
   - id: dag-sparring-intro
     name: Dag — Bắt Đầu Luyện Tập
     event_type: dialogue
@@ -609,7 +600,6 @@ events:
         "Tốt. Ai cũng nghĩ mình biết bước chân. Không ai thực sự biết
         cho đến khi nó được kiểm nghiệm. Đi thôi."
     next: dag-spar-rank1
-
   - id: talk-petra
     name: Nói chuyện với Petra Vane
     event_type: dialogue
@@ -617,11 +607,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_petra
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: petra-idle-menu
         failure_event: petra-first-meeting
-
   - id: petra-first-meeting
     name: Petra Vane — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -649,11 +638,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_petra
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: petra-idle-menu
-
   - id: petra-idle-menu
     name: Petra Vane — Chủ Đề
     event_type: dialogue
@@ -665,30 +653,35 @@ events:
         khi ${2p} tiến đến hẳn.
     option:
       - id: petra-idle-menu-option-1
-        text: "\"${npc_2p} đang nghiên cứu gì vậy?\""
+        text: '"${npc_2p} đang nghiên cứu gì vậy?"'
         next: petra-topic-working
         display_order: 1
+        button_label: '"${npc_2p} đang nghiên cứu gì…'
       - id: petra-idle-menu-option-2
-        text: "\"${npc_2p} trông đợi tìm thấy gì ở đó?\""
+        text: '"${npc_2p} trông đợi tìm thấy gì ở đó?"'
         next: petra-topic-expect
         display_order: 2
+        button_label: '"${npc_2p} trông đợi tìm thấy…'
       - id: petra-idle-menu-option-3
-        text: "\"Làm sao ${npc_2p} chuẩn bị cho điều chưa biết?\""
+        text: '"Làm sao ${npc_2p} chuẩn bị cho điều chưa biết?"'
         next: petra-topic-prepare
         display_order: 3
+        button_label: '"Làm sao ${npc_2p} chuẩn bị…'
       - id: petra-idle-menu-option-4
-        text: "\"${npc_2p} và Cha Clement bất đồng về điều gì?\""
+        text: '"${npc_2p} và Cha Clement bất đồng về điều gì?"'
         next: petra-topic-clement
         display_order: 4
+        button_label: Cha
       - id: petra-idle-menu-option-5
-        text: "\"Màu nước — ${npc_2p} đã nhận thấy gì?\""
+        text: '"Màu nước — ${npc_2p} đã nhận thấy gì?"'
         next: petra-topic-water
         display_order: 5
+        button_label: '"Màu nước — ${npc_2p} đã nhận…'
       - id: petra-idle-menu-option-6
         text: Để cô ấy tiếp tục ghi chép.
         next: null
         display_order: 6
-
+        button_label: Để cô ấy tiếp tục ghi chép.
   - id: petra-topic-working
     name: Petra — Đang Nghiên Cứu Gì
     event_type: dialogue
@@ -701,7 +694,6 @@ events:
         cần phân loại. Đó là loại khoa học kiêu ngạo nhất. ${npc_1p} thích
         nó lắm."
     next: petra-idle-menu
-
   - id: petra-topic-expect
     name: Petra — Trông Đợi Gì
     event_type: dialogue
@@ -714,7 +706,6 @@ events:
         thuyết của ${npc_1p} sẽ sai, và ${npc_1p} phải xây dựng lại chúng
         ngay tại chỗ. Đó mới là phần thú vị."
     next: petra-idle-menu
-
   - id: petra-topic-prepare
     name: Petra — Cách Chuẩn Bị
     event_type: dialogue
@@ -727,7 +718,6 @@ events:
         không biết bình thường là gì. Vì vậy ${npc_1p} học cái bình thường.
         Rồi chờ thế giới vi phạm nó."
     next: petra-idle-menu
-
   - id: petra-topic-clement
     name: Petra — Về Cha Clement
     event_type: dialogue
@@ -743,7 +733,6 @@ events:
 
         Cô trông thực sự hài lòng về điều này.
     next: petra-idle-menu
-
   - id: petra-topic-water
     name: Petra — Màu Nước
     event_type: dialogue
@@ -761,7 +750,6 @@ events:
 
         Cô không giải thích thêm về điều cô đang nghĩ đó là gì.
     next: petra-idle-menu
-
   - id: talk-clement
     name: Nói chuyện với Cha Clement Roe
     event_type: dialogue
@@ -769,11 +757,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_clement
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: clement-idle-menu
         failure_event: clement-first-meeting
-
   - id: clement-first-meeting
     name: Cha Clement — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -800,11 +787,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_clement
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: clement-idle-menu
-
   - id: clement-idle-menu
     name: Cha Clement — Chủ Đề
     event_type: dialogue
@@ -816,26 +802,30 @@ events:
         khi nhận ra ${2p}.
     option:
       - id: clement-idle-menu-option-1
-        text: "\"${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?\""
+        text: '"${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?"'
         next: clement-topic-faith
         display_order: 1
+        button_label: '"${npc_2p} có lo lắng về…'
       - id: clement-idle-menu-option-2
-        text: "\"Cuộc tranh luận với cô Vane của ${npc_2p} đang thế nào?\""
+        text: '"Cuộc tranh luận với cô Vane của ${npc_2p} đang thế nào?"'
         next: clement-topic-petra
         display_order: 2
+        button_label: Vane
       - id: clement-idle-menu-option-3
-        text: "\"Công việc mục vụ trên tàu trông như thế nào?\""
+        text: '"Công việc mục vụ trên tàu trông như thế nào?"'
         next: clement-topic-pastoral
         display_order: 3
+        button_label: '"Công việc mục vụ trên tàu…'
       - id: clement-idle-menu-option-4
-        text: "\"${npc_2p} đang đọc gì vậy?\""
+        text: '"${npc_2p} đang đọc gì vậy?"'
         next: clement-topic-book
         display_order: 4
+        button_label: '"${npc_2p} đang đọc gì vậy?"'
       - id: clement-idle-menu-option-5
         text: Để cha tiếp tục đọc sách.
         next: null
         display_order: 5
-
+        button_label: Để cha tiếp tục đọc sách.
   - id: clement-topic-faith
     name: Clement — Về Lo Lắng
     event_type: dialogue
@@ -849,7 +839,6 @@ events:
         tức là, như thường lệ, chính chúng ta. Lục địa kia không cần
         ${npc_1p} lo lắng. Những người trên con tàu này thì có thể cần."
     next: clement-idle-menu
-
   - id: clement-topic-petra
     name: Clement — Về Petra
     event_type: dialogue
@@ -869,7 +858,6 @@ events:
         lạc đâu đó trên tàu. ${npc_1p} sẽ trân trọng nếu ${2p} có tin
         tức gì về vị trí của nó."
     next: clement-idle-menu
-
   - id: clement-topic-pastoral
     name: Clement — Công Việc Mục Vụ
     event_type: dialogue
@@ -886,7 +874,6 @@ events:
 
         "Chiếc cốc đôi khi cũng cần thiết. ${npc_1p} không phán xét."
     next: clement-idle-menu
-
   - id: clement-topic-book
     name: Clement — Cuốn Sách
     event_type: dialogue
@@ -905,7 +892,6 @@ events:
         những gì cô ấy thấy. ${npc_1p} cho cô ấy biết điều đó có nghĩa gì.
         Cả hai đều giả vờ người kia sai đủ lâu để học được điều gì đó."
     next: clement-idle-menu
-
   - id: talk-passenger
     name: Nói chuyện với hành khách lạ
     event_type: dialogue
@@ -913,11 +899,10 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.met_passenger
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: passenger-idle-menu
         failure_event: passenger-first-meeting
-
   - id: passenger-first-meeting
     name: Hành Khách Lạ — Lần Đầu Gặp Mặt
     event_type: dialogue
@@ -943,11 +928,10 @@ events:
     action:
       - type: flag
         flag_name: char.met_passenger
-        flag_value: "true"
+        flag_value: 'true'
         flag_operation: set
         flag_type: Character
     next: passenger-idle-menu
-
   - id: passenger-idle-menu
     name: Hành Khách Lạ — Chủ Đề
     event_type: dialogue
@@ -961,59 +945,65 @@ events:
       - check_type: flag
         flag_data:
           flag_name: char.knows_passenger_name
-          flag_value: "true"
+          flag_value: 'true'
           comparison: equals
         success_event: passenger-idle-menu-named
         failure_event: passenger-idle-menu-unnamed
-
   - id: passenger-idle-menu-unnamed
     name: Hành Khách Lạ — Chủ Đề (Chưa Biết Tên)
     event_type: dialogue
     silent: true
     option:
       - id: passenger-unnamed-option-1
-        text: "\"${1p} chưa biết tên ${npc_2p}.\""
+        text: '"${1p} chưa biết tên ${npc_2p}."'
         next: passenger-topic-name
         display_order: 1
+        button_label: '"${1p} chưa biết tên…'
       - id: passenger-unnamed-option-2
-        text: "\"Điều gì khiến ${npc_2p} đến lục địa mới?\""
+        text: '"Điều gì khiến ${npc_2p} đến lục địa mới?"'
         next: passenger-topic-destination
         display_order: 2
+        button_label: '"Điều gì khiến ${npc_2p} đến…'
       - id: passenger-unnamed-option-3
-        text: "\"${npc_2p} nghĩ gì về thủy thủ đoàn?\""
+        text: '"${npc_2p} nghĩ gì về thủy thủ đoàn?"'
         next: passenger-topic-crew
         display_order: 3
+        button_label: '"${npc_2p} nghĩ gì về thủy…'
       - id: passenger-unnamed-option-4
-        text: "\"${npc_2p} nói đã quan sát lộ trình của thủy thủ đoàn.\""
+        text: '"${npc_2p} nói đã quan sát lộ trình của thủy thủ đoàn."'
         next: passenger-topic-watching
         display_order: 4
+        button_label: '"${npc_2p} nói đã quan sát lộ…'
       - id: passenger-unnamed-option-5
         text: Để hắn tiếp tục quan sát.
         next: null
         display_order: 5
-
+        button_label: Để hắn tiếp tục quan sát.
   - id: passenger-idle-menu-named
     name: Hành Khách Lạ — Chủ Đề (Đã Biết Tên)
     event_type: dialogue
     silent: true
     option:
       - id: passenger-named-option-1
-        text: "\"Điều gì khiến ${npc_2p} đến lục địa mới?\""
+        text: '"Điều gì khiến ${npc_2p} đến lục địa mới?"'
         next: passenger-topic-destination
         display_order: 1
+        button_label: '"Điều gì khiến ${npc_2p} đến…'
       - id: passenger-named-option-2
-        text: "\"${npc_2p} nghĩ gì về thủy thủ đoàn?\""
+        text: '"${npc_2p} nghĩ gì về thủy thủ đoàn?"'
         next: passenger-topic-crew
         display_order: 2
+        button_label: '"${npc_2p} nghĩ gì về thủy…'
       - id: passenger-named-option-3
-        text: "\"${npc_2p} nói đã quan sát lộ trình của thủy thủ đoàn.\""
+        text: '"${npc_2p} nói đã quan sát lộ trình của thủy thủ đoàn."'
         next: passenger-topic-watching
         display_order: 3
+        button_label: '"${npc_2p} nói đã quan sát lộ…'
       - id: passenger-named-option-4
         text: Để hắn tiếp tục quan sát.
         next: null
         display_order: 4
-
+        button_label: Để hắn tiếp tục quan sát.
   - id: passenger-topic-name
     name: Hành Khách — Tên
     event_type: dialogue
@@ -1027,7 +1017,6 @@ events:
 
         Hắn không cho tên.
     next: passenger-idle-menu
-
   - id: passenger-topic-destination
     name: Hành Khách — Điểm Đến
     event_type: dialogue
@@ -1043,7 +1032,6 @@ events:
         "Đó là tham vọng hay tuyệt vọng thường phụ thuộc vào ${2p} đang
         đứng ở đầu nào của chuyến đi."
     next: passenger-idle-menu
-
   - id: passenger-topic-crew
     name: Hành Khách — Về Thủy Thủ Đoàn
     event_type: dialogue
@@ -1058,7 +1046,6 @@ events:
 
         Hắn nói điều này như thể đó là một quan sát về thời tiết.
     next: passenger-idle-menu
-
   - id: passenger-topic-watching
     name: Hành Khách — Về Việc Quan Sát
     event_type: dialogue

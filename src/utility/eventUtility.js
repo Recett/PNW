@@ -1878,7 +1878,7 @@ class EventProcessor {
 
 			const embed = messageData.embeds[0];
 			const currentDesc = embed.data.description || '';
-			const separator = currentDesc ? '\n\n' : '';
+			const separator = currentDesc ? '\n\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n' : '\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\u2015\n';
 			embed.setDescription(currentDesc + separator + optionsText);
 
 			// Build numbered buttons split into balanced rows
