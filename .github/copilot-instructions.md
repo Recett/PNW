@@ -89,6 +89,16 @@ await characterUtil.addCharacterItem(characterId, itemId, quantity);
 - Migration scripts requested by user should NOT be prefixed with `temp_` (keep them for reference)
 - At the end of a debugging session, offer to clean up temporary files
 - Permanent scripts in `src/scripts/` should have descriptive names without `temp_` prefix
+- **Only use JavaScript** — never create Python, Bash, or other language scripts in this project
+
+**Non-ASCII characters in JS source files (CRITICAL):**
+- **Never write emoji or non-ASCII characters (including Vietnamese) as literal characters** in `.js` source files
+- PowerShell terminal sessions silently corrupt multi-byte UTF-8 characters, producing broken sequences like `❁E` (corrupted `❌`), `✁E` (corrupted `✅`), `⚠️E️E` (corrupted `⚠️`), `⚔️E` (corrupted `⚔️`). The same applies to Vietnamese characters (e.g., `à`, `ể`, `ợ`, `ướ`) and any other multi-byte Unicode text
+- **Always use the `EMOJI` constants from `src/enums.js`**, which store emoji as Unicode escape sequences (e.g., `'\u274C'`) that are encoding-proof
+- For Vietnamese or other non-ASCII string content, use Unicode escape sequences (e.g., `'\u0041\u006E'`) or store them in a dedicated constants/locale file so they are never written directly via terminal
+- Import with: `const { EMOJI } = require('../enums');`
+- In template literals: `${EMOJI.WARNING}`, `${EMOJI.FAILURE}`, `${EMOJI.SUCCESS}`, etc.
+- When referencing standalone (not in a template): `EMOJI.SWORD`, `EMOJI.SKULL`, etc.
 
 ## Database Structure
 

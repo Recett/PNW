@@ -27,6 +27,7 @@ const {
 	SHOP_TYPE,
 	VARIABLE_SOURCE,
 } = require('../models/event/eventConstants');
+const { EMOJI } = require('../enums');
 
 /**
  * SIMPLIFIED EVENT SYSTEM
@@ -48,7 +49,7 @@ const {
  * An event can be CHECK or COMBAT, not both
  */
 
-const NUMBER_EMOJIS = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟'];
+const NUMBER_EMOJIS = EMOJI.NUMBERS;
 
 class EventProcessor {
 	constructor() {
@@ -765,7 +766,7 @@ class EventProcessor {
 			if (!interaction.replied && !interaction.deferred) {
 				try {
 					await interaction.reply({ 
-						content: `⚠�E�EInput timed out for ${variable_name}, using default: ${input_default}`,
+						content: `${EMOJI.WARNING} Input timed out for ${variable_name}, using default: ${input_default}`,
 						ephemeral: true 
 					});
 				} catch (e) {
@@ -965,7 +966,7 @@ class EventProcessor {
 				console.warn(`[handleFinishRegister] Scaled to F:${fortitude} J:${justice} P:${prudence} T:${temperance} (total: ${fortitude + justice + prudence + temperance})`);
 				session.messages.push({
 					type: 'warning',
-					text: `⚠�E�EVirtue values exceeded maximum (${jptfTotal}/24). Values have been normalized.`,
+					text: `${EMOJI.WARNING} Virtue values exceeded maximum (${jptfTotal}/24). Values have been normalized.`,
 				});
 			}
 			else if (jptfTotal < 24) {
@@ -1026,7 +1027,7 @@ class EventProcessor {
 			console.error('Error in handleFinishRegister:', error);
 			session.messages.push({
 				type: 'error',
-				text: '⚠�E�EThere was an issue completing your registration. Please contact an administrator.',
+				text: `${EMOJI.WARNING} There was an issue completing your registration. Please contact an administrator.`,
 			});
 		}
 	}
@@ -1078,7 +1079,7 @@ class EventProcessor {
 			console.error('Error in handleRedo:', error);
 			session.messages.push({
 				type: 'error',
-				text: '⚠�E�EThere was an issue resetting your character. Please contact an administrator.',
+				text: `${EMOJI.WARNING} There was an issue resetting your character. Please contact an administrator.`,
 			});
 		}
 	}
@@ -1119,7 +1120,7 @@ class EventProcessor {
 
 		// Log virtue flag changes to console
 		if (['Fortitude', 'Justice', 'Prudence', 'Temperance'].includes(flag_name)) {
-			console.log(`[FLAG] ${flag_name}: ${currentValue} ↁE${newValue} (${flag_operation} ${resolvedValue}, type: ${flag_type}, event: ${eventId})`);
+			console.log(`[FLAG] ${flag_name}: ${currentValue} -> ${newValue} (${flag_operation} ${resolvedValue}, type: ${flag_type}, event: ${eventId})`);
 		}
 
 		// Store result in output variable if specified
@@ -1625,7 +1626,7 @@ class EventProcessor {
 		let resultText = '';
 		if (session.messages && session.messages.length > 0) {
 			resultText = session.messages.map(m => {
-				const icons = { success: '✁E, failure: '❁E, info: 'ℹ�E�E };
+					const icons = { success: EMOJI.SUCCESS, failure: EMOJI.FAILURE, info: EMOJI.INFO };
 				const icon = icons[m.type] || '•';
 				return `${icon} ${m.text}`;
 			}).join('\n') + '\n\n';
@@ -1633,8 +1634,8 @@ class EventProcessor {
 
 		// Add combat result
 		if (session.combatResult) {
-			const icons = { victory: '⚔︁E, defeat: '💀', flee: '🏃', error: '⚠�E�E };
-			resultText += `${icons[session.combatResult.result] || '❁E} ${session.combatResult.message}\n\n`;
+			const icons = { victory: EMOJI.SWORD, defeat: EMOJI.SKULL, flee: EMOJI.RUN, error: EMOJI.WARNING };
+			resultText += `${icons[session.combatResult.result] || EMOJI.FAILURE} ${session.combatResult.message}\n\n`;
 		}
 
 		// Add event message content
@@ -1780,7 +1781,7 @@ class EventProcessor {
 	 */
 	async sendCombatLog(interaction, combatResult, ephemeral = true) {
 		const embed = new Discord.EmbedBuilder()
-			.setTitle('⚔︁ECombat Log')
+			.setTitle(`${EMOJI.SWORD} Combat Log`)
 			.setColor(combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00);
 
 		// Add battle report to description
@@ -2190,7 +2191,7 @@ class EventProcessor {
 									// Emergency acknowledgment
 									if (!componentInteraction.replied && !componentInteraction.deferred) {
 										await componentInteraction.reply({ 
-											content: '⚠�E�EInput failed, please try again.',
+											content: `${EMOJI.WARNING} Input failed, please try again.`,
 											ephemeral: true 
 										});
 									}
@@ -2339,7 +2340,7 @@ class EventProcessor {
 			const character = await CharacterBase.findByPk(session.characterId);
 			if (!character) {
 				await componentInteraction.reply({
-					content: '❁ECharacter not found.',
+					content: `${EMOJI.FAILURE} Character not found.`,
 					ephemeral: true,
 				});
 				return;
@@ -2352,7 +2353,7 @@ class EventProcessor {
 
 				if (!shopItem) {
 					await componentInteraction.reply({
-						content: '❁EItem not found in shop.',
+						content: `${EMOJI.FAILURE} Item not found in shop.`,
 						ephemeral: true,
 					});
 					return;
@@ -2361,7 +2362,7 @@ class EventProcessor {
 				// Check if player has enough gold
 				if (character.gold < shopItem.price) {
 					await componentInteraction.reply({
-						content: `❁ENot enough gold. You have ${character.gold} gold, but need ${shopItem.price}.`,
+						content: `${EMOJI.FAILURE} Not enough gold. You have ${character.gold} gold, but need ${shopItem.price}.`,
 						ephemeral: true,
 					});
 					return;
@@ -2370,7 +2371,7 @@ class EventProcessor {
 				// Check stock
 				if (shopItem.amount !== null && shopItem.amount <= 0) {
 					await componentInteraction.reply({
-						content: '❁EItem is out of stock.',
+						content: `${EMOJI.FAILURE} Item is out of stock.`,
 						ephemeral: true,
 					});
 					return;
@@ -2390,7 +2391,7 @@ class EventProcessor {
 				}
 
 				await componentInteraction.reply({
-					content: `✁EPurchased **${shopItem.name}** for ${shopItem.price} gold!`,
+					content: `${EMOJI.SUCCESS} Purchased **${shopItem.name}** for ${shopItem.price} gold!`,
 					ephemeral: true,
 				});
 			}
@@ -2401,7 +2402,7 @@ class EventProcessor {
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
-						content: '❁EPerk not found.',
+						content: `${EMOJI.FAILURE} Perk not found.`,
 						ephemeral: true,
 					});
 					return;
@@ -2415,7 +2416,7 @@ class EventProcessor {
 				if (charPerk) {
 					if (charPerk.status === 'equipped' || charPerk.status === 'available') {
 						await componentInteraction.reply({
-							content: `❁EYou have already learned **${shopPerk.name}**.`,
+							content: `${EMOJI.FAILURE} You have already learned **${shopPerk.name}**.`,
 							ephemeral: true,
 						});
 						return;
@@ -2436,7 +2437,7 @@ class EventProcessor {
 				const trainingCost = 1;
 				if (character.currentStamina < trainingCost) {
 					await componentInteraction.reply({
-						content: `❁ENot enough stamina. You have ${character.currentStamina} stamina.`,
+						content: `${EMOJI.FAILURE} Not enough stamina. You have ${character.currentStamina} stamina.`,
 						ephemeral: true,
 					});
 					return;
@@ -2470,7 +2471,7 @@ class EventProcessor {
 		catch (error) {
 			console.error('Shop interaction error:', error);
 			await componentInteraction.reply({
-				content: '❁EAn error occurred during the transaction.',
+				content: `${EMOJI.FAILURE} An error occurred during the transaction.`,
 				ephemeral: true,
 			});
 		}
@@ -2478,7 +2479,7 @@ class EventProcessor {
 
 	/**
 	 * Show modal for quantity input when purchasing/training
-	 */
+	 */	
 	async showShopQuantityModal(componentInteraction, session, selectedValue) {
 		const isItem = selectedValue.startsWith('shop_buy_');
 		const id = parseInt(selectedValue.replace(isItem ? 'shop_buy_' : 'shop_learn_', ''));
@@ -2527,7 +2528,7 @@ class EventProcessor {
 
 			if (isNaN(quantity) || quantity < 1) {
 				await componentInteraction.reply({
-					content: '❁EPlease enter a valid positive number.',
+					content: `${EMOJI.FAILURE} Please enter a valid positive number.`,
 					ephemeral: true,
 				});
 				return;
@@ -2536,7 +2537,7 @@ class EventProcessor {
 			const character = await CharacterBase.findByPk(session.characterId);
 			if (!character) {
 				await componentInteraction.reply({
-					content: '❁ECharacter not found.',
+					content: `${EMOJI.FAILURE} Character not found.`,
 					ephemeral: true,
 				});
 				return;
@@ -2549,7 +2550,7 @@ class EventProcessor {
 
 				if (!shopItem) {
 					await componentInteraction.reply({
-						content: '❁EItem not found in shop.',
+						content: `${EMOJI.FAILURE} Item not found in shop.`,
 						ephemeral: true,
 					});
 					return;
@@ -2561,7 +2562,7 @@ class EventProcessor {
 				if (character.gold < totalCost) {
 					const maxAffordable = Math.floor(character.gold / shopItem.price);
 					await componentInteraction.reply({
-						content: `❁ENot enough gold. You have ${character.gold} gold, but need ${totalCost} for ${quantity}x. You can afford ${maxAffordable}x.`,
+						content: `${EMOJI.FAILURE} Not enough gold. You have ${character.gold} gold, but need ${totalCost} for ${quantity}x. You can afford ${maxAffordable}x.`,
 						ephemeral: true,
 					});
 					return;
@@ -2570,7 +2571,7 @@ class EventProcessor {
 				// Check stock
 				if (shopItem.amount !== null && shopItem.amount < quantity) {
 					await componentInteraction.reply({
-						content: `❁ENot enough stock. Only ${shopItem.amount} available.`,
+						content: `${EMOJI.FAILURE} Not enough stock. Only ${shopItem.amount} available.`,
 						ephemeral: true,
 					});
 					return;
@@ -2590,7 +2591,7 @@ class EventProcessor {
 				}
 
 				await componentInteraction.reply({
-					content: `✁EPurchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold - totalCost})`,
+					content: `${EMOJI.SUCCESS} Purchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold - totalCost})`,	
 					ephemeral: true,
 				});
 			}
@@ -2601,7 +2602,7 @@ class EventProcessor {
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
-						content: '❁EPerk not found.',
+						content: `${EMOJI.FAILURE} Perk not found.`,
 						ephemeral: true,
 					});
 					return;
@@ -2614,7 +2615,7 @@ class EventProcessor {
 
 				if (charPerk && (charPerk.status === 'equipped' || charPerk.status === 'available')) {
 					await componentInteraction.reply({
-						content: `❁EYou have already learned **${shopPerk.name}**.`,
+						content: `${EMOJI.FAILURE} You have already learned **${shopPerk.name}**.`,
 						ephemeral: true,
 					});
 					return;
@@ -2636,13 +2637,13 @@ class EventProcessor {
 				if (actualStaminaToSpend <= 0) {
 					if (character.currentStamina <= 0) {
 						await componentInteraction.reply({
-							content: '❁EYou have no stamina left.',
+							content: `${EMOJI.FAILURE} You have no stamina left.`,
 							ephemeral: true,
 						});
 					}
 					else {
 						await componentInteraction.reply({
-							content: `❁ETraining already complete. No more stamina needed.`,
+							content: `${EMOJI.FAILURE} Training already complete. No more stamina needed.`,
 							ephemeral: true,
 						});
 					}
@@ -2676,7 +2677,7 @@ class EventProcessor {
 		catch (error) {
 			console.error('Shop modal submit error:', error);
 			await componentInteraction.reply({
-				content: '❁EAn error occurred during the transaction.',
+				content: `${EMOJI.FAILURE} An error occurred during the transaction.`,
 				ephemeral: true,
 			});
 		}
@@ -2697,7 +2698,7 @@ class EventProcessor {
 	 */
 	async handleError(interaction, error) {
 		const errorEmbed = new Discord.EmbedBuilder()
-			.setTitle('⚠�E�EEvent Error')
+			.setTitle(`${EMOJI.WARNING} Event Error`)
 			.setDescription(error.message || 'Something went wrong.')
 			.setColor(0xFF0000);
 

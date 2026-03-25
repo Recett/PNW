@@ -66,6 +66,49 @@ const EQUIPMENT_SLOT_CONFIG = [
 	{ key: ARMOR_SLOTS.LEG, label: 'Legging', icon: '👖' },
 ];
 
+// Emoji constants
+// IMPORTANT: Never use emoji literals directly in JS source. Terminal/editor encoding
+// can silently corrupt multi-byte emoji characters. Always reference from this object.
+const EMOJI = {
+	// Status indicators
+	SUCCESS: '\u2705',       // ✅
+	FAILURE: '\u274C',       // ❌
+	WARNING: '\u26A0\uFE0F', // ⚠️
+	INFO: '\u2139\uFE0F',    // ℹ️
+
+	// Combat
+	SWORD: '\u2694\uFE0F',   // ⚔️
+	SKULL: '\uD83D\uDC80',   // 💀
+	RUN: '\uD83C\uDFC3',     // 🏃
+
+	// Items / Economy
+	PACKAGE: '\uD83D\uDCE6', // 📦
+	GOLD: '\uD83D\uDCB0',    // 💰
+	SPARKLE: '\u2728',       // ✨
+	CHART: '\uD83D\uDCCA',   // 📊
+	WALK: '\uD83D\uDEB6',    // 🚶
+	PARTY: '\uD83C\uDF89',   // 🎉
+	WAVE: '\uD83D\uDC4B',    // 👋
+	SHOP: '\uD83D\uDED2',    // 🛒
+	BOOK: '\uD83D\uDCD6',    // 📖
+	DOOR: '\uD83D\uDEAA',    // 🚪
+	NOTE: '\uD83D\uDCDD',    // 📝
+
+	// Number emojis (1–10)
+	NUMBERS: [
+		'1\uFE0F\u20E3', // 1️⃣
+		'2\uFE0F\u20E3', // 2️⃣
+		'3\uFE0F\u20E3', // 3️⃣
+		'4\uFE0F\u20E3', // 4️⃣
+		'5\uFE0F\u20E3', // 5️⃣
+		'6\uFE0F\u20E3', // 6️⃣
+		'7\uFE0F\u20E3', // 7️⃣
+		'8\uFE0F\u20E3', // 8️⃣
+		'9\uFE0F\u20E3', // 9️⃣
+		'\uD83D\uDD1F',  // 🔟
+	],
+};
+
 module.exports = {
 	LOCATION_TYPES,
 	STATUS_TYPES,
@@ -76,4 +119,5 @@ module.exports = {
 	WEAPON_SLOTS,
 	ARMOR_SLOTS,
 	EQUIPMENT_SLOT_CONFIG,
+	EMOJI,
 };
