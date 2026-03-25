@@ -118,7 +118,6 @@ class EventProcessor {
 			npc: sessionData.npc || null, // NPC info for relational pronouns
 			logSessionId: sessionData.logSessionId || null, // Event logger session
 			eventDepth: sessionData.eventDepth || 0, // Track recursion depth
-			targetChannel: sessionData.targetChannel || null, // Force messages to a specific channel (e.g. interview thread)
 		};
 
 		try {
@@ -202,7 +201,6 @@ class EventProcessor {
 						combatLogSent: true, // Tell next event that combat log is already displayed
 						logSessionId: session.logSessionId,
 						eventDepth: session.eventDepth + 1,
-						targetChannel: session.targetChannel,
 					});
 				}
 			}
@@ -240,7 +238,6 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
-						targetChannel: session.targetChannel,
 					});
 				}
 				// No next event, end silently
@@ -1048,9 +1045,9 @@ class EventProcessor {
 
 			for (const charItem of allCharacterItems) {
 				const itemDef = allItems.find(i => String(i.id) === String(charItem.item_id));
-				if (itemDef?.tags && Array.isArray(itemDef.tags)) {
+				if (itemDef?.tag && Array.isArray(itemDef.tag)) {
 					// Check if item has starter_X tags (e.g., starter_sword, starter_bow) but NOT plain "starter"
-					const hasStarterWeaponTag = itemDef.tags.some(tag =>
+					const hasStarterWeaponTag = itemDef.tag.some(tag =>
 						tag.startsWith('starter_') && tag !== 'starter'
 					);
 					
@@ -1628,7 +1625,7 @@ class EventProcessor {
 		let resultText = '';
 		if (session.messages && session.messages.length > 0) {
 			resultText = session.messages.map(m => {
-				const icons = { success: '✅', failure: '❌', info: 'ℹ️' };
+				const icons = { success: '✁E, failure: '❁E, info: 'ℹ�E�E };
 				const icon = icons[m.type] || '•';
 				return `${icon} ${m.text}`;
 			}).join('\n') + '\n\n';
@@ -1636,8 +1633,8 @@ class EventProcessor {
 
 		// Add combat result
 		if (session.combatResult) {
-			const icons = { victory: '⚔️', defeat: '💀', flee: '🏃', error: '⚠️' };
-			resultText += `${icons[session.combatResult.result] || '❌'} ${session.combatResult.message}\n\n`;
+			const icons = { victory: '⚔︁E, defeat: '💀', flee: '🏃', error: '⚠�E�E };
+			resultText += `${icons[session.combatResult.result] || '❁E} ${session.combatResult.message}\n\n`;
 		}
 
 		// Add event message content
@@ -1898,37 +1895,25 @@ class EventProcessor {
 		// If no options and no next event (or blank), don't add components (event ends)
 
 		// Send or update message
+		if (!(interaction.replied || interaction.deferred)) {
+			await interaction.deferReply({ ephemeral: session.ephemeral });
+		}
+
+		// If combat log was sent, use followUp for dialog message; otherwise editReply
 		let dialogMessage;
-		if (session.targetChannel) {
-			// Force messages into a specific channel (e.g. private interview thread)
-			if (!(interaction.replied || interaction.deferred)) {
-				await interaction.deferUpdate();
-			}
-			dialogMessage = await session.targetChannel.send({
+		if (hasCombatLog) {
+			dialogMessage = await interaction.followUp({
 				...messageData,
 				components: components.length > 0 ? components : [],
+				ephemeral: session.ephemeral,
 			});
 		}
 		else {
-			if (!(interaction.replied || interaction.deferred)) {
-				await interaction.deferReply({ ephemeral: session.ephemeral });
-			}
-
-			// If combat log was sent, use followUp for dialog message; otherwise editReply
-			if (hasCombatLog) {
-				dialogMessage = await interaction.followUp({
-					...messageData,
-					components: components.length > 0 ? components : [],
-					ephemeral: session.ephemeral,
-				});
-			}
-			else {
-				await interaction.editReply({
-					...messageData,
-					components: components.length > 0 ? components : [],
-				});
-				dialogMessage = await interaction.fetchReply();
-			}
+			await interaction.editReply({
+				...messageData,
+				components: components.length > 0 ? components : [],
+			});
+			dialogMessage = await interaction.fetchReply();
 		}
 
 		// Set up collector if there are components or options
@@ -2020,7 +2005,6 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
-						targetChannel: session.targetChannel,
 					});
 				}
 				else {
@@ -2198,7 +2182,6 @@ class EventProcessor {
 										pendingCharacterFlags: session.pendingCharacterFlags,
 										pendingGlobalFlags: session.pendingGlobalFlags,
 										eventDepth: session.eventDepth + 1,
-										targetChannel: session.targetChannel,
 									});
 									return; // Event processing continues via processEvent
 								}
@@ -2305,7 +2288,6 @@ class EventProcessor {
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
-						targetChannel: session.targetChannel,
 					});
 				}
 				else {

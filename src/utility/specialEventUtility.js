@@ -92,13 +92,13 @@ const COOKING_ADDITIVES = {
  * @param {Object} options - Additional cooking options
  * @returns {Promise<Object>} Cooking result with updated traits and effects
  */
-async function applyCookingAdditive(characterId, additiveId, currentTraits = [], options = {}) {
+async function applyCookingSpice(characterId, spiceId, currentTraits = [], options = {}) {
 	try {
-		const spice = COOKING_ADDITIVES[additiveId.toLowerCase()];
+		const spice = COOKING_SPICES[spiceId.toLowerCase()];
 		if (!spice) {
 			return {
 				success: false,
-				message: `Unknown additive: ${additiveId}`,
+				message: `Unknown spice: ${spiceId}`,
 				traits: currentTraits
 			};
 		}
@@ -113,7 +113,7 @@ async function applyCookingAdditive(characterId, additiveId, currentTraits = [],
 			maxTraitsReached: currentTraits.length >= 6
 		};
 
-		// Add the primary trait from the additive (if not already present and under trait limit)
+		// Add the primary trait from the spice (if not already present and under trait limit)
 		if (!result.traits.includes(spice.primaryTrait) && result.traits.length < 6) {
 			result.traits.push(spice.primaryTrait);
 			result.newTraits.push(spice.primaryTrait);
@@ -137,12 +137,12 @@ async function applyCookingAdditive(characterId, additiveId, currentTraits = [],
 		result.message = `Added ${spice.name}. The dish is now: ${result.traits.map(t => `[${t}]`).join(' ')}`;
 
 		// Log the cooking action to character flags for tracking
-		await logCookingAction(characterId, additiveId, result);
+		await logCookingAction(characterId, spiceId, result);
 
 		return result;
 	}
 	catch (error) {
-		console.error(`Error applying cooking additive ${additiveId}:`, error);
+		console.error(`Error applying cooking spice ${spiceId}:`, error);
 		return {
 			success: false,
 			message: 'An error occurred while cooking.',
@@ -279,7 +279,6 @@ async function addAdditiveToSession(characterId, additiveId, options = {}) {
 		return {
 			success: false,
 			message: 'An error occurred while adding the additive.'
-		};
 	}
 }
 
@@ -515,8 +514,8 @@ async function getSpecialEvents(specialTags = ['special', 'unique', 'custom']) {
 
 		const specialEvents = allEvents.filter(event =>
 			event.is_active !== false &&
-			event.tags && Array.isArray(event.tags) &&
-			specialTags.some(tag => event.tags.includes(tag))
+			event.tag && Array.isArray(event.tag) &&
+			specialTags.some(tag => event.tag.includes(tag))
 		);
 		
 		return specialEvents;
@@ -536,12 +535,12 @@ async function getSpecialEventById(eventId) {
 	try {
 		const event = contentStore.events.findByPk(String(eventId));
 
-		if (!event || event.is_active === false || !event.tags || !Array.isArray(event.tags)) {
+		if (!event || event.is_active === false || !event.tag || !Array.isArray(event.tag)) {
 			return null;
 		}
 		
 		// Check if it's tagged as special
-		const isSpecial = ['special', 'unique', 'custom'].some(tag => event.tags.includes(tag));
+		const isSpecial = ['special', 'unique', 'custom'].some(tag => event.tag.includes(tag));
 		return isSpecial ? event : null;
 	}
 	catch (error) {
@@ -561,7 +560,7 @@ async function getSpecialEventsByTag(tag) {
 
 		const taggedEvents = allEvents.filter(event =>
 			event.is_active !== false &&
-			event.tags && Array.isArray(event.tags) && event.tags.includes(tag)
+			event.tag && Array.isArray(event.tag) && event.tag.includes(tag)
 		);
 		
 		return taggedEvents;
@@ -612,19 +611,19 @@ async function processSpecialEvent(characterId, eventId, sessionData = {}, optio
 		};
 
 		// Check for specific special event types by tag
-		if (event.tags.includes('ritual')) {
+		if (event.tag.includes('ritual')) {
 			await processRitualEvent(characterId, event, sessionData, results);
 		}
-		else if (event.tags.includes('puzzle')) {
+		else if (event.tag.includes('puzzle')) {
 			await processPuzzleEvent(characterId, event, sessionData, results);
 		}
-		else if (event.tags.includes('transformation')) {
+		else if (event.tag.includes('transformation')) {
 			await processTransformationEvent(characterId, event, sessionData, results);
 		}
-		else if (event.tags.includes('temporal')) {
+		else if (event.tag.includes('temporal')) {
 			await processTemporalEvent(characterId, event, sessionData, results);
 		}
-		else if (event.tags.includes('dimensional')) {
+		else if (event.tag.includes('dimensional')) {
 			await processDimensionalEvent(characterId, event, sessionData, results);
 		}
 		else {

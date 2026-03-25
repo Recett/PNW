@@ -317,7 +317,7 @@ module.exports = {
 									const allEvents = contentStore.events.findAll();
 									const interviewEvent = allEvents.find(evt =>
 										evt.is_active !== false &&
-										evt.tags && Array.isArray(evt.tags) && evt.tags.includes('begin_interview'),
+										evt.tag && Array.isArray(evt.tag) && evt.tag.includes('begin_interview'),
 									);
 
 									if (!interviewEvent) {
