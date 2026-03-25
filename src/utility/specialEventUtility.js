@@ -92,9 +92,9 @@ const COOKING_ADDITIVES = {
  * @param {Object} options - Additional cooking options
  * @returns {Promise<Object>} Cooking result with updated traits and effects
  */
-async function applyCookingSpice(characterId, spiceId, currentTraits = [], options = {}) {
+async function applyCookingAdditive(characterId, spiceId, currentTraits = [], options = {}) {
 	try {
-		const spice = COOKING_SPICES[spiceId.toLowerCase()];
+		const spice = COOKING_ADDITIVES[spiceId.toLowerCase()];
 		if (!spice) {
 			return {
 				success: false,
