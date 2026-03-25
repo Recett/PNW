@@ -278,7 +278,8 @@ async function addAdditiveToSession(characterId, additiveId, options = {}) {
 		console.error(`Error adding additive to cooking session:`, error);
 		return {
 			success: false,
-			message: 'An error occurred while adding the additive.'
+			message: 'An error occurred while adding the additive.',
+		};
 	}
 }
 
