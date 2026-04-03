@@ -26,7 +26,17 @@ const PLAYER_COMMANDS = [
 			'`/interact look` — Look around your current location',
 			'`/interact move` — Travel to another location',
 			'`/interact talk` — Talk with an NPC',
-			'`/interact explore` — Explore deeper into the area',
+			'`/interact examine` — Examine something in the area',
+		],
+	},
+	{
+		category: '⚔️ Activities',
+		commands: [
+			'`/fish` — Cast a line from the deck',
+			'`/hunt` — Hunt in the bilge for rats',
+			'`/raid status` — View the current raid status',
+			'`/raid queue` — View the monster queue',
+			'`/raid switch` — Switch the current monster with one from the queue',
 		],
 	},
 	{
@@ -49,16 +59,18 @@ const ADMIN_COMMANDS = [
 			'`/location` — Manage server locations',
 			'`/narrate` — Post a message as the bot',
 			'`/setting` — Configure server-wide settings',
-			'`/importsheet` — Import game data from Google Sheets',
 			'`/cronjob` — Manage scheduled tasks',
+			'`/task` — Manage scheduled tasks (list, info, run, validate)',
+			'`/monitor` — Monitor cron job health and logs',
+			'`/dbsync` — Sync database schema from model definitions',
 		],
 	},
 	{
 		category: '⚔️ Game Management',
 		commands: [
 			'`/raidmanage` — Manage active raids',
+			'`/playerlist` — List all registered players',
 			'`/history <user>` — View a character\'s registration history',
-			'`/location duplicate` — Duplicate a location with a different time of day',
 		],
 	},
 	{

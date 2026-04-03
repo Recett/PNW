@@ -2,6 +2,7 @@ const {
 	SlashCommandBuilder,
 	InteractionContextType,
 	MessageFlags,
+	PermissionFlagsBits,
 	EmbedBuilder,
 	StringSelectMenuBuilder,
 	ActionRowBuilder,
@@ -98,6 +99,14 @@ async function handleLook(interaction, userId) {
 	const currentLocation = await interaction.client.locationUtil.getLocationByChannel(channelId);
 	if (!currentLocation) {
 		return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
+	}
+
+	const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+	if (!isAdmin) {
+		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if (character && String(character.location_id) !== String(currentLocation.id)) {
+			return interaction.reply({ content: 'You are not at this location.', flags: MessageFlags.Ephemeral });
+		}
 	}
 
 	let description = `${currentLocation.description}`;
@@ -228,17 +237,24 @@ async function handleMove(interaction, userId) {
 
 // ─── Talk ─────────────────────────────────────────────────────────────────────
 async function handleTalk(interaction, userId) {
-	const character = await CharacterBase.findOne({ where: { id: userId } });
-	if (!character) return interaction.reply({ content: 'Character not found.', flags: MessageFlags.Ephemeral });
-
-	const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
-	if (unregistered === 1) return interaction.reply({ content: 'You must complete the registration process before using this command.', flags: MessageFlags.Ephemeral });
-
+	const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
 	const channel = interaction.channel;
 	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const locationUtil = interaction.client.locationUtil;
 	const currentLocation = await locationUtil.getLocationByChannel(channelId);
 	if (!currentLocation) return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
+
+	if (!isAdmin) {
+		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if (!character) return interaction.reply({ content: 'Character not found.', flags: MessageFlags.Ephemeral });
+
+		const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
+		if (unregistered === 1) return interaction.reply({ content: 'You must complete the registration process before using this command.', flags: MessageFlags.Ephemeral });
+
+		if (String(character.location_id) !== String(currentLocation.id)) {
+			return interaction.reply({ content: 'You are not at this location.', flags: MessageFlags.Ephemeral });
+		}
+	}
 
 	const { npcs: allNpcs } = await locationUtil.getLocationContents(currentLocation.id);
 	const npcs = (await Promise.all(allNpcs.map(async npc => (await isEntityVisible(npc, userId, interaction.client.eventUtil)) ? npc : null))).filter(Boolean);
@@ -323,6 +339,14 @@ async function handleExamine(interaction, userId) {
 	const locationUtil = interaction.client.locationUtil;
 	const currentLocation = await locationUtil.getLocationByChannel(channelId);
 	if (!currentLocation) return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
+
+	const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+	if (!isAdmin) {
+		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if (character && String(character.location_id) !== String(currentLocation.id)) {
+			return interaction.reply({ content: 'You are not at this location.', flags: MessageFlags.Ephemeral });
+		}
+	}
 
 	const { objects } = await locationUtil.getLocationContents(currentLocation.id);
 	const eventUtil = interaction.client.eventUtil;
