@@ -2990,6 +2990,9 @@ module.exports = {
 	handleEvent: (eventId, interaction, characterId, sessionData) =>
 		eventProcessor.processEvent(eventId, interaction, characterId, sessionData),
 
+	evaluateInlineCheck: (checkData, session) =>
+		eventProcessor.evaluateInlineCheck(checkData, session),
+
 	EventProcessor,
 	eventProcessor,
 };
