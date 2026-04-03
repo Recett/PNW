@@ -228,7 +228,7 @@ async function runInitTracker(actors, options = {}) {
 	return { combatLog, actors: actorMap };
 }
 
-async function mainCombat(playerId, enemyId) {
+async function mainCombat(playerId, enemyId, options = {}) {
 	if (!playerId) throw new Error('Player ID is required for combat');
 	if (!enemyId) throw new Error('Enemy ID is required for combat');
 
@@ -316,7 +316,7 @@ async function mainCombat(playerId, enemyId) {
 	const enemy = {
 		id: 'enemy',
 		name: enemyBase.name || enemyBase.fullname || 'Unknown Enemy',
-		hp: enemyBaseStat.health || 100,
+		hp: options.enemyStartHp != null ? options.enemyStartHp : (enemyBaseStat.health || 100),
 		defense: enemyBaseStat.defense || 0,
 		evade: enemyBaseStat.evade || 0,
 		critResistance: enemyBaseStat.crit_resistance || 0,
@@ -591,9 +591,9 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 	}
 	
 	for (const [, armorData] of Object.entries(armorTypeCount)) {
-		// Find skill by armor subtype name
+		// Find skill by armor subtype
 		const skill = contentStore.skills.findOne({
-			where: { name: armorData.skillName },
+			where: { subtype: armorData.skillName },
 		});
 		
 		if (!skill) continue;
@@ -655,9 +655,9 @@ async function applyWeaponSkillXp(playerId, weaponDamageMap) {
 			skillName = itemDetails.weapon.subtype;
 		}
 		
-		// Find skill by name (case-insensitive)
+		// Find skill by subtype
 		const skill = contentStore.skills.findOne({
-			where: { name: skillName },
+			where: { subtype: skillName },
 		});
 		
 		if (!skill) continue;
@@ -765,9 +765,13 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		lootResults.remainingXp = expResult.remainingXp;
 	}
 
-	// Handle item drops
-	if (reward.items && Array.isArray(reward.items)) {
-		for (const itemDrop of reward.items) {
+	// Handle item drops — support both reward.items and top-level drops field
+	const itemDropList = [
+		...(reward.items && Array.isArray(reward.items) ? reward.items : []),
+		...(enemyBase.drops && Array.isArray(enemyBase.drops) ? enemyBase.drops : []),
+	];
+	if (itemDropList.length > 0) {
+		for (const itemDrop of itemDropList) {
 			// Check drop chance (0-1 probability)
 			const dropChance = itemDrop.chance || 1;
 			const roll = Math.random();

@@ -321,6 +321,13 @@ async function finishCookingSession(characterId, options = {}) {
 			JSON.stringify(finishedDish)
 		);
 
+		// Store as latest cooked dish so the player can choose to eat it immediately
+		await characterUtil.updateCharacterFlag(
+			characterId,
+			'latest_cooked_dish',
+			JSON.stringify(finishedDish)
+		);
+
 		// Clear active cooking session
 		await CharacterFlag.destroy({
 			where: {
@@ -759,12 +766,12 @@ async function processTemporalEvent(characterId, event, sessionData, results) {
 	switch (timeEffect) {
 		case 'pause':
 			// Pause time-based mechanics
-			await characterUtil.updateCharacterFlag(characterId, 'time_paused', Date.now().toString());
+			await characterUtil.updateCharacterFlag(characterId, 'time_paused', Date.now());
 			results.message = 'Time has been paused around you...';
 			break;
 		case 'accelerate':
 			// Speed up regeneration, cooldowns, etc.
-			await characterUtil.updateCharacterFlag(characterId, 'time_accelerated', Date.now().toString());
+			await characterUtil.updateCharacterFlag(characterId, 'time_accelerated', Date.now());
 			results.message = 'Time flows faster around you...';
 			break;
 		case 'rewind':
@@ -894,7 +901,7 @@ async function validateSpecialEventRequirements(characterId, eventId) {
 			const flag = await CharacterFlag.findOne({
 				where: { character_id: characterId, flag_name: flagName }
 			});
-			if (!flag || flag.flag_value !== String(flagValue)) {
+			if (!flag || flag.flag_value !== flagValue) {
 				return { valid: false, reason: `Requires flag ${flagName}=${flagValue}` };
 			}
 		}

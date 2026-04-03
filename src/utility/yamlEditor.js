@@ -149,7 +149,7 @@ class YamlEditor {
 	 * Generate human-readable YAML with helpful comments and structure
 	 */
 	_generateFormattedYaml(data, contentType, options = {}) {
-		const { addComments = true, indent = 2, lineWidth = 120 } = options;
+		const { addComments = true, indent = 2, lineWidth = 120, enforceQuoting = true } = options;
 		
 		let output = '';
 		
@@ -157,6 +157,9 @@ class YamlEditor {
 		if (addComments) {
 			output += this._generateFileHeader(contentType);
 		}
+
+		// Pre-process data to apply quoting rules before YAML dump
+		const processedData = enforceQuoting ? this._applyQuotingRules(data) : data;
 
 		// Configure YAML dump options for readability
 		const dumpOptions = {
@@ -172,7 +175,7 @@ class YamlEditor {
 		};
 
 		// Generate formatted YAML
-		const yamlContent = yaml.dump(data, dumpOptions);
+		const yamlContent = yaml.dump(processedData, dumpOptions);
 		
 		// Post-process for better readability
 		const processedYaml = this._postProcessYaml(yamlContent, contentType, addComments);
@@ -183,10 +186,55 @@ class YamlEditor {
 	}
 
 	/**
-	 * Post-process YAML for enhanced readability
+	 * Apply custom quoting rules to data structure before YAML dump
+	 */
+	_applyQuotingRules(data) {
+		const applyToValue = (obj, path = []) => {
+			if (Array.isArray(obj)) {
+				return obj.map((item, index) => applyToValue(item, [...path, index]));
+			}
+			
+			if (obj !== null && typeof obj === 'object') {
+				const result = {};
+				for (const [key, value] of Object.entries(obj)) {
+					const newPath = [...path, key];
+					result[key] = applyToValue(value, newPath);
+				}
+				return result;
+			}
+			
+			// Apply quoting rules based on current path and value
+			const currentKey = path[path.length - 1];
+			
+			// Rule 1: Force quotes on numeric string IDs
+			if (currentKey === 'id' && typeof obj === 'string' && /^\d+$/.test(obj)) {
+				return obj; // Keep as string, yaml.dump will quote if needed
+			}
+			
+			// Rule 2: Force quotes on boolean-like flag values  
+			if (currentKey === 'flag_value' && /^(true|false)$/i.test(String(obj))) {
+				return String(obj); // Ensure string type
+			}
+			
+			// Rule 3: Force quotes on YAML reserved words when used as strings
+			if (typeof obj === 'string' && /^(true|false|null|yes|no|on|off)$/i.test(obj)) {
+				return obj; // Will be handled by post-processing
+			}
+			
+			return obj;
+		};
+		
+		return applyToValue(data);
+	}
+
+	/**
+	 * Post-process YAML for enhanced readability and enforce quoting conventions
 	 */
 	_postProcessYaml(yamlContent, contentType, addComments) {
 		let processed = yamlContent;
+
+		// Apply quoting conventions
+		processed = this._enforceQuotingConventions(processed);
 
 		// Add spacing between top-level entries
 		processed = processed.replace(/^  - id:/gm, '\n  - id:');
@@ -200,6 +248,40 @@ class YamlEditor {
 		processed = processed.replace(/^(    tag:)\s*\[([^\]]+)\]/gm, (match, prefix, items) => {
 			const tagItems = items.split(', ').map(item => item.trim().replace(/['"]/g, ''));
 			return prefix + '\n' + tagItems.map(tag => `      - ${tag}`).join('\n');
+		});
+
+		return processed;
+	}
+
+	/**
+	 * Enforce custom quoting conventions throughout the YAML
+	 */
+	_enforceQuotingConventions(yamlContent) {
+		let processed = yamlContent;
+		
+		// Rule 1: Force quotes on numeric string IDs
+		processed = processed.replace(/^(\s*id:\s*)(\d+)$/gm, '$1"$2"');
+		
+		// Rule 2: Force quotes on flag values that are boolean-like
+		processed = processed.replace(/^(\s*flag_value:\s*)(true|false)$/gm, '$1"$2"');
+		
+		// Rule 3: Force quotes on YAML reserved words when used as values
+		processed = processed.replace(/^(\s*\w+:\s*)(true|false|null|yes|no|on|off)$/gm, (match, prefix, value) => {
+			// Only quote if it's likely meant to be a string (not actual boolean/null)
+			const field = prefix.match(/(\w+):/)[1].toLowerCase();
+			if (['flag_value', 'name', 'text', 'description'].includes(field)) {
+				return `${prefix}"${value}"`;
+			}
+			return match;
+		});
+		
+		// Rule 4: Remove quotes from simple strings that don't need them
+		processed = processed.replace(/^(\s*(?:name|text|description):\s*)"([^"\\]*[^\\])"$/gm, (match, prefix, value) => {
+			// Only unquote if the string contains no special characters
+			if (!/[:\[\]{}|>]/.test(value) && !/^(true|false|null|yes|no|on|off)$/i.test(value)) {
+				return `${prefix}${value}`;
+			}
+			return match;
 		});
 
 		return processed;

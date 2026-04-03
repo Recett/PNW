@@ -78,11 +78,27 @@ let calculateCombatStat = async (characterId) => {
 		agi = Math.max(0, agi - penalty);
 	}
 
+	// Apply food buffs from CharacterStatus (source: 'food'), pruning expired rows lazily
+	const { CharacterStatus } = getDbModels();
+	const allFoodRows = await CharacterStatus.findAll({ where: { character_id: characterId, source: 'food' } });
+	const now = Date.now();
+	const expiredFoodIds = allFoodRows
+		.filter(b => b.expires_at != null && new Date(b.expires_at).getTime() < now)
+		.map(b => b.id);
+	if (expiredFoodIds.length > 0) {
+		await CharacterStatus.destroy({ where: { id: expiredFoodIds } });
+	}
+	const foodRows = allFoodRows.filter(b => !expiredFoodIds.includes(b.id));
+	const foodMap = {};
+	for (const b of foodRows) foodMap[b.stat_target] = (foodMap[b.stat_target] || 0) + b.potency;
+
 	await CharacterCombatStat.upsert({
 		character_id: characterId,
-		defense,
-		speed: agi,
-		evade: agi,
+		defense: defense + Math.floor((foodMap['defense'] || 0) / 5),
+		defense_percent: Math.floor((foodMap['defense_percent'] || 0) / 3),
+		crit_resistance: Math.floor((foodMap['crit_resistance'] || 0) * 2),
+		speed: agi + Math.floor((foodMap['speed'] || 0) / 3),
+		evade: agi + Math.floor((foodMap['evade'] || 0) / 3),
 		currentWeight,
 		maxWeight,
 	});
@@ -116,6 +132,24 @@ let calculateAttackStat = async (characterId) => {
 	await CharacterAttackStat.destroy({
 		where: { character_id: characterId },
 	});
+
+	// Read food buffs (source: 'food') and compute flat gains for attack stats, pruning expired rows lazily
+	const { CharacterStatus } = getDbModels();
+	const allFoodRowsAtk = await CharacterStatus.findAll({ where: { character_id: characterId, source: 'food' } });
+	const nowAtk = Date.now();
+	const expiredFoodIdsAtk = allFoodRowsAtk
+		.filter(b => b.expires_at != null && new Date(b.expires_at).getTime() < nowAtk)
+		.map(b => b.id);
+	if (expiredFoodIdsAtk.length > 0) {
+		await CharacterStatus.destroy({ where: { id: expiredFoodIdsAtk } });
+	}
+	const foodRows = allFoodRowsAtk.filter(b => !expiredFoodIdsAtk.includes(b.id));
+	const foodMap = {};
+	for (const b of foodRows) foodMap[b.stat_target] = (foodMap[b.stat_target] || 0) + b.potency;
+	const foodAttackGain = Math.floor((foodMap['attack'] || 0) / 3);
+	const foodAccuracyGain = Math.floor((foodMap['accuracy'] || 0) / 3);
+	const foodCritGain = Math.floor((foodMap['critical'] || 0) * 2);
+	const foodCritDmgGain = Math.floor((foodMap['critical_damage'] || 0) * 2);
 
 	// Get weapon details for all equipped weapons
 	const weaponDetails = [];
@@ -179,9 +213,10 @@ let calculateAttackStat = async (characterId) => {
 			await CharacterAttackStat.create({
 				character_id: characterId,
 				item_id: weaponDetail.charItem.item_id,
-				attack,
-				accuracy,
-				critical,
+				attack: attack + foodAttackGain,
+				accuracy: accuracy + foodAccuracyGain,
+				critical: critical + foodCritGain,
+				critical_damage: 150 + foodCritDmgGain,
 				cooldown,
 			});
 		}
@@ -198,12 +233,13 @@ let calculateAttackStat = async (characterId) => {
 		await CharacterAttackStat.create({
 			character_id: characterId,
 			item_id: null,
-			attack: str,
-			accuracy: 0,
-			critical,
+			attack: str + foodAttackGain,
+			accuracy: foodAccuracyGain,
+			critical: critical + foodCritGain,
+			critical_damage: 150 + foodCritDmgGain,
 			cooldown,
 		});
-		return str;
+		return str + foodAttackGain;
 	}
 
 	return 0;

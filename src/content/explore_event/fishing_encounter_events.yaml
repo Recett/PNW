@@ -1,0 +1,126 @@
+events:
+
+  # -----------------------------------------------
+  # FISHING ENCOUNTERS — HMS DIVINE PROLOGUE
+  # Triggered by /fish when the catch roll lands on
+  # giant_crab (9%) or shark (4%).
+  #
+  # Flow:
+  #   fish-encounter-crab  →  fight → fish-fight-crab
+  #                        →  release → fish-release-crab
+  #   fish-encounter-shark →  fight → fish-fight-shark
+  #                        →  cut line → fish-cut-shark
+  #   on_victory: fish-crab-victory / fish-shark-victory
+  #   on_defeat:  fish-defeat (shared)
+  # -----------------------------------------------
+
+  # ── GIANT CRAB ─────────────────────────────────
+
+  - id: fish-encounter-crab
+    name: "Giant Crab on the Hook"
+    event_type: encounter
+
+    message:
+      text: |
+        Something fights the line — hard. You haul up a giant crab, claws snapping furiously.
+        It is now very much on the deck with you.
+
+    options:
+      - id: fish-crab-fight
+        text: "Fight it"
+        next: fish-fight-crab
+        display_order: 0
+      - id: fish-crab-release
+        text: "Release it back"
+        next: fish-release-crab
+        display_order: 1
+
+  - id: fish-fight-crab
+    name: "Fight giant crab"
+    event_type: combat
+
+    combat:
+      enemy: giant_crab
+      on_victory: fish-crab-victory
+      on_defeat: fish-defeat
+
+  - id: fish-release-crab
+    name: "Release the crab"
+    event_type: encounter
+
+    message:
+      text: "You nudge the crab back over the rail. It disappears into the waves, still furious, taking your hook with it."
+
+  - id: fish-crab-victory
+    name: "Crab defeated"
+    event_type: encounter
+
+    message:
+      text: "You pin the crab and pry it free. Good eating. The cook will be pleased."
+
+    actions:
+      - type: item
+        item: crab_meat
+        quantity: "1"
+        operation: give
+        silent: false
+
+  # ── SHARK ──────────────────────────────────────
+
+  - id: fish-encounter-shark
+    name: "Shark on the Hook"
+    event_type: encounter
+
+    message:
+      text: |
+        The line goes taut so hard the rod nearly leaves your hands. Whatever is on the other end is enormous.
+        Then the shark breaks the surface.
+
+    options:
+      - id: fish-shark-fight
+        text: "Hold on and fight"
+        next: fish-fight-shark
+        display_order: 0
+      - id: fish-shark-cut
+        text: "Cut the line"
+        next: fish-cut-shark
+        display_order: 1
+
+  - id: fish-fight-shark
+    name: "Fight the shark"
+    event_type: combat
+
+    combat:
+      enemy: shark
+      on_victory: fish-shark-victory
+      on_defeat: fish-defeat
+
+  - id: fish-cut-shark
+    name: "Cut the line"
+    event_type: encounter
+
+    message:
+      text: "You draw your knife and sever the line. The shark takes your hook and twenty feet of rope with it. Probably the right call."
+
+  - id: fish-shark-victory
+    name: "Shark defeated"
+    event_type: encounter
+
+    message:
+      text: "It takes everything you have. The shark is still and heavy on the deck. The crew will be talking about this."
+
+    actions:
+      - type: item
+        item: shark_meat
+        quantity: "1"
+        operation: give
+        silent: false
+
+  # ── SHARED DEFEAT ──────────────────────────────
+
+  - id: fish-defeat
+    name: "Fishing defeat"
+    event_type: encounter
+
+    message:
+      text: "It was too much. You lose your grip and the creature goes over the side. You pull yourself up, bruised."

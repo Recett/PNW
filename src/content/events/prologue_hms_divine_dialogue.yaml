@@ -1,0 +1,1735 @@
+events:
+
+  # ============================================================
+  # YORK WAYLAN
+  # ============================================================
+
+  - id: york-approach
+    name: "York Waylan —Tiếp Cận"
+    event_type: dialogue
+    silent: true
+    next: york-first-meeting
+
+    checks:
+      - name: quartermaster-york_known
+        type: flag
+        flag_data:
+          flag_name: char.quartermaster-york_known
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: york-hub
+        execution_order: 0
+
+  - id: york-first-meeting
+    name: "York Waylan —Lần Đầu Gặp Mặt"
+    event_type: dialogue
+    next: york-hub
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: |
+        Người đàn ông sau chiếc bàn ngẩng đầu lên khỏi cuốn sổ cái trông như chứa nhiều mục hơn mức có thể Ông không có vẻ ngạc nhiên khi thấy ${2p}.
+
+        "${npc_1p} hy vọng ${2p} có chuyến đi thuận lợi? Từ sau xung đột với Arbrance, kiểm soát an ninh đã được thắt chặt hơn nhiều. Mời ${2p} ngồi đi."
+
+        Ông đặt cuốn sổ sang một bên với sự cẩn thận gọn gàng của người chưa bao giờ để thất lạc bất cứ thứ gì trong đời.
+
+        "${npc_1p} là York Waylan —cứ gọi ${npc_1p} là York thôi. ${npc_1p} quản lý mọi thứ trên tàu này ngoại trừ việc lái nó —và một phần không nhỏ của cả việc lái nữa. Nếu ${2p} cần gì, ${npc_1p} là người đúng để hỏi. Nếu ${npc_1p} không có, thứ đó không tồn tại."
+
+    actions:
+      - type: flag
+        flag_name: char.quartermaster-york_known
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: york-hub
+    name: "York Waylan —Hub"
+    event_type: dialogue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: "York đang ngồi sau bàn làm việc. Một cuốn sổ cái đang mở Hai cuốn khác đang chờ"
+
+    options:
+      - id: how-things
+        text: "Mọi thứ thế nào rồi, ${npc_2p}?"
+        next: york-how-things
+        display_order: 0
+
+      - id: work
+        text: "Công việc của ${npc_2p} cụ thể là gì?"
+        next: york-work
+        display_order: 1
+
+      - id: food
+        text: "Lương thực trên tàu còn đủ không?"
+        next: york-food
+        display_order: 2
+
+      - id: landing
+        text: "Chuyện gì xảy ra khi chúng ta cập bến?"
+        next: york-landing
+        display_order: 3
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu biến đâu rồi?"
+        next: york-bilge-key
+        display_order: 4
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: morale-update
+        text: "Về Trung úy Morale..."
+        next: york-morale-pregnant
+        display_order: 5
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: not_equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: global.cooking_unlocked
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.york_morale_pregnant_told
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: false
+
+      - id: shop
+        text: "${npc_2p} có trang bị nào dư không?"
+        next: york-shop
+        display_order: 6
+
+      - id: leave
+        text: "Để ${npc_2p} làm việc tiếp."
+        display_order: 7
+
+  - id: york-shop
+    name: "York Waylan —Cửa Hàng"
+    event_type: dialogue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một sềEquân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
+
+    actions:
+      - type: shop
+        npc: quartermaster-york
+        shop_type: item
+        trigger_condition: immediate
+
+  - id: york-continue
+    name: "York Waylan —Tiếp Tục"
+    event_type: dialogue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: "\"Còn việc gì không?\""
+
+    options:
+      - id: how-things
+        text: "Mọi thứ thế nào rồi, ${npc_2p}?"
+        next: york-how-things
+        display_order: 0
+
+      - id: work
+        text: "Công việc của ${npc_2p} cụ thểlà gì?"
+        next: york-work
+        display_order: 1
+
+      - id: food
+        text: "Lương thực trên tàu còn đủ không?"
+        next: york-food
+        display_order: 2
+
+      - id: landing
+        text: "Chuyện gì xảy ra khi chúng ta cập bến?"
+        next: york-landing
+        display_order: 3
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu biến đâu rồi?"
+        next: york-bilge-key
+        display_order: 4
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: morale-update
+        text: "VềTrung úy Morale..."
+        next: york-morale-pregnant
+        display_order: 5
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: not_equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: global.cooking_unlocked
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.york_morale_pregnant_told
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Không có gì. Cảm ơn."
+        display_order: 6
+
+  - id: york-how-things
+    name: "York —Mọi Thứ Thế Nào"
+    event_type: dialogue
+    next: york-continue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: |
+        "Tạm ổn. Đó là câu trả lời tốt nhất ${npc_1p} thường nói được, và thực lòng đó cũng là mức ${npc_1p} đang nhắm đến. Nếu ${2p} muốn câu trả lời thú vị hơn, hãy hỏi ${npc_1p} điều gì cụ thể"
+
+  - id: york-work
+    name: "York —Công Việc"
+    event_type: dialogue
+    next: york-continue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: |
+        "Tất cả những gì giữ cho con tàu vận hành mà không phải là việc lái nó. Lương thực, kiểm kê trang thiết bị, hồ sơ thủy thủ, xác minh hàng hóa, tiếp tế, giải quyết khiếu nại —Đô đốc lo việc biển. ${npc_1p} lo tất cả những gì biển không quan tâm nhưng người ta thì có."
+
+        "Danh sách rất dài."
+
+  - id: york-food
+    name: "York —Lương Thực"
+    event_type: dialogue
+    next: york-continue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: |
+        "Tạm đủ. May có cá vớt thêm —nhưng kho dự trữ vẫn đang cạn nhanh hơn ${npc_1p} muốn, chuyến vượt biển dài nào cũng vậy. Chuột là thứ ${npc_1p} không muốn tính đến. ${npc_1p} đã ghi lại số lượng hiện tại. ${npc_1p} thích con số đó nhiều hơn."
+
+        Ông liếc nhìn cuốn sổ như thể nó có thể đã tự cập nhật.
+
+        "Nếu ${2p} có thời gian rảnh, hầm tàu là nơi đáng để dành thời gian đó."
+
+    actions:
+      - type: flag
+        flag_name: char.york_mentioned_bilge
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: york-landing
+    name: "York —Khi Cập Bến"
+    event_type: dialogue
+    next: york-continue
+
+    message:
+      npc_speaker: york-waylan
+      message_type: dialogue
+      text: |
+        "Điều xảy ra là: chúng ta tự lập chỗ đứng. Đó là lệnh của Vương miện —cũng là định nghĩa của ${npc_1p} về thành công, nói thực tế mà. Mọi thứ sau đó là câu hỏi về những quyết định tập thể—định cư ở đâu, tổ chức ra sao, ưu tiên cái gì. Những quyết định đó sẽ có hậu quả mà ${npc_1p} có thể dự đoán nhưng không thể quyết định."
+
+        Ông nhìn ${2p} với sự chú ý bằng phẳng của người đã nghĩ vềđiều này nhiều hơn ${2p}.
+
+        "${npc_1p} sẽ là người tổ chức quá trình đó. ${npc_1p} khuyên ${2p} nên suy nghĩ về nó trước khi chúng ta đến nơi."
+
+
+  # ============================================================
+  # ALDRIC VORNE
+  # ============================================================
+
+  - id: vorne-approach
+    name: "Vorne —Tiếp Cận"
+    event_type: dialogue
+    silent: true
+    next: vorne-first-meeting
+
+    checks:
+      - name: captain-vorne_known
+        type: flag
+        flag_data:
+          flag_name: char.captain-vorne_known
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: vorne-hub
+        execution_order: 0
+
+  - id: vorne-first-meeting
+    name: "Vorne —Lần Đầu Gặp Mặt"
+    event_type: dialogue
+    next: vorne-hub
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: |
+        Thuyền trưởng không ngẩng đầu lên khỏi những tấm hải đồ cho đến khi ông sẵn sàng. Khi ngẩng lên, ông ghi nhận ${2p} nhanh, đủ, rồi xếp lại.
+
+        "Chào mừng ${2p} lên tàu."
+
+        Ông quay lại với tấm hải đồ, rồi dường như đổi ý, quay lại hẳn.
+
+        "${npc_1p} có ba quy tắc —không chạm vào bánh lái, không chạm vào hải đồ của ${npc_1p}, và đừng rơi xuống biển. Hai điều đầu ${npc_1p} sẽ thực thi. Điều thứ ba là lời khuyên cá nhân mạnh mẽ."
+
+        Ông không mỉm cười, nhưng có gì đó trong cách nói cho thấy ông đã dùng câu này nhiều lần và vẫn cho rằng nó đủ dùng.
+
+        "Aldric Vorne. ${npc_1p} chỉhuy con tàu này."
+
+    actions:
+      - type: flag
+        flag_name: char.captain-vorne_known
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: vorne-hub
+    name: "Vorne —Hub"
+    event_type: dialogue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: "Thuyền trưởng đứng ở bánh lái."
+
+    options:
+      - id: journey
+        text: "Còn bao lâu nữa thì đến nơi?"
+        next: vorne-journey-ahead
+        display_order: 0
+
+      - id: ship
+        text: "HMS Divine —${1p} chưa từng thấy con tàu nào như vậy."
+        next: vorne-ship
+        display_order: 1
+
+      - id: how-long
+        text: "${npc_2p} đã chỉ huy con tàu này bao lâu rồi?"
+        next: vorne-how-long
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
+        next: vorne-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Để${npc_2p} làm việc."
+        display_order: 4
+
+  - id: vorne-continue
+    name: "Vorne —Tiếp Tục"
+    event_type: dialogue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: "\"Gì nữa?\""
+
+    options:
+      - id: journey
+        text: "Còn bao lâu nữa thì đến nơi?"
+        next: vorne-journey-ahead
+        display_order: 0
+
+      - id: ship
+        text: "HMS Divine —${1p} chưa từng thấy con tàu nào như vậy."
+        next: vorne-ship
+        display_order: 1
+
+      - id: how-long
+        text: "${npc_2p} đã chỉhuy con tàu này bao lâu rồi?"
+        next: vorne-how-long
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
+        next: vorne-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Không có gì."
+        display_order: 4
+
+  - id: vorne-ship
+    name: "Vorne —Con Tàu"
+    event_type: dialogue
+    next: vorne-continue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: |
+        "HMS Divine là một con tàu tốt. Đủ già để đã chứng minh bản thân, chưa đủ già để trở thành rủi ro. ${npc_1p} đã chỉ huy tàu tệ hơn trong hoàn cảnh tốt hơn, và tàu tốt hơn trong hoàn cảnh tệ hơn. Con tàu này sẽ đưa chúng ta đến nơi."
+
+  - id: vorne-journey-ahead
+    name: "Vorne —Chuyến Đi Phía Trước"
+    event_type: dialogue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: |
+        "Nửa đầu không có gì đáng ngại. Biển Antica —tên cũ của vùng này —vềcơ bản là biển bình thường. Gió đoán được, dòng chảy ổn định."
+
+        Ông nhìn ra chân trời.
+
+        "Đến khoảng giữa đường, ${2p} sẽ thấy mây sẫm lại ở phía xa. Dòng chảy bắt đầu thất thường. Gió đổi chiều không theo quy luật. Đó là ranh giới."
+
+        "Từ đó trở đi là Biển Hỗn Loạn."
+
+    options:
+      - id: chaotic-sea
+        text: "Biển Hỗn Loạn trông như thế nào?"
+        next: vorne-chaotic-sea
+        display_order: 0
+
+      - id: nod
+        text: "Gật đầu."
+        next: vorne-continue
+        display_order: 1
+
+  - id: vorne-chaotic-sea
+    name: "Vorne —Biển Hỗn Loạn"
+    event_type: dialogue
+    next: vorne-continue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: |
+        "Bên trong đó, dòng chảy và gió trở nên vô lý. La bàn thông thường chết hoàn toàn. Giữ một hướng thẳng cũng không được —dòng nước và gió sẽ buộc tàu xoay theo những góc không thể đoán trước."
+
+        "Chỉ có La Bàn Konrad hoạt động được ềEđó. Nó không chỉ đường như la bàn thông thường —nó chỉ cho ${2p} biết khi nào cần rẽ, và rẽ thế nào, để tàu đi đúng hướng giữa dòng chảy điên loạn. Không có nó, ${2p} không biết mình đang ở đâu, không kiểm soát được tàu, và đôi khi có kiểm soát được cũng không biết phải đi về phía nào."
+
+        "Đó là lý do tàu thường không trở về từ đó."
+
+        "Biển Hỗn Loạn thực ra có hai phần. Phần đầu là Biển Hiểm —dòng chảy và gió loạn như ${npc_1p} vừa mô tả. Vượt qua đó là Biển Sương —dòng chảy ổn định hơn, nhưng sương mù dày đặc, mặt trời không xuyên qua được. ${2p} hầu như không thấy gì phía trước. Đôi khi thấy —nhưng không phải lúc nào cũng là thật."
+
+        "Có lẽ đã có những con tàu vượt qua cả hai phần đó trong quá khứ. Nhưng họ không thể quay về để kể lại."
+
+  - id: vorne-how-long
+    name: "Vorne —Bao Lâu Rồi"
+    event_type: dialogue
+    next: vorne-continue
+
+    message:
+      npc_speaker: aldric-vorne
+      message_type: dialogue
+      text: |
+        "Bảy năm. Đủ lâu để thủy thủ đoàn biết ${npc_1p} trông đợi gì và ${npc_1p} biết họ có khả năng làm gì. Đó là tất cả những gì của việc chỉ huy, nếu rút gọn đến cùng —biết điều gì có thể yêu cầu, và của ai."
+
+
+  # ============================================================
+  # IAN McBETHA
+  # ============================================================
+
+  - id: mcbetha-approach
+    name: "McBetha —Tiếp Cận"
+    event_type: dialogue
+    silent: true
+    next: mcbetha-first-meeting
+
+    checks:
+      - name: ian-mcbetha_known
+        type: flag
+        flag_data:
+          flag_name: char.ian-mcbetha_known
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: mcbetha-hub
+        execution_order: 0
+
+  - id: mcbetha-first-meeting
+    name: "Cha McBetha —Lần Đầu Gặp Mặt"
+    event_type: dialogue
+    next: mcbetha-hub
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: |
+        Bộ áo lễ của ông mỏng và sờn cũ theo kiểu của người đi đường dài. Ông đang đọc sách —hoặc có vẻ vậy; ông khép sách lại khi ${2p} đến và dành cho ${2p} sự chú ý đầy đủ.
+
+        "À. Một gương mặt mới. Chào mừng. ${npc_1p} là Linh mục Ian McBetha —${npc_1p} phục vụ với tư cách mục vụ, nghĩa là ${npc_1p} ở đây để hữu ích cho mọi người theo cách không cần đến đại bác."
+
+        Một nụ cười rất nhẹ.
+
+        "${npc_1p} thấy biển tốt cho việc suy ngẫm. Biển không cãi lại. Cô Vane thì tiếc là có. ${2p} có hay cãi không?"
+
+    actions:
+      - type: flag
+        flag_name: char.ian-mcbetha_known
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: mcbetha-hub
+    name: "McBetha —Hub"
+    event_type: dialogue
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: "${npc_name} đang ở boong mũi với một cuốn sách. Ông khép nó lại khi nhận ra ${2p}."
+
+    options:
+      - id: worry
+        text: "${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?"
+        next: mcbetha-worry
+        display_order: 0
+
+      - id: pastoral
+        text: "Công việc mục vụ trên tàu trông như thế nào?"
+        next: mcbetha-pastoral
+        display_order: 1
+
+      - id: book
+        text: "${npc_2p} đang đọc gì vậy?"
+        next: mcbetha-book
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có hay biết không?"
+        next: mcbetha-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Để ${npc_2p} tiếp tục đọc sách."
+        display_order: 4
+
+  - id: mcbetha-continue
+    name: "McBetha —Tiếp Tục"
+    event_type: dialogue
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: "\"Còn điều gì muốn hỏi không?\""
+
+    options:
+      - id: worry
+        text: "${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?"
+        next: mcbetha-worry
+        display_order: 0
+
+      - id: pastoral
+        text: "Công việc mục vụ trên tàu trông như thế nào?"
+        next: mcbetha-pastoral
+        display_order: 1
+
+      - id: book
+        text: "${npc_2p} đang đọc gì vậy?"
+        next: mcbetha-book
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có hay biết không?"
+        next: mcbetha-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Không có gì. Cảm ơn ${npc_2p}."
+        display_order: 4
+
+  - id: mcbetha-worry
+    name: "McBetha — Về Lo Lắng"
+    event_type: dialogue
+    next: mcbetha-continue
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: |
+        "${npc_1p} lo lắng về cách chúng ta sẽ hành xử khi tìm thấy. Việc tìm ra thì dễ. Còn làm gì sau đó —liệu chúng ta có xứng với cuộc gặp gỡ đó không —đó mới là điều khiến ${npc_1p} trăn trở. Lục địa kia không cần ${npc_1p} lo lắng. Những người trên con tàu này thì có thể cần."
+
+  - id: mcbetha-pastoral
+    name: "McBetha —Công Việc Mục Vụ"
+    event_type: dialogue
+    next: mcbetha-continue
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: |
+        "Chủ yếu là lắng nghe. Người ta ở trên biển lâu thường nghĩ về những điều họ bình thường không nghĩ đến —cái chết, mục đích, nơi họ đang đi đến và lý do. ${npc_1p} ở đây để những suy nghĩ đó có chỗ đến —mà không phải là đáy cốc."
+
+        Ông dừng lại.
+
+        "Chiếc cốc đôi khi cũng cần thiết. ${npc_1p} không phán xét."
+
+  - id: mcbetha-book
+    name: "McBetha —Cuốn Sách"
+    event_type: dialogue
+    next: mcbetha-continue
+
+    message:
+      npc_speaker: ian-mcbetha
+      message_type: dialogue
+      text: |
+        "Một khảo sát về hồ sơ thực vật học ven biển từ các chuyến thám hiểm phía nam. Đọc khô khan với hầu hết mọi người. ${npc_1p} thấy hữu ích khi biết những gì đã được ghi chép trước —giúp nhận ra những gì chưa được ghi."
+
+        Ông lật một trang.
+
+        "Cô Vane và ${npc_1p} có một thỏa thuận. Cô ấy cho ${npc_1p} biết những gì cô ấy thấy. ${npc_1p} cho cô ấy biết điều đó có nghĩa gì. Cả hai đều giả vờ người kia sai đủ lâu để học được điều gì đó."
+
+
+  # ============================================================
+  # LAWRENCE HENSBANE
+  # ============================================================
+
+  - id: hensbane-approach
+    name: "Hensbane —Tiếp Cận"
+    event_type: dialogue
+    silent: true
+    next: hensbane-first-meeting
+
+    checks:
+      - name: law-hensbane_known
+        type: flag
+        flag_data:
+          flag_name: char.law-hensbane_known
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-hub
+        execution_order: 0
+
+  - id: hensbane-first-meeting
+    name: "Hensbane —Lần Đầu Gặp Mặt"
+    event_type: dialogue
+    next: hensbane-hub
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        Người đàn ông đứng gần mạn tàu, quan sát thủy thủ làm việc trên boong.
+
+        "Người mới à? Trông ${2p} chưa quen đứng trên tàu, nhưng như thế cũng bình thường. Phần lớn người lần đầu ra biển đều cần vài ngày để quen với nhịp sóng và tiếng ồn liên tục."
+
+        "${npc_1p} là Lawrence Hensbane, đội trưởng Claw Company. Đơn vị của ${npc_1p} được thuê đi theo chuyến này để đảm bảo an ninh và huấn luyện chiến đấu cho những người cần. Nếu ${2p} muốn học cách tự bảo vệ mình trước khi chúng ta cập bến, ${npc_1p} là người ${2p} nên tìm."
+
+        "${npc_1p} không biến người ta thành lính chuyên nghiệp trong vài tuần, nhưng ${npc_1p} có thểgiúp họ đủ bình tĩnh để không hoảng loạn khi gặp rắc rối. Như vậy thường đã đủ rồi."
+
+    actions:
+      - type: flag
+        flag_name: char.law-hensbane_known
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: hensbane-hub
+    name: "Hensbane —Hub"
+    event_type: dialogue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: "Hensbane quay sang khi ${2p} đến gần."
+
+    options:
+      - id: available
+        text: "${npc_2p} có rảnh không?"
+        next: hensbane-available
+        display_order: 0
+
+      - id: about
+        text: "Kể về bản thân đi."
+        next: hensbane-about
+        display_order: 1
+
+      - id: claw-company
+        text: "Claw Company là gì?"
+        next: hensbane-claw-company
+        display_order: 2
+
+      - id: why-joined
+        text: "Tại sao ${npc_2p} tham gia chuyến đi này?"
+        next: hensbane-why-joined
+        display_order: 3
+
+      - id: combat-thoughts
+        text: "${npc_2p} nghĩ gì về việc chiến đấu?"
+        next: hensbane-combat-thoughts
+        display_order: 4
+
+      - id: training
+        text: "${1p} muốn luyện tập."
+        next: hensbane-training
+        display_order: 5
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
+        next: hensbane-bilge-key
+        display_order: 6
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Để ${npc_2p} yên."
+        display_order: 7
+
+  - id: hensbane-continue
+    name: "Hensbane —Tiếp Tục"
+    event_type: dialogue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: "\"Còn muốn hỏi gì nữa không?\""
+
+    options:
+      - id: available
+        text: "${npc_2p} có rảnh không?"
+        next: hensbane-available
+        display_order: 0
+
+      - id: about
+        text: "Kể về bản thân đi."
+        next: hensbane-about
+        display_order: 1
+
+      - id: claw-company
+        text: "Claw Company là gì?"
+        next: hensbane-claw-company
+        display_order: 2
+
+      - id: why-joined
+        text: "Tại sao ${npc_2p} tham gia chuyến đi này?"
+        next: hensbane-why-joined
+        display_order: 3
+
+      - id: combat-thoughts
+        text: "${npc_2p} nghĩ gì về việc chiến đấu?"
+        next: hensbane-combat-thoughts
+        display_order: 4
+
+      - id: training
+        text: "${1p} muốn luyện tập."
+        next: hensbane-training
+        display_order: 5
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: char.hensbane_rank
+              flag_value: 5
+              flag_comparison: greater_equal
+              is_global_flag: false
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
+        next: hensbane-bilge-key
+        display_order: 6
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Thôi."
+        display_order: 7
+
+  - id: hensbane-available
+    name: "Hensbane —Có Rảnh Không"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Nếu ${2p} cần hỏi chuyện hoặc luyện tập thì ${npc_1p} luôn có thời gian. Công việc của ${npc_1p} trên tàu này chủ yếu là giữ cho mọi người sẵn sàng khi có chuyện xảy ra, nên nói chuyện với những người muốn học cũng nằm trong phần việc đó."
+
+  - id: hensbane-about
+    name: "Hensbane — Về Bản Thân"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Lawrence Hensbane, đội trưởng Claw Company. ${npc_1p} làm lính đánh thuê gần như cả đời trưởng thành của mình, bắt đầu từ những hợp đồng hộ tống nhỏ ở tuyến thương mại phía bắc rồi dần chuyển sang những nhiệm vụ lớn hơn. Sau vài năm, ${npc_1p} được giao quyền chỉ huy đơn vị và từ đó đến giờ vẫn giữ vị trí này."
+
+        "${npc_1p} không có câu chuyện gì đặc biệt để kể. Làm đủ lâu trong nghề này thì mọi thứ trở nên khá giống nhau: nhận hợp đồng, hoàn thành công việc, giữ người của mình sống sót, rồi chuyển sang nhiệm vụ tiếp theo. Điều duy nhất thay đổi thường là địa điểm và mức độ rắc rối."
+
+  - id: hensbane-claw-company
+    name: "Hensbane —Claw Company"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Claw Company là một đơn vị lính đánh thuê quy mô nhỏ hoạt động chủ yếu ở những khu vực mà quân đội chính quy không muốn triển khai lực lượng lâu dài. Chúng tôi nhận các hợp đồng bảo vệ đoàn hàng, hộ tống thương nhân, giữ an ninh cho đoàn thám hiểm hoặc xử lý những mối đe dọa nhỏ trước khi chúng trở thành vấn đề lớn."
+
+        "Đơn vị được thành lập khoảng mười hai năm trước bởi một cựu sĩ quan biên phòng. Sau khi ông ta chết trong một hợp đồng, quyền chỉ huy được chuyển qua vài người rồi đến ${npc_1p}. Từ đó đến giờ cách hoạt động vẫn giữ nguyên: hợp đồng rõ ràng, nhiệm vụ rõ ràng, trả công đúng hạn, và không dính vào những chuyện vượt quá phạm vi công việc."
+
+        "Chúng tôi không phải quân đội và cũng không giả vờ là quân đội. Chúng tôi chỉ là những người được thuê để làm việc khó, và làm cho xong."
+
+  - id: hensbane-why-joined
+    name: "Hensbane —Tham Gia Chuyến Đi"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Chuyến đi này là một hợp đồng lớn và ổn định, đó là lý do chính. Một đoàn thám hiểm quy mô như vậy cần lực lượng an ninh riêng, và phía tổ chức muốn có người huấn luyện chiến đấu cho những người không quen với nguy hiểm. Claw Company phù hợp với yêu cầu đó, nên chúng tôi nhận việc."
+
+        "Những chuyến đi dài thường phát sinh vấn đề mà không ai dự đoán trước được: tranh chấp, hoảng loạn, tai nạn, hoặc đơn giản là con người hành động sai trong thời điểm tồi tệ. Có một đơn vị quen xử lý rủi ro đi cùng sẽ giúp mọi thứ ổn định hơn, và đó là vai trò của chúng tôi."
+
+        "Với ${npc_1p}, đây chỉ là một công việc khác, nhưng là công việc đáng nhận vì quy mô và điều kiện khá rõ ràng."
+
+  - id: hensbane-combat-thoughts
+    name: "Hensbane — Về Chiến Đấu"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Chiến đấu thực ra không phức tạp như nhiều người nghĩ. Phần lớn vấn đề không nằm ở kỹ thuật mà nằm ở cách người ta phản ứng khi đối mặt nguy hiểm. Người giữ được bình tĩnh thường sống lâu hơn người chỉ biết đánh mạnh."
+
+        "Trong thực tế, chiến đấu là kỹ năng để kiểm soát tình huống, không phải để chứng minh điều gì. Nếu tránh được thì tránh, nếu buộc phải làm thì làm nhanh và gọn, và quan trọng nhất là hiểu khi nào nên dừng. Những người không hiểu điểm đó thường không trụ được lâu trong nghề này."
+
+        "Nếu ${2p} muốn học, ${npc_1p} sẽ dạy theo cách thực tế nhất có thể không có động tác thừa và không có lý thuyết không cần thiết."
+
+  - id: hensbane-training
+    name: "Hensbane —Luyện Tập"
+    event_type: dialogue
+    next: hensbane-training-dispatch
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Được, chúng ta có thể bắt đầu ngay. ${npc_1p} sẽ kiểm tra phản xạ và cách ${2p} giữ thăng bằng trước, sau đó mới đến kỹ thuật cơ bản. Buổi đầu chỉ để xem ${2p} đang ở mức nào, nên không cần lo lắng về kết quả."
+
+        "Chỉ cần giữ bình tĩnh và làm theo hướng dẫn. Mục tiêu của buổi tập là hiểu cách cơ thể phản ứng khi bị ép, không phải thắng thua."
+
+        "Chuẩn bị xong thì bắt đầu."
+
+  - id: hensbane-training-dispatch
+    name: "Hensbane —Training Dispatch"
+    description: "Selects sparring rank based on cleared rank flags. Checks from highest to lowest; first match wins."
+    event_type: dialogue
+    silent: true
+    next: hensbane-combat-r1
+
+    checks:
+      - name: rank_4
+        type: flag
+        flag_data:
+          flag_name: char.hensbane_rank
+          flag_value: 4
+          flag_comparison: equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-combat-r5
+        execution_order: 0
+
+      - name: rank_3
+        type: flag
+        flag_data:
+          flag_name: char.hensbane_rank
+          flag_value: 3
+          flag_comparison: equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-combat-r4
+        execution_order: 1
+
+      - name: rank_2
+        type: flag
+        flag_data:
+          flag_name: char.hensbane_rank
+          flag_value: 2
+          flag_comparison: equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-combat-r3
+        execution_order: 2
+
+      - name: rank_1
+        type: flag
+        flag_data:
+          flag_name: char.hensbane_rank
+          flag_value: 1
+          flag_comparison: equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-combat-r2
+        execution_order: 3
+
+  - id: hensbane-combat-r1
+    name: "Hensbane —Sparring Rank 1"
+    event_type: combat
+    silent: true
+
+    combat:
+      combat_type: "sparring"
+      enemy: "lawrence_hensbane_1"
+      on_victory: hensbane-win-r1
+      on_defeat: hensbane-sparring-loss
+
+  - id: hensbane-combat-r2
+    name: "Hensbane —Sparring Rank 2"
+    event_type: combat
+    silent: true
+
+    combat:
+      combat_type: "sparring"
+      enemy: "lawrence_hensbane_2"
+      on_victory: hensbane-win-r2
+      on_defeat: hensbane-sparring-loss
+
+  - id: hensbane-combat-r3
+    name: "Hensbane —Sparring Rank 3"
+    event_type: combat
+    silent: true
+
+    combat:
+      combat_type: "sparring"
+      enemy: "lawrence_hensbane_3"
+      on_victory: hensbane-win-r3
+      on_defeat: hensbane-sparring-loss
+
+  - id: hensbane-combat-r4
+    name: "Hensbane —Sparring Rank 4"
+    event_type: combat
+    silent: true
+
+    combat:
+      combat_type: "sparring"
+      enemy: "lawrence_hensbane_4"
+      on_victory: hensbane-win-r4
+      on_defeat: hensbane-sparring-loss
+
+  - id: hensbane-combat-r5
+    name: "Hensbane —Sparring Rank 5"
+    event_type: combat
+    silent: true
+
+    combat:
+      combat_type: "sparring"
+      enemy: "lawrence_hensbane_5"
+      on_victory: hensbane-win-r5
+      on_defeat: hensbane-sparring-loss
+
+  - id: hensbane-win-r1
+    name: "Hensbane —Win Rank 1"
+    event_type: dialogue
+    silent: true
+    next: hensbane-sparring-win
+
+    actions:
+      - type: flag
+        flag_name: char.hensbane_rank
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  - id: hensbane-win-r2
+    name: "Hensbane —Win Rank 2"
+    event_type: dialogue
+    silent: true
+    next: hensbane-sparring-win
+
+    actions:
+      - type: flag
+        flag_name: char.hensbane_rank
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  - id: hensbane-win-r3
+    name: "Hensbane —Win Rank 3"
+    event_type: dialogue
+    silent: true
+    next: hensbane-sparring-win
+
+    actions:
+      - type: flag
+        flag_name: char.hensbane_rank
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  - id: hensbane-win-r4
+    name: "Hensbane —Win Rank 4"
+    event_type: dialogue
+    silent: true
+    next: hensbane-sparring-win
+
+    actions:
+      - type: flag
+        flag_name: char.hensbane_rank
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  - id: hensbane-win-r5
+    name: "Hensbane —Win Rank 5"
+    event_type: dialogue
+    silent: true
+    next: hensbane-sparring-win
+
+    actions:
+      - type: flag
+        flag_name: char.hensbane_rank
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  - id: hensbane-sparring-win
+    name: "Hensbane —Sparring Thắng"
+    event_type: dialogue
+    next: hensbane-end
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Kết quả như vậy là tốt. ${2p} giữ được nhịp di chuyển và không hoảng khi bị ép, điều đó cho thấy phản xạ cơ bản đã ổn. Với nền tảng này, nếu luyện thêm vài buổi thì ${2p} có thể xử lý những tình huống đơn giản mà không gặp quá nhiều khó khăn."
+
+        "Vẫn còn điểm cần chỉnh, đặc biệt là lực đánh và cách giữ khoảng cách, nhưng đó là chuyện bình thường với người mới. Không ai làm đúng hết ngay từ đầu."
+
+        "Nếu có thời gian, quay lại luyện thêm. Kỹ năng này chỉ tiến bộ khi được lặp lại đủ nhiều."
+
+  - id: hensbane-sparring-loss
+    name: "Hensbane —Sparring Thua"
+    event_type: dialogue
+    next: hensbane-end
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Không vấn đề gì. Phản xạ ban đầu của ${2p} còn chậm và cách giữ trọng tâm chưa ổn, nên khi bị ép thì rất khó lấy lại thế chủ động. Đây là lỗi phổ biến với người chưa quen luyện tập, và hoàn toàn có thể sửa được."
+
+        "Quan trọng là ${2p} đã hiểu cảm giác khi bịáp lực trực tiếp, và đó là bước đầu cần thiết. Sau vài buổi luyện, cơ thể sẽ tự điều chỉnh nhanh hơn."
+
+        "Muốn thử lại thì cứ quay lại vào lúc khác, ${npc_1p} sẽ tiếp tục hướng dẫn."
+
+  - id: hensbane-end
+    name: "Hensbane —Kết Thúc Buổi Tập"
+    event_type: dialogue
+
+    message:
+      npc_speaker: lawrence-hensbane
+      message_type: dialogue
+      text: |
+        "Hôm nay vậy là đủ. Tập quá nhiều trong một lần thường không giúp tiến bộ nhanh hơn, chỉ khiến cơ thể mệt và phản xạ chậm đi."
+
+        "Khi nào muốn luyện tiếp thì cứ tìm ${npc_1p} trên boong. ${npc_1p} thường ở quanh khu vực này."
+
+        "Giữ sức cho hành trình phía trước."
+
+
+  # ============================================================
+  # JOHN GALEBY
+  # ============================================================
+
+  - id: galeby-approach
+    name: "Galeby —Tiếp Cận"
+    description: "Dispatcher. Checks evaluated in execution_order; first on_success should short-circuit. Verify engine behaviour before deploying."
+    event_type: dialogue
+    silent: true
+    next: galeby-first-meeting
+
+    checks:
+      - name: visit_5_done
+        type: flag
+        flag_data:
+          flag_name: char.gale_met
+          flag_value: 5
+          flag_comparison: greater_equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: galeby-all-done
+        execution_order: 0
+
+      - name: visit_4_done
+        type: flag
+        flag_data:
+          flag_name: char.gale_met
+          flag_value: 4
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: galeby-fifth-meeting
+        execution_order: 1
+
+      - name: visit_3_done
+        type: flag
+        flag_data:
+          flag_name: char.gale_met
+          flag_value: 3
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: galeby-fourth-meeting
+        execution_order: 2
+
+      - name: visit_2_done
+        type: flag
+        flag_data:
+          flag_name: char.gale_met
+          flag_value: 2
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: galeby-third-meeting
+        execution_order: 3
+
+      - name: visit_1_done
+        type: flag
+        flag_data:
+          flag_name: char.gale_met
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: galeby-second-meeting
+        execution_order: 4
+
+  - id: galeby-first-meeting
+    name: "Galeby —Lần Gặp Đầu"
+    event_type: dialogue
+
+    message:
+      message_type: dialogue
+      text: |
+        Một ông lão mặc chiếc áo khoác bạc màu đứng bên mạn tàu, tay tựa lên lan can gỗ, nhìn ra mặt nước.
+
+    options:
+      - id: weather
+        text: "Gió hôm nay lạnh thật, ${npc_2p} nhỉ"
+        next: galeby-weather
+        display_order: 0
+
+      - id: observing
+        text: "${npc_2p} đang nhìn gì ngoài đó vậy?"
+        next: galeby-observing
+        display_order: 1
+
+      - id: silence
+        text: "(Đứng cạnh ${npc_2p}, im lặng nhìn biển)"
+        next: galeby-silence
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
+        next: galeby-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "(Rời đi.)"
+        display_order: 4
+
+  - id: galeby-weather
+    name: "Galeby —Lần 0 / Thời Tiết"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Ừ, ra xa bờ gió mạnh hơn. ${2p} nên vào trong nếu không có áo dày, đứng lâu dễ cảm lạnh."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-observing
+    name: "Galeby —Lần 0 / Quan Sát"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Không có gì đặc biệt. Đứng một lát cho thoáng rồi xuống nghỉ"
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-silence
+    name: "Galeby —Lần 0 / Im Lặng"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Đứng ngoài này dễchịu hơn dưới khoang."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-second-meeting
+    name: "Galeby —Lần Gặp Thứ Hai"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Ông lão không còn nhìn ra biển. Ông đang ngồi trên một thùng gỗ sồi, cẩn thận dùng miếng vải tẩm dầu lau chùi một vật dài được quấn kín trong nhiều lớp da thú rách bươm.
+
+        "Gió biển mang theo muối mặn. Nó ăn mòn sắt thép và cả xương cốt. ${2p} không bảo dưỡng đểđạc, chúng sẽ phản bội ${2p} khi ${2p} cần đến nhất."
+
+    options:
+      - id: curious
+        text: "Vật ${npc_2p} đang cầm là gì vậy?"
+        next: galeby-hometown
+        display_order: 0
+
+      - id: treasured
+        text: "${npc_2p} có vẻ rất quý trọng nó."
+        next: galeby-many-places
+        display_order: 1
+
+      - id: silence
+        text: "(Im lặng gật đầu đồng ý)"
+        next: galeby-visit-1-end
+        display_order: 2
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
+        next: galeby-bilge-key
+        display_order: 3
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Thôi, để ${npc_2p} yên."
+        display_order: 4
+
+  - id: galeby-hometown
+    name: "Galeby —Lần 1 / Tò Mò"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Một món nợ cũ. ${npc_1p} đã giữ thói quen lau chùi nó suốt hai mươi năm qua. Chuyến này là chuyến cuối, hy vọng ${npc_1p} sẽ tìm được người để trả lại trước khi nghỉ ngơi."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-many-places
+    name: "Galeby —Lần 1 / Quan Sát"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Nó từng cứu mạng ${npc_1p} một lần ở bờ biển lục địa mới. Giữ nó bên người nhắc ${npc_1p} nhớ về cái giá của việc sống sót. Cập bến lần này, ${npc_1p} hy vọng có thể để nó lại."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-visit-1-end
+    name: "Galeby —Lần 1 / Im Lặng"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "${2p} hiểu nguyên tắc đấy. Vũ khí hay con người, đến một lúc nào đó cũng phải hao mòn. Chuyến này là chuyến cuối của ${npc_1p}. Cập bến rồi ${npc_1p} sẽ buông bỏ nó."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-third-meeting
+    name: "Galeby —Lần Gặp Thứ Ba"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Galeby đứng tựa vào lan can, gõ nhẹ chiếc tẩu rỗng xuống gỗ Khi thấy ${2p} đến gần, ông khẽ gật đầu.
+
+    actions:
+      - type: flag
+        flag_name: char.john-galeby_known
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+    options:
+      - id: thoughts
+        text: "${npc_2p} đang nghĩ gì vậy?"
+        next: galeby-thoughts
+        display_order: 0
+
+      - id: concerned
+        text: "Trông ${npc_2p} có vẻ bận tâm."
+        next: galeby-thoughts-concerned
+        display_order: 1
+
+      - id: bilge-key
+        text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
+        next: galeby-bilge-key
+        display_order: 2
+        hidden_checks:
+          - type: flag
+            flag_data:
+              flag_name: global.morale_name_revealed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: true
+          - type: flag
+            flag_data:
+              flag_name: char.bilge_door_encountered
+              flag_value: "1"
+              flag_comparison: not_equal
+              is_global_flag: false
+
+      - id: leave
+        text: "Thôi, để ${npc_2p} yên."
+        display_order: 3
+
+  - id: galeby-thoughts
+    name: "Galeby —Lần 2 / Suy Nghĩ"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Ông ngẩng đầu, vẻ chợt nhớ ra điều gì đó.
+
+        "À, không có gì. Chỉ là nhớ lại chuyện cũ. Hai mươi năm trước ${npc_1p} trôi dạt vào bờ một bộ tộc nhỏ, họ giữ ${npc_1p} lại một thời gian, chữa vết thương rồi để${npc_1p} đi. Ban ngày họđi săn, thịt mang vềnấu chung, cả làng ăn cùng nhau, mỗi tối đám thợ săn kể lại chuyến đi trong ngày, ai săn được nhiều thì nói nhiều hơn."
+
+        Ông dừng lại.
+
+        "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-thoughts-concerned
+    name: "Galeby —Lần 2 / Bận Tâm"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Ông lắc đầu nhẹ.
+
+        "Không sao, chỉ là nhớ lại chuyện cũ. Hai mươi năm trước ${npc_1p} trôi dạt vào bờ một bộ tộc nhỏ, họ giữ ${npc_1p} lại một thời gian, chữa vết thương rồi để${npc_1p} đi. Ban ngày họđi săn, thịt mang vềnấu chung, cả làng ăn cùng nhau, mỗi tối đám thợ săn kể lại chuyến đi trong ngày, ai săn được nhiều thì nói nhiều hơn."
+
+        Ông dừng lại.
+
+        "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-fourth-meeting
+    name: "Galeby —Lần Gặp Thứ Tư"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Khi thấy ${2p} đến gần, Galeby đứng thẳng người dậy. Đôi vai ông hơi chùng xuống, vẻ mặt hiện rõ sự trăn trở
+
+    options:
+      - id: tired
+        text: "Trông ${npc_2p} có vẻ mệt mỏi."
+        next: galeby-share
+        display_order: 0
+
+      - id: has-something
+        text: "${npc_2p} có chuyện muốn nói sao?"
+        next: galeby-share
+        display_order: 1
+
+      - id: leave
+        text: "Thôi, để ${npc_2p} yên."
+        display_order: 2
+
+  - id: galeby-share
+    name: "Galeby —Lần 3 / Lời Nhắn"
+    event_type: dialogue
+    next: galeby-end-choice
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Nếu sau này ${2p} có đi về phía lục địa mới, thấy ai mang hình xăm sói trên tay, để ý giúp ${npc_1p} xem có người phụ nữ nào tên Aela không. Biết cô ấy vẫn ổn là được."
+
+    actions:
+      - type: flag
+        flag_name: char.galeby_quest_aela
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: galeby-end-choice
+    name: "Galeby —Lần 3 / Kết (Phân Nhánh)"
+    description: "First player gets spear, second gets rapier, all others get nothing. Global flags set by ending events."
+    event_type: dialogue
+    silent: true
+    next: galeby-end-no-gift
+
+    checks:
+      - name: spear_available
+        type: flag
+        flag_data:
+          flag_name: global.galeby_spear_taken
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_failure: galeby-end-spear
+        execution_order: 0
+
+      - name: rapier_available
+        type: flag
+        flag_data:
+          flag_name: global.galeby_rapier_taken
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_failure: galeby-end-rapier
+        execution_order: 1
+
+  - id: galeby-end-spear
+    name: "Galeby —Kết / Ngọn Thương"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Cái này là của họ. ${npc_1p} giữ nó hai mươi năm rồi, nếu có ngày gặp lại họ thì trả giúp ${npc_1p}."
+
+        Ông đặt ngọn thương vào tay ${2p} rồi khẽ gật đầu bước đi.
+
+    actions:
+      - type: flag
+        flag_name: global.galeby_spear_taken
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: item
+        item: galeby-wolf-spear
+        quantity: "1"
+        operation: give
+        silent: false
+
+  - id: galeby-end-rapier
+    name: "Galeby —Kết / Thanh Rapier"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Cầm lấy đi. Theo ${npc_1p} lâu rồi, giờ giữ cũng không làm gì, ${2p} giữ đi."
+
+        Ông đặt thanh rapier lên lan can rồi khẽ gật đầu bước đi.
+
+    actions:
+      - type: flag
+        flag_name: global.galeby_rapier_taken
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: item
+        item: galeby-rapier
+        quantity: "1"
+        operation: give
+        silent: false
+
+  - id: galeby-end-no-gift
+    name: "Galeby —Kết / Không Tặng Quà"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Cảm ơn ${2p} đã nghe. Nhớ giúp chuyện đó là được."
+
+        Ông khẽ gật đầu rồi bước đi.
+
+  - id: galeby-fifth-meeting
+    name: "Galeby —Lần Gặp Thứ Năm"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Galeby đứng nhìn ra biển. Ánh mắt ông dán về phía chân trời.
+
+        "Trời hôm nay quang đãng."
+
+    options:
+      - id: career
+        text: "${npc_2p} đã đi biển bao lâu rồi?"
+        next: galeby-career
+        display_order: 0
+
+      - id: silence
+        text: "(Đứng cạnh ${npc_2p} nhìn ra biển)"
+        next: galeby-fifth-silence
+        display_order: 1
+
+      - id: leave
+        text: "(Rời đi.)"
+        display_order: 2
+
+  - id: galeby-career
+    name: "Galeby —Lần 4 / Sự Nghiệp"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        "Hơn hai mươi năm lênh đênh trên biển. Chừng ấy thời gian là đủ để biết lúc nào nên nghỉ ngơi rồi."
+
+  - id: galeby-fifth-silence
+    name: "Galeby —Lần 4 / Im Lặng"
+    event_type: dialogue
+
+    message:
+      npc_speaker: john-galeby
+      message_type: dialogue
+      text: |
+        Ông không nói gì. Hai người đứng cạnh nhau nhìn ra chân trời, nơi mặt nước và bầu trời gặp nhau trong một đường thẳng sắc.
+
+  - id: galeby-all-done
+    name: "Galeby —Không Còn Gì Để Nói"
+    description: "State after all five meetings are complete. Wire to appropriate location behavior."
+    event_type: dialogue
+    silent: true

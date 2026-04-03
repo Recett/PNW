@@ -1,7 +1,13 @@
 const { Sequelize } = require('sequelize');
+const path = require('path');
 
-// Use environment variable for database path (Railway volume mount) or default to local path
-const databasePath = process.env.DATABASE_PATH || 'database.sqlite';
+// Use environment variable for database path (Railway volume mount) or default to local path.
+// Relative DATABASE_PATH values are resolved relative to the project root (one level up from src/).
+const rawDatabasePath = process.env.DATABASE_PATH;
+const projectRoot = path.join(__dirname, '..');
+const databasePath = rawDatabasePath
+	? (path.isAbsolute(rawDatabasePath) ? rawDatabasePath : path.join(projectRoot, rawDatabasePath))
+	: path.join(__dirname, 'database.sqlite');
 
 const sequelize = new Sequelize({
 	dialect: 'sqlite',
@@ -27,6 +33,8 @@ const CharacterThread = characterModels.characterThread(sequelize);
 // Other model definitions
 const CronLog = require('./models/utility/cronLog.js')(sequelize);
 const CronSchedule = require('./models/utility/cronSchedule.js')(sequelize);
+const CronExecutionLog = require('./models/utility/cronExecutionLog.js')(sequelize);
+const CronHealthCheck = require('./models/utility/cronHealthCheck.js')(sequelize);
 const GlobalFlag = require('./models/global/globalFlag.js')(sequelize);
 
 const raidModels = require('./models/raid/raidModel.js');
@@ -113,6 +121,12 @@ CharacterThread.belongsTo(CharacterBase, { foreignKey: 'character_id', as: 'char
 CronLog.hasOne(CronSchedule, { foreignKey: 'cron_log_id', as: 'scheduleConfig' });
 CronSchedule.belongsTo(CronLog, { foreignKey: 'cron_log_id', as: 'cronLog' });
 
+CronLog.hasMany(CronExecutionLog, { foreignKey: 'job_name', sourceKey: 'job_name', as: 'executionLogs' });
+CronExecutionLog.belongsTo(CronLog, { foreignKey: 'job_name', targetKey: 'job_name', as: 'jobConfig' });
+
+CronLog.hasMany(CronHealthCheck, { foreignKey: 'job_name', sourceKey: 'job_name', as: 'healthChecks' });
+CronHealthCheck.belongsTo(CronLog, { foreignKey: 'job_name', targetKey: 'job_name', as: 'jobConfig' });
+
 // Raid relationships
 Raid.hasMany(RaidBoss, { foreignKey: 'raid_id', as: 'bosses' });
 RaidBoss.belongsTo(Raid, { foreignKey: 'raid_id', as: 'raid' });
@@ -198,6 +212,9 @@ TradeItem.belongsTo(CharacterItem, { foreignKey: 'character_item_id', as: 'chara
 CharacterItem.hasMany(TradeItem, { foreignKey: 'character_item_id', as: 'tradeItems' });
 
 module.exports = {
+	// Sequelize instance (needed for smart sync)
+	sequelize,
+	
 	// Active character models
 	CharacterPerk,
 	CharacterAttackStat,
@@ -216,6 +233,8 @@ module.exports = {
 	// Active system models
 	CronLog,
 	CronSchedule,
+	CronExecutionLog,
+	CronHealthCheck,
 	SystemSetting,
 	GlobalFlag,
 
@@ -254,6 +273,12 @@ module.exports = {
 	Trade,
 	TradeItem,
 };
+// Tables with composite PKs that Sequelize's SQLite alter cannot handle safely.
+// Sequelize recreates the backup table with a UNIQUE on only the first PK column,
+// causing INSERT failures when multiple characters share the same flag/relation/equipment names.
+// These tables are synced without alter (ensure-exists only); use migrate-schema-v2.js for changes.
+const COMPOSITE_PK_TABLES = new Set(['character_flags', 'character_relations', 'character_equipments']);
+
 // For SQLite alter with foreign keys, we need to handle it carefully
 async function syncDatabase(options = {}) {
 	const force = options.force || process.argv.includes('--force') || process.argv.includes('-f');
@@ -263,8 +288,23 @@ async function syncDatabase(options = {}) {
 		// Disable foreign key checks for the entire sync operation
 		await sequelize.query('PRAGMA foreign_keys = OFF;', { raw: true });
 		
-		// Sync the database
-		await sequelize.sync({ force, alter });
+		if (alter && !force) {
+			// Sync each model individually so we can skip composite-PK tables that
+			// Sequelize's SQLite alter implementation cannot safely recreate.
+			for (const model of Object.values(sequelize.models)) {
+				const tableName = model.getTableName();
+				if (COMPOSITE_PK_TABLES.has(tableName)) {
+					// Ensure the table exists without altering it
+					await model.sync();
+				}
+				else {
+					await model.sync({ alter: true });
+				}
+			}
+		}
+		else {
+			await sequelize.sync({ force, alter });
+		}
 		
 		// Re-enable foreign keys
 		await sequelize.query('PRAGMA foreign_keys = ON;', { raw: true });

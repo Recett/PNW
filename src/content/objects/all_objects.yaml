@@ -1,4 +1,17 @@
 # OBJECTS DEFINITION FILE
-# Last modified: 2026-03-23
+# Last modified: 2026-04-03
 
-objects: []
+objects:
+
+  - id: "obj-small-cabinet"
+    name: "Cái tủ nhỏ"
+    type: "furniture"
+    status: "active"
+    start_event: "obj-small-cabinet-discovery"
+    hidden_checks:
+      - type: flag
+        flag_data:
+          flag_name: "char.morale_cabinet_found"
+          flag_value: 1
+          flag_comparison: equal
+          is_global_flag: false

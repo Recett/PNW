@@ -11,6 +11,7 @@ const { Op } = require('sequelize');
 const {
 	CharacterBase,
 	CharacterFlag,
+	GlobalFlag,
 	LocationBase,
 	LocationLink,
 	LocationCluster,
@@ -43,8 +44,8 @@ module.exports = {
 				.setDescription('Talk with an NPC.'),
 		)
 		.addSubcommand(sub =>
-			sub.setName('explore')
-				.setDescription('Explore deeper into the current location.'),
+			sub.setName('examine')
+				.setDescription('Examine an object in your location.'),
 		),
 
 	async execute(interaction) {
@@ -55,7 +56,7 @@ module.exports = {
 			if (sub === 'look') await handleLook(interaction, userId);
 			else if (sub === 'move') await handleMove(interaction, userId);
 			else if (sub === 'talk') await handleTalk(interaction, userId);
-			else if (sub === 'explore') await handleExplore(interaction, userId);
+			else if (sub === 'examine') await handleExamine(interaction, userId);
 		}
 		catch (error) {
 			console.error('Error in interact command:', error);
@@ -69,6 +70,27 @@ module.exports = {
 	},
 };
 
+// ─── Visibility Helper ───────────────────────────────────────────────────────
+async function isEntityVisible(entity, userId, eventUtil) {
+	const session = {
+		characterId: userId,
+		flags: { local: {}, global: {}, character: {} },
+	};
+	if (entity.required_checks && entity.required_checks.length > 0) {
+		for (const check of entity.required_checks) {
+			const result = await eventUtil.evaluateInlineCheck(check, session);
+			if (!result.success) return false;
+		}
+	}
+	if (entity.hidden_checks && entity.hidden_checks.length > 0) {
+		for (const check of entity.hidden_checks) {
+			const result = await eventUtil.evaluateInlineCheck(check, session);
+			if (result.success) return false;
+		}
+	}
+	return true;
+}
+
 // ─── Look ─────────────────────────────────────────────────────────────────────
 async function handleLook(interaction, userId) {
 	const channel = interaction.channel;
@@ -81,21 +103,26 @@ async function handleLook(interaction, userId) {
 	let description = `${currentLocation.description}`;
 	const locationUtil = interaction.client.locationUtil;
 	const { objects, pcs, npcs, enemies } = await locationUtil.getLocationContents(currentLocation.id);
+	const eventUtil = interaction.client.eventUtil;
+	const visibleObjects = (await Promise.all(objects.map(async obj => (await isEntityVisible(obj, userId, eventUtil)) ? obj : null))).filter(Boolean);
+	const visibleNpcs = (await Promise.all(npcs.map(async npc => (await isEntityVisible(npc, userId, eventUtil)) ? npc : null))).filter(Boolean);
 
-	if (objects.length > 0) {
-		description += `\n\n**Objects:** ${objects.map(obj => obj.name).join(', ')}`;
+	if (visibleObjects.length > 0) {
+		description += `\n\n**Objects:** ${visibleObjects.map(obj => obj.name).join(', ')}`;
 	}
 	if (pcs.length > 0) {
 		description += `\n\n**Characters:** ${pcs.map(pc => pc.id ? `<@${pc.id}>` : pc.name).join(', ')}`;
 	}
-	if (npcs.length > 0) {
-		const npcKnownFlags = npcs.map(npc => `${npc.id}_known`);
-		const flags = await CharacterFlag.findAll({
-			where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } },
-		});
+	if (visibleNpcs.length > 0) {
+		const npcKnownFlags = visibleNpcs.map(npc => `${npc.id}_known`);
+		const [charFlags, globalFlags] = await Promise.all([
+			CharacterFlag.findAll({ where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } } }),
+			GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlags.map(f => `global.${f}`) } } }),
+		]);
 		const flagMap = {};
-		flags.forEach(f => { flagMap[f.flag] = f.value; });
-		description += `\n\n**NPCs:** ${npcs.map(npc => {
+		charFlags.forEach(f => { flagMap[f.flag] = f.value; });
+		globalFlags.forEach(f => { flagMap[f.flag.replace('global.', '')] = f.value; });
+		description += `\n\n**NPCs:** ${visibleNpcs.map(npc => {
 			const knownFlag = flagMap[`${npc.id}_known`];
 			return (!knownFlag || knownFlag === false || knownFlag === 0) && npc.unknown_name ? npc.unknown_name : npc.name;
 		}).join(', ')}`;
@@ -125,10 +152,8 @@ async function handleMove(interaction, userId) {
 		const dbLocation = character.location_id ? await LocationBase.findByPk(character.location_id) : null;
 		const currentRoleId = dbLocation?.role;
 		const locationRoleIds = allLocations.map(loc => loc.role).filter(role => role && role !== currentRoleId);
-		console.log(`[Move Cleanup] User ${userId} - DB location: ${dbLocation?.name || 'NONE'}, keeping role: ${currentRoleId || 'NONE'}`);
 		for (const roleId of locationRoleIds) {
 			if (member.roles.cache.has(roleId)) {
-				console.log(`[Move Cleanup] Removing excess role: ${roleId}`);
 				await member.roles.remove(roleId).catch(() => {});
 			}
 		}
@@ -157,7 +182,7 @@ async function handleMove(interaction, userId) {
 	const allLinkedIds = Array.from(new Set([...linkedIds, ...clusterIds])).filter(id => id != character.location_id);
 	if (allLinkedIds.length === 0) return await interaction.editReply({ content: 'There are no available locations to move to from here.' });
 
-	const locations = (await Promise.all(allLinkedIds.map(id => LocationBase.findByPk(id)))).filter(loc => loc != null);
+	const locations = (await Promise.all(allLinkedIds.map(id => LocationBase.findByPk(id)))).filter(loc => loc != null && !loc.hidden);
 	const select = new StringSelectMenuBuilder()
 		.setCustomId('move_location')
 		.setPlaceholder('Choose a location to move to')
@@ -183,6 +208,21 @@ async function handleMove(interaction, userId) {
 		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
 		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
 		await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
+
+		const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
+		if (isBilge) {
+			const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+			if (!hasKey) {
+				await interaction.client.eventUtil.processEvent('bilge-door-locked', i, userId, { ephemeral: false });
+			}
+			else {
+				const [flag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
+				if (!flag.value) {
+					await flag.update({ value: 1 });
+					await characterUtil.removeCharacterItem(userId, 'bilge-key');
+				}
+			}
+		}
 	});
 }
 
@@ -200,15 +240,18 @@ async function handleTalk(interaction, userId) {
 	const currentLocation = await locationUtil.getLocationByChannel(channelId);
 	if (!currentLocation) return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
 
-	const { npcs } = await locationUtil.getLocationContents(currentLocation.id);
+	const { npcs: allNpcs } = await locationUtil.getLocationContents(currentLocation.id);
+	const npcs = (await Promise.all(allNpcs.map(async npc => (await isEntityVisible(npc, userId, interaction.client.eventUtil)) ? npc : null))).filter(Boolean);
 	if (!npcs || npcs.length === 0) return interaction.reply({ content: 'There are no NPCs to talk to here.', flags: MessageFlags.Ephemeral });
 
 	const npcKnownFlags = npcs.map(npc => `${npc.id}_known`);
-	const flags = await CharacterFlag.findAll({
-		where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } },
-	});
+	const [charFlags, globalFlags] = await Promise.all([
+		CharacterFlag.findAll({ where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } } }),
+		GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlags.map(f => `global.${f}`) } } }),
+	]);
 	const flagMap = {};
-	flags.forEach(f => { flagMap[f.flag] = f.value; });
+	charFlags.forEach(f => { flagMap[f.flag] = f.value; });
+	globalFlags.forEach(f => { flagMap[f.flag.replace('global.', '')] = f.value; });
 
 	const select = new StringSelectMenuBuilder()
 		.setCustomId('talk_npc')
@@ -216,7 +259,7 @@ async function handleTalk(interaction, userId) {
 		.addOptions(npcs.map(npc => {
 			const knownFlag = flagMap[`${npc.id}_known`];
 			return {
-				label: (!knownFlag || knownFlag === false || knownFlag === 0) && npc.unknown_name ? npc.unknown_name : npc.name,
+				label: (!knownFlag || knownFlag === false || knownFlag === 0) && npc.unknown_name ? npc.unknown_name : (npc.fullname || npc.name),
 				value: String(npc.id),
 			};
 		}));
@@ -270,6 +313,71 @@ async function handleTalk(interaction, userId) {
 			await interaction.editReply({ content: 'NPC selection timed out.', components: [] });
 		}
 		catch (error) { console.log('Could not update expired NPC selection:', error.message); }
+	});
+}
+
+// ─── Examine ──────────────────────────────────────────────────────────────────
+async function handleExamine(interaction, userId) {
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
+	const locationUtil = interaction.client.locationUtil;
+	const currentLocation = await locationUtil.getLocationByChannel(channelId);
+	if (!currentLocation) return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
+
+	const { objects } = await locationUtil.getLocationContents(currentLocation.id);
+	const eventUtil = interaction.client.eventUtil;
+	const visibleObjects = (await Promise.all(objects.map(async obj => (await isEntityVisible(obj, userId, eventUtil)) ? obj : null))).filter(Boolean);
+	if (visibleObjects.length === 0) return interaction.reply({ content: 'There is nothing here to examine.', flags: MessageFlags.Ephemeral });
+
+	const select = new StringSelectMenuBuilder()
+		.setCustomId('examine_object')
+		.setPlaceholder('Choose an object to examine')
+		.addOptions(visibleObjects.map(obj => ({ label: obj.name, value: String(obj.id) })));
+	const row = new ActionRowBuilder().addComponents(select);
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+	await interaction.editReply({ content: 'What do you want to examine?', components: [row] });
+
+	const message = (await interaction.fetchReply()) || interaction.message;
+	const collector = message.createMessageComponentCollector({
+		componentType: ComponentType.StringSelect,
+		time: 60000,
+		filter: i => i.user.id === userId,
+	});
+
+	collector.on('collect', async i => {
+		try {
+			const objectId = i.values[0];
+			const obj = contentStore.objects.findByPk(objectId);
+			await interaction.deleteReply();
+
+			if (!obj) return i.reply({ content: 'Object not found.', flags: MessageFlags.Ephemeral });
+			if (!obj.start_event) return i.reply({ content: 'Nothing happens.', flags: MessageFlags.Ephemeral });
+
+			const eventResult = await eventUtil.processEvent(
+				obj.start_event,
+				i,
+				userId,
+				{ ephemeral: false },
+			);
+
+			if (!eventResult.success) {
+				console.warn('Event processing failed:', eventResult);
+			}
+		}
+		catch (error) {
+			console.error('Error in object examine:', error);
+			if (!i.replied && !i.deferred) {
+				await i.reply({ content: 'An error occurred while examining the object.', flags: MessageFlags.Ephemeral });
+			}
+		}
+	});
+
+	collector.on('end', async () => {
+		try {
+			if (!interaction.replied) return;
+			await interaction.editReply({ content: 'Examine selection timed out.', components: [] });
+		}
+		catch (error) { console.log('Could not update expired examine selection:', error.message); }
 	});
 }
 

@@ -1,0 +1,132 @@
+const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('discord.js');
+const { CharacterBase, GlobalFlag } = require('@root/dbObject.js');
+const characterUtil = require('@utility/characterUtility.js');
+
+// Bilge encounter weights scale with depth:
+//   ratWeight   = max(1, 8 - depth)  — decreases, floor 1
+//   adultWeight = depth               — grows linearly
+//   kingWeight  = max(0, depth - 3)  — zero until depth 4, then grows; 0 if king is slain
+function pickEncounterEvent(depth, ratKingSlain) {
+	const ratWeight = Math.max(1, 8 - depth * 2);
+	const adultWeight = depth * 2;
+	const kingWeight = ratKingSlain ? 0 : Math.max(0, (depth - 3) * 2);
+	const total = ratWeight + adultWeight + kingWeight;
+	const roll = Math.random() * total;
+
+	if (kingWeight > 0 && roll < kingWeight) return 'bilge-encounter-rat-king';
+	if (roll < kingWeight + adultWeight) return 'bilge-encounter-rat-adult';
+	return 'bilge-encounter-rat';
+}
+
+module.exports = {
+	data: new SlashCommandBuilder()
+		.setName('hunt')
+		.setDescription('Hunt in the bilge for rats.')
+		.setContexts(InteractionContextType.Guild),
+
+	async execute(interaction) {
+		try {
+			const userId = interaction.user.id;
+
+			const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
+			if (unregistered === 1) {
+				return await interaction.reply({
+					content: 'You must complete registration before hunting.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+
+			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
+			if (bilgeClearedRecord && parseInt(bilgeClearedRecord.value) === 1) {
+				return await interaction.reply({
+					content: 'The bilge has been cleared. There is nothing left to hunt.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+
+			const locationUtil = interaction.client.locationUtil;
+			const channel = interaction.channel;
+			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
+			const currentLocation = await locationUtil.getLocationByChannel(channelId);
+
+			if (!currentLocation || !Array.isArray(currentLocation.tag) || !currentLocation.tag.includes('bilge')) {
+				return await interaction.reply({
+					content: 'You can only hunt in the bilge.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+
+			const character = await CharacterBase.findOne({ where: { id: userId } });
+			if (!character) {
+				return await interaction.reply({
+					content: 'Character not found.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+
+			const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+			if (!hasKey) {
+				const eventUtil = interaction.client.eventUtil;
+				return await eventUtil.processEvent('bilge-door-locked', interaction, userId, { ephemeral: false });
+			}
+
+			const [bilgeFlag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
+			if (!bilgeFlag.value) {
+				await bilgeFlag.update({ value: 1 });
+				await characterUtil.removeCharacterItem(userId, 'bilge-key');
+			}
+
+			const STAMINA_COST = 3;
+			if ((character.currentStamina || 0) < STAMINA_COST) {
+				return await interaction.reply({
+					content: `Not enough stamina. You need ${STAMINA_COST} stamina to hunt (you have ${character.currentStamina || 0}).`,
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+			await character.update({ currentStamina: character.currentStamina - STAMINA_COST });
+
+			const ratAdultsRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_adults' } });
+			const ratAdults = ratAdultsRecord ? parseInt(ratAdultsRecord.value) || 0 : 0;
+			const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_slain' } });
+			const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
+
+			if (ratAdults <= 0 && ratKingSlain === 1) {
+				console.log('[Hunt] Bilge cleared! Awarding 1000 XP to all characters.');
+				const allCharacters = await CharacterBase.findAll();
+				for (const char of allCharacters) {
+					try {
+						await characterUtil.modifyCharacterStat(char.id, 'xp', 1000);
+					}
+					catch (err) {
+						console.error(`[Hunt] Failed to award XP to ${char.id}:`, err);
+					}
+				}
+				const eventUtil = interaction.client.eventUtil;
+				return await eventUtil.processEvent('bilge-cleared', interaction, userId, { ephemeral: true });
+			}
+
+			if (ratAdults <= 0) {
+				const newDepth = (character.depth || 0) + 1;
+				await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
+				const eventUtil = interaction.client.eventUtil;
+				return await eventUtil.processEvent('bilge-encounter-rat-king-enraged', interaction, userId, { ephemeral: false });
+			}
+
+			const newDepth = (character.depth || 0) + 1;
+			await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
+
+			const eventId = pickEncounterEvent(newDepth, ratKingSlain);
+			const eventUtil = interaction.client.eventUtil;
+			await eventUtil.processEvent(eventId, interaction, userId, { ephemeral: false });
+		}
+		catch (error) {
+			console.error('Error in hunt command:', error);
+			if (!interaction.replied && !interaction.deferred) {
+				await interaction.reply({ content: 'An error occurred.', flags: MessageFlags.Ephemeral });
+			}
+			else {
+				await interaction.editReply({ content: 'An error occurred.' }).catch(() => {});
+			}
+		}
+	},
+};

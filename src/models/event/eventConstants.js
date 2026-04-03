@@ -32,7 +32,9 @@ const CHECK_TYPE = {
  * JSON Data Structure Examples for eventCheck type-specific columns:
  *
  * flag_data (for CHECK_TYPE.FLAG):
- * { flag_name: "quest_started", flag_value: "true", is_global_flag: false }
+ * { flag_name: "quest_started", flag_value: 1, is_global_flag: false }
+ * { flag_name: "quest_progress", flag_value: 5, flag_comparison: "greater_than", is_global_flag: false }
+ * { flag_name: "attempts", flag_value: 3, flag_comparison: "less_equal", is_global_flag: true }
  *
  * stat_data (for CHECK_TYPE.STAT):
  * { stat_name: "hp", stat_comparison: "greater_than", stat_value: 50, use_dice_roll: false }
@@ -108,6 +110,16 @@ const STAT_COMPARISON = {
 	DICE_ROLL: 'dice_roll',
 };
 
+// Flag comparison types for flag checks
+const FLAG_COMPARISON = {
+	GREATER_THAN: 'greater_than',
+	LESS_THAN: 'less_than',
+	EQUAL: 'equal',
+	GREATER_EQUAL: 'greater_equal',
+	LESS_EQUAL: 'less_equal',
+	NOT_EQUAL: 'not_equal',
+};
+
 // Movement types
 const MOVEMENT_TYPE = {
 	TELEPORT: 'teleport',
@@ -179,6 +191,7 @@ module.exports = {
 	FLAG_TYPE,
 	CHECK_TYPE,
 	FLAG_OPERATION,
+	FLAG_COMPARISON,
 	ITEM_OPERATION,
 	STAT_OPERATION,
 	STAT_COMPARISON,

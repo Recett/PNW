@@ -31,7 +31,17 @@ async function getCharacterSetting(characterId, setting) {
 	return record ? record.value : null;
 }
 
+async function deleteCharacterSetting(characterId, setting) {
+	await CharacterSetting.destroy({
+		where: {
+			character_id: characterId,
+			setting: setting,
+		},
+	});
+}
+
 module.exports = {
 	setCharacterSetting,
 	getCharacterSetting,
+	deleteCharacterSetting,
 };

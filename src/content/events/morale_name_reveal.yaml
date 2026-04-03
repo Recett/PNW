@@ -1,0 +1,407 @@
+events:
+
+  # ─────────────────────────────────────────────
+  # MORALE APPROACH — DISPATCHER
+  # ─────────────────────────────────────────────
+
+  - id: "morale-approach"
+    name: "Morale — Tiếp Cận"
+    event_type: "npc"
+    silent: true
+    next: "morale-gate"
+    checks:
+      - name: "name-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: "morale-subsequent"
+
+  - id: "morale-gate"
+    name: "Morale — Gate"
+    event_type: "npc"
+    silent: true
+    next: "morale-pre-quest"
+    checks:
+      - name: "york-asked"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_bilge_key_asked"
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: "morale-first-interaction"
+
+  - id: "morale-pre-quest"
+    name: "Morale — Pre-Quest"
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Cô ấy cuộn tròn trên cuộn dây thừng, đuôi phủ ngang mũi. Khi bạn đến gần, một tai khẽ giật. Mắt mở ra một khe nhỏ.
+
+        "Mrrp."
+
+        Không hẳn là chào. Chỉ là ghi nhận bạn đang ở đó.
+
+        Cô ấy chớp mắt chậm một cái rồi lại cuộn tròn, nhưng đuôi khẽ quét nhẹ lên sàn, như thể đã để ý đến sự hiện diện của bạn.
+
+  # ─────────────────────────────────────────────
+  # BILGE DOOR
+  # ─────────────────────────────────────────────
+
+  - id: "bilge-door-locked"
+    name: "The Bilge Door"
+    description: "Triggered on /explore bilge before key is obtained."
+    event_type: "exploration"
+    is_active: true
+    message:
+      text: |
+        Cánh cửa đóng chặt. Một ổ khóa sắt nặng — ai đó đã quyết định giữ nó khép lại.
+    checks:
+      - name: "has-bilge-key"
+        type: "item"
+        item_data:
+          - item_id: "bilge-key"
+            required_quantity: 1
+        is_required: true
+        silent: true
+        on_failure: "bilge-door-locked-options"
+    next: null
+
+  - id: "bilge-door-locked-options"
+    name: "The Bilge Door — Options"
+    is_active: true
+    actions:
+      - type: flag
+        flag_name: "char.bilge_door_encountered"
+        flag_value: "1"
+        flag_operation: set
+        flag_type: character
+        silent: true
+    options:
+      - id: "look-for-another-way"
+        text: "Tìm lối vào khác"
+        next: "bilge-door-no-other-way"
+      - id: "ask-around"
+        text: "Hỏi xem ai có chìa khóa"
+        next: null
+
+  - id: "bilge-door-no-other-way"
+    name: "The Bilge Door — No Other Way"
+    is_active: true
+    message:
+      text: |
+        Không có lối nào khác.
+
+  # ─────────────────────────────────────────────
+  # NPC INTERACTIONS — BILGE KEY
+  # ─────────────────────────────────────────────
+
+  - id: "vorne-bilge-key"
+    name: "Vorne — Bilge Key"
+    description: "Triggered by player asking Vorne about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "aldric-vorne"
+      text: |
+        "${npc_1p} không rõ chuyện đó. Chìa khóa và kho bãi — đó là việc của York."
+    actions:
+      - type: flag
+        flag_name: "char.vorne_bilge_key_asked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "york-bilge-key"
+    name: "York — Bilge Key"
+    description: "Triggered by player asking York about the bilge key."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "name-not-yet-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_success: null
+        on_failure: "york-bilge-key-message"
+    next: "york-bilge-key-message"
+
+  - id: "york-bilge-key-message"
+    name: "York — Bilge Key Message"
+    is_active: true
+    message:
+      npc_speaker: "york-waylan"
+      text: |
+        "Chìa khóa hầm tàu? Trung úy Morale quản lý khu vực đó, nên chắc cô ấy đang giữ. Cô ấy không được khỏe chuyến này — theo ${npc_1p} thì nên nghỉ bệnh, nhưng cô ấy không chịu nghe. Có lẽ cô ấy đang nghỉ trong phòng. ${npc_1p} mong là vậy."
+    actions:
+      - type: flag
+        flag_name: "char.york_bilge_key_asked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "york-morale-pregnant"
+    name: "York — Morale Pregnant"
+    description: "Subsequent York interaction after player has retrieved the key. Unlocks cooking minigame."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "name-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_failure: null
+      - name: "cooking-not-yet-unlocked"
+        type: "flag"
+        flag_data:
+          flag_name: "global.cooking_unlocked"
+          flag_value: 1
+          flag_comparison: not_equal
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_success: null
+      - name: "not-yet-told"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_morale_pregnant_told"
+          flag_value: 1
+          flag_comparison: not_equal
+          is_global_flag: false
+        is_required: true
+        silent: true
+        on_success: null
+    message:
+      npc_speaker: "york-waylan"
+      text: |
+        "${2p} tìm được cô ấy rồi à. Tốt. Cô ấy sẽ không tự nói ra đâu, nhưng cô ấy đang trong giai đoạn khó khăn — cô ấy đang mang thai, trên hết mọi thứ. ${npc_1p} định nhờ ai đó chuẩn bị gì đó tươm tất cho cô ấy, nhưng đó không phải việc của ${npc_1p}. Nếu ${2p} có lòng và tìm được nguyên liệu phù hợp, ${npc_1p} nghĩ cô ấy sẽ biết ơn."
+    actions:
+      - type: flag
+        flag_name: "global.cooking_unlocked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: "char.york_morale_pregnant_told"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "hensbane-bilge-key"
+    name: "Hensbane — Bilge Key"
+    description: "Triggered by player asking Hensbane about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "lawrence-hensbane"
+      text: |
+        "Chuyện đó không phải việc ${npc_1p} theo dõi. Hỏi York đi — kho bãi là lãnh địa của ông ấy."
+
+  - id: "mcbetha-bilge-key"
+    name: "Father McBetha — Bilge Key"
+    description: "Triggered by player asking Father McBetha about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "ian-mcbetha"
+      text: |
+        "Chìa khóa hầm tàu. ${npc_1p} e rằng điều đó nằm ngoài phạm vi của ${npc_1p}. York sẽ biết."
+
+  - id: "galeby-bilge-key"
+    name: "Galeby — Bilge Key"
+    description: "Triggered by player asking Galeby about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "galeby"
+      text: |
+        "${npc_1p} chẳng rõ chuyện đó. Hỏi người quản lý trên tàu thì chắc hơn."
+
+  # ─────────────────────────────────────────────
+  # MORALE INTERACTIONS
+  # ─────────────────────────────────────────────
+
+  - id: "morale-first-interaction"
+    name: "Morale — First Interaction"
+    description: "Triggered by /talk morale after player has spoken to York about the key."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "york-asked"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_bilge_key_asked"
+          flag_value: 1
+          is_global_flag: false
+        is_required: true
+        silent: true
+        on_failure: null
+      - name: "name-not-yet-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: "morale-subsequent"
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Cô ấy nằm trong hốc dây thừng, đầu gối lên chân trước. Khi bạn nhắc đến York và chìa khóa, đôi mắt vàng mở ra hoàn toàn.
+
+        Cô ấy nhìn bạn một lúc lâu.
+
+        "Mrrow."
+
+        Thân người khẽ dịch sang một bên, để lộ sợi dây nhỏ và chiếc chìa khóa nằm dưới hông. Cô ấy không rời mắt khỏi bạn, chỉ chớp mắt chậm một cái.
+
+        Chiếc chìa khóa nằm đó, rõ ràng và dễ lấy.
+    options:
+      - id: "take-the-key"
+        text: "Lấy chìa khóa"
+        next: "morale-key-taken"
+
+  - id: "morale-key-taken"
+    name: "Morale — Key Taken"
+    is_active: true
+    message:
+      text: |
+        Khi bạn nhấc nó lên, cô ấy phát ra một tiếng "prrt" nhỏ rồi đặt đầu xuống lại, như thể công việc đã xong.
+    actions:
+      - type: item
+        item: "bilge-key"
+        quantity: "1"
+        operation: give
+        silent: false
+        custom_message: "Bạn có chìa khóa hầm tàu."
+      - type: flag
+        flag_name: "global.morale_name_revealed"
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: "global.lt-morale_known"
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+  - id: "morale-subsequent"
+    name: "Morale — Subsequent Interaction"
+    description: "Available after name is revealed."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Bạn đến gần, và một mắt cô ấy mở ra.
+
+        "Mrrp?"
+
+        Ánh nhìn dừng lại trên tay bạn, như đang kiểm tra xem bạn có mang theo thứ gì không. Không thấy gì thú vị, mắt cô ấy khép lại, nhưng tai vẫn hướng về phía bạn.
+
+        Đuôi khẽ vẫy một cái chậm rãi.
+    options:
+      - id: "pet-her"
+        text: "Vuốt đầu cô ấy"
+        next: "morale-stay"
+      - id: "leave-her-to-it"
+        text: "Để cô ấy nghỉ"
+        next: null
+
+  - id: "morale-stay"
+    name: "Morale — Stay"
+    is_active: true
+    message:
+      text: |
+        Bạn ngồi xuống gần đó.
+
+        Một lúc sau, cô ấy xoay người, duỗi chân trước ra rồi nằm lại theo hướng quay về phía bạn. Không chạm vào, nhưng khoảng cách đã ngắn hơn trước.
+
+        Tiếng thở đều và nhỏ.
+
+        Đuôi cô ấy thỉnh thoảng quét nhẹ lên sàn, chạm vào mũi giày bạn một lần, rồi thôi.
+
+        "prrr..."
+
+        Rất khẽ, gần như chỉ nghe thấy khi không còn âm thanh nào khác trên tàu.
+    options:
+      - id: "reach-out"
+        text: "Đưa tay lại gần"
+        next: "morale-pet-1"
+
+  - id: "morale-pet-1"
+    name: "Morale — Pet 1"
+    is_active: true
+    message:
+      text: |
+        Bạn đưa tay lại gần.
+
+        Cô ấy mở mắt, nhìn bàn tay bạn một giây, rồi không tránh. Tai khẽ xoay về phía bạn.
+
+        Khi tay chạm vào đầu, cô ấy nhắm mắt lại.
+
+        "prr."
+
+        Một tiếng rất nhỏ, gần như rung nhẹ trong cổ họng. Cô ấy vẫn nằm yên, chỉ có đuôi khẽ quét một vòng chậm rãi trên dây thừng.
+    options:
+      - id: "pet-again-2"
+        text: "Vuốt tiếp"
+        next: "morale-pet-2"
+
+  - id: "morale-pet-2"
+    name: "Morale — Pet 2"
+    is_active: true
+    message:
+      text: |
+        Bạn vuốt nhẹ lần nữa.
+
+        Cô ấy nghiêng đầu theo tay bạn, như thể để chỗ vuốt dễ hơn một chút. Râu khẽ rung, mắt khép hờ.
+
+        "mrr..."
+
+        Tiếng kêu trầm và đều. Một chân trước duỗi ra, rồi thu lại, giữ nguyên tư thế nằm cuộn.
+
+        Đuôi đập nhẹ một cái lên sàn, rồi lại yên.
+    options:
+      - id: "pet-again-3"
+        text: "Vuốt thêm lần nữa"
+        next: "morale-pet-3"
+
+  - id: "morale-pet-3"
+    name: "Morale — Pet 3"
+    is_active: true
+    message:
+      text: |
+        Bạn lại đưa tay xuống.
+
+        Tai cô ấy cụp nhẹ ra sau. Mắt mở ra hoàn toàn.
+
+        "mrrp."
+
+        Cô ấy nhấc đầu lên, dịch người ra khỏi tay bạn và xoay lưng lại. Đuôi quét một cái dứt khoát rồi cuộn lại quanh thân.
+
+        Không có tiếng kêu nào nữa.
+
+        Rõ ràng là đã đủ.

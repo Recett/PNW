@@ -1,0 +1,268 @@
+enemies:
+
+  # -----------------------------------------------
+  # Captain Hensbane — SPARRING LADDER
+  # Reference player: STR12 DEX11 AGI10 CON9
+  #   HP=94, sword accuracy=8, attack=9, defense=1
+  #
+  # Rank 1: player wins, takes ~51% HP
+  # Rank 2: player wins, takes ~79% HP
+  # Rank 3: player loses, dies ~79 ticks
+  # Rank 4: player loses, dies ~73 ticks
+  # Rank 5: player loses, dies ~56 ticks
+  #
+  # Stat equivalents: R1=STR10/DEX10/AGI6, R2=STR11/DEX11/AGI8,
+  #   R3=STR11/DEX11/AGI10, R4=STR12/DEX12/AGI11, R5=STR13/DEX13/AGI12
+  # Weapon DPS equalised across all five weapons per rank.
+  # pick_one: system picks one attack randomly at combat start
+  # -----------------------------------------------
+
+  - id: lawrence_hensbane_1
+    name: Captain Hensbane
+    unknown_name: "The Mercenary"
+    level: 1
+    enemy_type: humanoid
+    status: active
+    tags:
+      - pick_one
+    stats:
+      health: 80
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 6
+      speed: 9
+    attacks:
+      - id: sword
+        name: Sword
+        base_damage: 9
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 100
+      - id: dagger
+        name: Dagger
+        base_damage: 8
+        accuracy: 9
+        critical_chance: 4
+        cooldown: 75
+      - id: spear
+        name: Spear
+        base_damage: 9
+        accuracy: 11
+        critical_chance: 4
+        cooldown: 110
+      - id: axe
+        name: Axe
+        base_damage: 11
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 130
+      - id: mace
+        name: Mace
+        base_damage: 13
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 145
+    reward:
+      gold: 10
+      exp: 100
+
+  - id: lawrence_hensbane_2
+    name: Captain Hensbane
+    unknown_name: "The Mercenary"
+    level: 2
+    enemy_type: humanoid
+    status: active
+    tags:
+      - pick_one
+    stats:
+      health: 90
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 8
+      speed: 10
+    attacks:
+      - id: sword
+        name: Sword
+        base_damage: 9
+        accuracy: 9
+        critical_chance: 4
+        cooldown: 100
+      - id: dagger
+        name: Dagger
+        base_damage: 8
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 75
+      - id: spear
+        name: Spear
+        base_damage: 10
+        accuracy: 11
+        critical_chance: 4
+        cooldown: 110
+      - id: axe
+        name: Axe
+        base_damage: 13
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 130
+      - id: mace
+        name: Mace
+        base_damage: 13
+        accuracy: 8
+        critical_chance: 4
+        cooldown: 145
+    reward:
+      gold: 15
+      exp: 200
+
+  - id: lawrence_hensbane_3
+    name: Captain Hensbane
+    unknown_name: "The Mercenary"
+    level: 3
+    enemy_type: humanoid
+    status: active
+    tags:
+      - pick_one
+    stats:
+      health: 95
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 10
+      speed: 11
+    attacks:
+      - id: sword
+        name: Sword
+        base_damage: 10
+        accuracy: 10
+        critical_chance: 4
+        cooldown: 100
+      - id: dagger
+        name: Dagger
+        base_damage: 9
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 75
+      - id: spear
+        name: Spear
+        base_damage: 11
+        accuracy: 12
+        critical_chance: 4
+        cooldown: 110
+      - id: axe
+        name: Axe
+        base_damage: 14
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 130
+      - id: mace
+        name: Mace
+        base_damage: 14
+        accuracy: 8
+        critical_chance: 4
+        cooldown: 145
+    reward:
+      gold: 25
+      exp: 350
+
+  - id: lawrence_hensbane_4
+    name: Captain Hensbane
+    unknown_name: "The Mercenary"
+    level: 4
+    enemy_type: humanoid
+    status: active
+    tags:
+      - pick_one
+    stats:
+      health: 100
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 11
+      speed: 11
+    attacks:
+      - id: sword
+        name: Sword
+        base_damage: 10
+        accuracy: 10
+        critical_chance: 4
+        cooldown: 100
+      - id: dagger
+        name: Dagger
+        base_damage: 9
+        accuracy: 7
+        critical_chance: 4
+        cooldown: 75
+      - id: spear
+        name: Spear
+        base_damage: 11
+        accuracy: 12
+        critical_chance: 4
+        cooldown: 110
+      - id: axe
+        name: Axe
+        base_damage: 14
+        accuracy: 8
+        critical_chance: 4
+        cooldown: 130
+      - id: mace
+        name: Mace
+        base_damage: 14
+        accuracy: 9
+        critical_chance: 4
+        cooldown: 145
+    reward:
+      gold: 40
+      exp: 500
+
+  - id: lawrence_hensbane_5
+    name: Captain Hensbane
+    unknown_name: "The Mercenary"
+    level: 5
+    enemy_type: humanoid
+    status: active
+    tags:
+      - pick_one
+    stats:
+      health: 110
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 12
+      speed: 12
+    attacks:
+      - id: sword
+        name: Sword
+        base_damage: 11
+        accuracy: 10
+        critical_chance: 5
+        cooldown: 100
+      - id: dagger
+        name: Dagger
+        base_damage: 9
+        accuracy: 8
+        critical_chance: 5
+        cooldown: 75
+      - id: spear
+        name: Spear
+        base_damage: 11
+        accuracy: 12
+        critical_chance: 5
+        cooldown: 110
+      - id: axe
+        name: Axe
+        base_damage: 14
+        accuracy: 9
+        critical_chance: 5
+        cooldown: 130
+      - id: mace
+        name: Mace
+        base_damage: 16
+        accuracy: 9
+        critical_chance: 5
+        cooldown: 145
+    reward:
+      gold: 80
+      exp: 400

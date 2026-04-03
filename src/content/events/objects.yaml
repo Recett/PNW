@@ -1,0 +1,30 @@
+events:
+
+  # ─────────────────────────────────────────────
+  # OBJECT INTERACTIONS
+  # ─────────────────────────────────────────────
+
+  - id: "obj-small-cabinet-discovery"
+    name: "Cái Tủ Nhỏ — Khám Phá"
+    event_type: "object"
+    is_active: true
+
+    message:
+      title: "Cái tủ nhỏ"
+      text: |
+        Trong góc tủ, đống vải cũ khẽ trũng xuống. Ánh sáng tràn qua khe cửa, chiếu rõ một cuộn lông mang ba mảng màu đen, trắng và cam.
+
+        Cái đầu ngẩng lên.
+
+        "Meo."
+
+        Nó rướn cổ về phía mép sáng, đôi mắt vàng chớp nhẹ.
+      message_type: "normal"
+
+    actions:
+      - type: flag
+        flag_name: "char.morale_cabinet_found"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true

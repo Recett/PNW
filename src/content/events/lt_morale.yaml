@@ -1,0 +1,164 @@
+# lt_morale.yaml
+# Cooking reaction events (6 tiers) + Rat King triggered encounter.
+# Flavor text is Vietnamese. Structural fields remain English per schema convention.
+# Cooking tier routing is handled by the cooking system — these events are the endpoints.
+
+events:
+
+  # ─────────────────────────────────────────────
+  # COOKING REACTIONS
+  # ─────────────────────────────────────────────
+
+  - id: "lt-morale-reaction-1"
+    name: "Lt. Morale — Phớt lờ hoàn toàn"
+    description: "Tier 1 cooking reaction. Cat does not approach the bowl."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Cái bát nằm nguyên trên sàn khoang. Thức ăn nguội dần trong im lặng.
+        Morale không xuất hiện.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+
+  - id: "lt-morale-reaction-2"
+    name: "Lt. Morale — Ngửi rồi bỏ đi"
+    description: "Tier 2 cooking reaction. Cat approaches, sniffs once, leaves."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale bước vào khoang, dừng lại trước cái bát và cúi xuống ngửi.
+        Cô đứng yên vài giây rồi quay đầu rời đi. Thức ăn không bị chạm tới.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+
+  - id: "lt-morale-reaction-3"
+    name: "Lt. Morale — Ăn miễn cưỡng"
+    description: "Tier 3 cooking reaction. Cat eats without enthusiasm."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale ăn vài miếng nhỏ, dừng lại giữa chừng rồi ngửi lại phần còn lại trong bát.
+        Cô rời khỏi khoang khi thức ăn vẫn còn lại một phần.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+
+  - id: "lt-morale-reaction-4"
+    name: "Lt. Morale — Ăn hết phần"
+    description: "Tier 4 cooking reaction. Cat eats and lingers briefly."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale ăn đều đặn cho đến khi phần thức ăn trong bát hết hẳn.
+        Cô ngửi đáy bát một lần rồi rời khỏi khoang.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+
+  - id: "lt-morale-reaction-5"
+    name: "Lt. Morale — Ăn nhanh và dứt khoát"
+    description: "Tier 5 cooking reaction. Cat purrs continuously while eating."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale ăn nhanh hơn thường lệ, gần như không dừng lại.
+        Khi bát trống, cô liếm quanh thành bát và đáy bát thêm vài lần trước khi rời đi.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+
+  - id: "lt-morale-reaction-6"
+    name: "Lt. Morale — Không còn gì sót lại"
+    description: "Tier 6 cooking reaction. Cat finishes and keeps returning. Best possible result."
+    event_type: "npc_reaction"
+    is_active: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale ăn hết phần thức ăn rồi tiếp tục liếm đáy bát, chậm và kỹ, cho đến khi không còn mùi gì đáng chú ý.
+        Cô kiểm tra lại bát một lần cuối rồi rời khỏi khoang, để lại chiếc bát trống và sạch.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+    actions:
+      - type: "flag"
+        flag_name: "global.lt_morale_best_reaction_seen"
+        flag_value: "true"
+        flag_operation: "set"
+        flag_type: "global"
+        silent: true
+
+
+  # ─────────────────────────────────────────────
+  # RAT KING TRIGGERED ENCOUNTER
+  # ─────────────────────────────────────────────
+
+  - id: "lt-morale-rat-king-encounter"
+    name: "Lt. Morale — Bắt gặp sau Rat King"
+    description: |
+      Fires once per character on first entry to any location containing lt-morale,
+      after char.rat_king_slain is set. Sets char.lt_morale_recognized on completion.
+      Persistent behavior (cat waiting at bilge entrance) is handled by the location
+      system reading char.lt_morale_recognized — not by this event directly.
+    event_type: "npc_triggered"
+    is_active: true
+
+    checks:
+      - name: "rat_king_slain"
+        type: "flag"
+        flag_data:
+          flag_name: "char.rat_king_slain"
+          flag_value: "true"
+          is_global_flag: false
+        is_required: true
+        silent: true
+        execution_order: 0
+
+      - name: "not_yet_recognized"
+        type: "flag"
+        flag_data:
+          flag_name: "char.lt_morale_recognized"
+          flag_value: "true"
+          is_global_flag: false
+        is_required: true
+        silent: true
+        on_success: null
+        on_failure: null
+        execution_order: 1
+        metadata:
+          invert: true
+
+    message:
+      title: "Trung úy Morale"
+      text: |
+        Morale dừng lại ở cửa hầm dẫn xuống bilge. Cô nhìn vào khoảng tối bên dưới một lúc lâu, tai khẽ động theo tiếng tàu.
+
+        Sau đó cô quay người và rời đi.
+      avatar: "lt_morale.png"
+      message_type: "npc_flavor"
+
+    actions:
+      - type: "flag"
+        flag_name: "char.lt_morale_recognized"
+        flag_value: "true"
+        flag_operation: "set"
+        flag_type: "character"
+        silent: true

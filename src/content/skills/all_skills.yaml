@@ -17,60 +17,72 @@ skills:
 
   - id: "1"
     name: Axe Mastery
+    subtype: axe
     description: Weapon mastery skill for axe equipment
     bonus_value: 0
 
   - id: "2"
     name: Dagger Mastery
+    subtype: dagger
     description: Weapon mastery skill for dagger equipment
     bonus_value: 0
 
   - id: "3"
     name: Longbow Mastery
+    subtype: longbow
     description: Weapon mastery skill for longbow equipment
     bonus_value: 0
 
   - id: "4"
     name: Mace Mastery
+    subtype: mace
     description: Weapon mastery skill for mace equipment
     bonus_value: 0
 
   - id: "5"
     name: Rapier Mastery
+    subtype: rapier
     description: Weapon mastery skill for rapier equipment
     bonus_value: 0
 
   - id: "6"
     name: Shield Mastery
+    subtype: shield
     description: Weapon mastery skill for shield equipment
     bonus_value: 0
 
   - id: "7"
     name: Shortbow Mastery
+    subtype: shortbow
     description: Weapon mastery skill for shortbow equipment
     bonus_value: 0
 
   - id: "8"
     name: Spear Mastery
+    subtype: spear
     description: Weapon mastery skill for spear equipment
     bonus_value: 0
 
   - id: "9"
     name: Sword Mastery
+    subtype: sword
     description: Weapon mastery skill for sword equipment
     bonus_value: 0
 
   - id: "10"
     name: Heavy Mastery
+    subtype: heavy
     description: Armor mastery skill for heavy equipment
     bonus_value: 0
 
   - id: "11"
     name: Light Mastery
+    subtype: light
     description: Armor mastery skill for light equipment
     bonus_value: 0
 
   - id: "12"
     name: Medium Mastery
+    subtype: medium
     description: Armor mastery skill for medium equipment
     bonus_value: 0

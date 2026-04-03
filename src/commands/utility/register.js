@@ -15,7 +15,7 @@ const {
 } = require('discord.js');
 const { CharacterBase, CharacterItem, CharacterThread, LocationBase } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
-const RS = require('./registerStrings.js');
+const RS = require('@utility/registerStrings.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()

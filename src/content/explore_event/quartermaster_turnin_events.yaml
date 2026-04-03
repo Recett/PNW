@@ -1,0 +1,280 @@
+events:
+
+  # -----------------------------------------------
+  # QUARTERMASTER YORK — FOOD TURN-IN
+  # Player talks to York and selects which food item
+  # to turn in. Each item grants gold + food stock.
+  #
+  # Gold rates:
+  #   rat_meat  → 2g  +4 food stock
+  #   herring   → 4g  +6 food stock
+  #   mackerel  → 6g  +6 food stock
+  #   crab_meat → 9g  +8 food stock
+  #   shark_meat→ 10g +8 food stock
+  #
+  # Entry point: york-turnin-menu
+  # -----------------------------------------------
+
+  - id: york-turnin-menu
+    name: "York — Turn-In Menu"
+    event_type: encounter
+
+    message:
+      text: "York glances at whatever you're carrying. \"Got something for the stores? I'll take it off your hands — fair price.\""
+
+    options:
+      - id: york-turnin-rat
+        text: "Hand over rat meat"
+        next: york-turnin-check-rat
+        display_order: 0
+      - id: york-turnin-herring
+        text: "Hand over herring"
+        next: york-turnin-check-herring
+        display_order: 1
+      - id: york-turnin-mackerel
+        text: "Hand over mackerel"
+        next: york-turnin-check-mackerel
+        display_order: 2
+      - id: york-turnin-crab
+        text: "Hand over crab meat"
+        next: york-turnin-check-crab
+        display_order: 3
+      - id: york-turnin-shark
+        text: "Hand over shark meat"
+        next: york-turnin-check-shark
+        display_order: 4
+      - id: york-turnin-leave
+        text: "Nothing right now"
+        next: york-turnin-farewell
+        display_order: 5
+
+  # ── RAT MEAT ───────────────────────────────────
+
+  - id: york-turnin-check-rat
+    name: "York — Check rat meat"
+    event_type: encounter
+
+    checks:
+      - name: has-rat-meat
+        type: item
+        item_data:
+          - item_id: rat_meat
+            required_quantity: 1
+        silent: true
+        on_success: york-turnin-take-rat
+        on_failure: york-turnin-no-item
+
+  - id: york-turnin-take-rat
+    name: "York — Take rat meat"
+    event_type: encounter
+
+    message:
+      text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you two coins."
+
+    actions:
+      - type: item
+        item: rat_meat
+        quantity: "1"
+        operation: take
+        silent: true
+      - type: stat
+        stat_name: gold
+        value: "2"
+        operation: add
+        silent: false
+        custom_message: You receive 2 gold.
+      - type: flag
+        flag_name: global.food_stock
+        flag_value: "4"
+        flag_operation: add
+        flag_type: global
+        silent: false
+        custom_message: Food stock +4.
+
+  # ── HERRING ────────────────────────────────────
+
+  - id: york-turnin-check-herring
+    name: "York — Check herring"
+    event_type: encounter
+
+    checks:
+      - name: has-herring
+        type: item
+        item_data:
+          - item_id: herring
+            required_quantity: 1
+        silent: true
+        on_success: york-turnin-take-herring
+        on_failure: york-turnin-no-item
+
+  - id: york-turnin-take-herring
+    name: "York — Take herring"
+    event_type: encounter
+
+    message:
+      text: "\"Herring. Good.\" York marks it in his ledger and counts out four coins without looking up."
+
+    actions:
+      - type: item
+        item: herring
+        quantity: "1"
+        operation: take
+        silent: true
+      - type: stat
+        stat_name: gold
+        value: "4"
+        operation: add
+        silent: false
+        custom_message: You receive 4 gold.
+      - type: flag
+        flag_name: global.food_stock
+        flag_value: "6"
+        flag_operation: add
+        flag_type: global
+        silent: false
+        custom_message: Food stock +6.
+
+  # ── MACKEREL ───────────────────────────────────
+
+  - id: york-turnin-check-mackerel
+    name: "York — Check mackerel"
+    event_type: encounter
+
+    checks:
+      - name: has-mackerel
+        type: item
+        item_data:
+          - item_id: mackerel
+            required_quantity: 1
+        silent: true
+        on_success: york-turnin-take-mackerel
+        on_failure: york-turnin-no-item
+
+  - id: york-turnin-take-mackerel
+    name: "York — Take mackerel"
+    event_type: encounter
+
+    message:
+      text: "York lifts the mackerel, squeezes it once. \"This'll do.\" Six coins land on the table."
+
+    actions:
+      - type: item
+        item: mackerel
+        quantity: "1"
+        operation: take
+        silent: true
+      - type: stat
+        stat_name: gold
+        value: "6"
+        operation: add
+        silent: false
+        custom_message: You receive 6 gold.
+      - type: flag
+        flag_name: global.food_stock
+        flag_value: "6"
+        flag_operation: add
+        flag_type: global
+        silent: false
+        custom_message: Food stock +6.
+
+  # ── CRAB MEAT ──────────────────────────────────
+
+  - id: york-turnin-check-crab
+    name: "York — Check crab meat"
+    event_type: encounter
+
+    checks:
+      - name: has-crab-meat
+        type: item
+        item_data:
+          - item_id: crab_meat
+            required_quantity: 1
+        silent: true
+        on_success: york-turnin-take-crab
+        on_failure: york-turnin-no-item
+
+  - id: york-turnin-take-crab
+    name: "York — Take crab meat"
+    event_type: encounter
+
+    message:
+      text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. Nine coins."
+
+    actions:
+      - type: item
+        item: crab_meat
+        quantity: "1"
+        operation: take
+        silent: true
+      - type: stat
+        stat_name: gold
+        value: "9"
+        operation: add
+        silent: false
+        custom_message: You receive 9 gold.
+      - type: flag
+        flag_name: global.food_stock
+        flag_value: "8"
+        flag_operation: add
+        flag_type: global
+        silent: false
+        custom_message: Food stock +8.
+
+  # ── SHARK MEAT ─────────────────────────────────
+
+  - id: york-turnin-check-shark
+    name: "York — Check shark meat"
+    event_type: encounter
+
+    checks:
+      - name: has-shark-meat
+        type: item
+        item_data:
+          - item_id: shark_meat
+            required_quantity: 1
+        silent: true
+        on_success: york-turnin-take-shark
+        on_failure: york-turnin-no-item
+
+  - id: york-turnin-take-shark
+    name: "York — Take shark meat"
+    event_type: encounter
+
+    message:
+      text: "York stares at the shark meat for a moment. Then at you. \"Ten coins. Don't make a habit of nearly dying.\""
+
+    actions:
+      - type: item
+        item: shark_meat
+        quantity: "1"
+        operation: take
+        silent: true
+      - type: stat
+        stat_name: gold
+        value: "10"
+        operation: add
+        silent: false
+        custom_message: You receive 10 gold.
+      - type: flag
+        flag_name: global.food_stock
+        flag_value: "8"
+        flag_operation: add
+        flag_type: global
+        silent: false
+        custom_message: Food stock +8.
+
+  # ── SHARED OUTCOMES ────────────────────────────
+
+  - id: york-turnin-no-item
+    name: "York — Item not found"
+    event_type: encounter
+
+    message:
+      text: "York checks your pack and shakes his head. \"You don't have any of that.\""
+
+  - id: york-turnin-farewell
+    name: "York — Farewell"
+    event_type: encounter
+
+    message:
+      text: "\"Right. Come back when you've got something.\""

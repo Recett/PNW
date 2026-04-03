@@ -320,7 +320,7 @@ function drawSectionHeader(ctx, text, x, y, width) {
  * @param {string} avatarUrl - URL to character avatar
  * @returns {Promise<Buffer>} PNG image buffer
  */
-async function generateStatCard(character, combatStats, attackStats, equipment, avatarUrl) {
+async function generateStatCard(character, combatStats, attackStats, equipment, avatarUrl, foodBuffRows) {
 	console.log('[Canvas] generateStatCard called for character:', character.id);
 	
 	// CRITICAL: Register fonts for @napi-rs/canvas before any rendering
@@ -511,6 +511,20 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		{ label: 'Critical', value: attackStats?.critical ?? 0 },
 	];
 
+	// Compute food buff gains for annotation (+X in green)
+	const FOOD_LABEL_KEY = { Attack: 'attack', Defense: 'defense', Accuracy: 'accuracy', Evade: 'evade', Speed: 'speed', Critical: 'critical' };
+	const FOOD_STAT_MULT_IMG = { attack: 1 / 3, defense: 1 / 5, accuracy: 1 / 3, evade: 1 / 3, speed: 1 / 3, critical: 2 };
+	const foodGainMap = {};
+	if (foodBuffRows && foodBuffRows.length > 0) {
+		for (const fb of foodBuffRows) {
+			const mult = FOOD_STAT_MULT_IMG[fb.stat_target];
+			if (mult != null) {
+				const gain = Math.floor(fb.potency * mult);
+				if (gain > 0) foodGainMap[fb.stat_target] = (foodGainMap[fb.stat_target] || 0) + gain;
+			}
+		}
+	}
+
 	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
 	combatData.forEach((stat, index) => {
 		const col = index % 2;
@@ -522,9 +536,23 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		ctx.textAlign = 'left';
 		ctx.fillText(`${stat.label}:`, statX, statY);
 
-		ctx.fillStyle = '#ffffff';
-		ctx.textAlign = 'right';
-		ctx.fillText(stat.value.toString(), statX + 130, statY);
+		const foodKey = FOOD_LABEL_KEY[stat.label];
+		const foodGain = foodKey ? (foodGainMap[foodKey] || 0) : 0;
+
+		if (foodGain > 0) {
+			const buffStr = `(+${foodGain})`;
+			const buffWidth = ctx.measureText(buffStr).width;
+			ctx.fillStyle = '#ffffff';
+			ctx.textAlign = 'right';
+			ctx.fillText(stat.value.toString(), statX + 130 - buffWidth - 4, statY);
+			ctx.fillStyle = '#2ecc71';
+			ctx.fillText(buffStr, statX + 130, statY);
+		}
+		else {
+			ctx.fillStyle = '#ffffff';
+			ctx.textAlign = 'right';
+			ctx.fillText(stat.value.toString(), statX + 130, statY);
+		}
 	});
 
 	// === EQUIPMENT SECTION ===

@@ -16,4 +16,79 @@
 # Last modified: 2026-03-23
 # ===============================================
 
-other_items: []
+other_items:
+  - id: rat_meat
+    name: Rat Meat
+    description: A small, scraggly piece of rat meat. Not appetizing, but it is food.
+    item_type: material
+    value: 2
+    tags:
+      - cooking_ingredient
+      - raw_meat
+    metadata:
+      stackable: true
+      tradeable: true
+
+  - id: herring
+    name: Herring
+    description: A small, oily fish. Common in these waters.
+    item_type: material
+    value: 4
+    tags:
+      - cooking_ingredient
+      - base_ingredient
+      - fish
+      - cooking_trait_oily
+    metadata:
+      stackable: true
+      tradeable: true
+      initialTraits:
+        - Oily
+
+  - id: mackerel
+    name: Mackerel
+    description: A firm-fleshed fish with a clean flavour.
+    item_type: material
+    value: 6
+    tags:
+      - cooking_ingredient
+      - base_ingredient
+      - fish
+      - cooking_trait_tender
+    metadata:
+      stackable: true
+      tradeable: true
+      initialTraits:
+        - Tender
+
+  - id: crab_meat
+    name: Crab Meat
+    description: Firm, faintly sweet meat from a giant crab. It put up a fight.
+    item_type: material
+    value: 9
+    tags:
+      - cooking_ingredient
+      - base_ingredient
+      - crustacean
+      - cooking_trait_smooth
+    metadata:
+      stackable: true
+      tradeable: true
+      initialTraits:
+        - Smooth
+
+  - id: shark_meat
+    name: Shark Meat
+    description: Tough and stringy. Impressive to have caught at all.
+    item_type: material
+    value: 10
+    tags:
+      - cooking_ingredient
+      - base_ingredient
+      - fish
+      - cooking_trait_stringy
+    metadata:
+      stackable: true
+      tradeable: true
+      initialTraits:
+        - Stringy

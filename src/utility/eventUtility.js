@@ -19,6 +19,7 @@ const { processTextTemplate } = require('./generalUtility');
 const {
 	FLAG_TYPE,
 	FLAG_OPERATION,
+	FLAG_COMPARISON,
 	ITEM_OPERATION,
 	STAT_OPERATION,
 	MOVEMENT_TYPE,
@@ -56,6 +57,56 @@ class EventProcessor {
 		this.activeEvents = new Map();
 		this.activeCharacters = new Set(); // Track characters currently in an active event chain
 		this._characterCache = new Map(); // Cache character data within session
+		this.pendingDeletions = new Map(); // characterId -> { timeoutId, message }
+	}
+
+	async _scheduleDeletion(characterId, message) {
+		if (!characterId) {
+			await message.delete().catch(() => {});
+			return;
+		}
+		if (this.pendingDeletions.has(characterId)) {
+			const existing = this.pendingDeletions.get(characterId);
+			clearTimeout(existing.timeoutId);
+			this.pendingDeletions.delete(characterId);
+		}
+		if (message.channelId && message.id) {
+			await characterSettingUtil.setCharacterSetting(characterId, '_pending_delete', `${message.channelId}|${message.id}|${Date.now()}`).catch(() => {});
+		}
+		const timeoutId = setTimeout(async () => {
+			message.delete().catch(() => {});
+			this.pendingDeletions.delete(characterId);
+			await characterSettingUtil.deleteCharacterSetting(characterId, '_pending_delete').catch(() => {});
+		}, 60 * 60 * 1000);
+		this.pendingDeletions.set(characterId, { timeoutId, message });
+	}
+
+	async _cancelPendingDeletion(characterId, client = null) {
+		if (!characterId) return;
+		if (this.pendingDeletions.has(characterId)) {
+			const pending = this.pendingDeletions.get(characterId);
+			clearTimeout(pending.timeoutId);
+			pending.message.delete().catch(() => {});
+			this.pendingDeletions.delete(characterId);
+		}
+		try {
+			const pendingFlag = await characterSettingUtil.getCharacterSetting(characterId, '_pending_delete');
+			if (pendingFlag && pendingFlag.includes('|')) {
+				if (client) {
+					const [channelId, messageId] = pendingFlag.split('|');
+					try {
+						const channel = await client.channels.fetch(channelId);
+						if (channel) {
+							const msg = await channel.messages.fetch(messageId).catch(() => null);
+							if (msg) await msg.delete().catch(() => {});
+						}
+					}
+					catch (e) { /* message or channel may not exist */ }
+				}
+				await characterSettingUtil.deleteCharacterSetting(characterId, '_pending_delete').catch(() => {});
+			}
+		}
+		catch (e) { /* setting may not exist */ }
 	}
 
 	/**
@@ -93,11 +144,6 @@ class EventProcessor {
 	 * Main entry point - process an event
 	 */
 	async processEvent(eventId, interaction, characterId = null, sessionData = {}) {
-		// Log incoming session flags
-		if (sessionData.flags) {
-			console.log(`[processEvent] ${eventId} - Incoming local flags:`, JSON.stringify(sessionData.flags.local || {}, null, 2));
-		}
-		
 		const session = {
 			characterId,
 			interaction,
@@ -137,6 +183,7 @@ class EventProcessor {
 					return { success: false, error: 'already_in_event' };
 				}
 				this.activeCharacters.add(characterId);
+				await this._cancelPendingDeletion(characterId, interaction.client);
 			}
 
 			// 1. Get event base
@@ -294,7 +341,34 @@ class EventProcessor {
 				return { result: 'error', message: 'No enemy defined for combat' };
 			}
 
-			const combatResult = await combatUtil.mainCombat(session.characterId, enemyId);
+			// Handle persistent HP enemies (e.g. Rat King)
+			const enemyBase = contentStore.enemies.findByPk(String(enemyId));
+			const enemyTags = Array.isArray(enemyBase?.tags) ? enemyBase.tags : [];
+			const isPersistent = enemyTags.includes('persistent_hp');
+
+			let enemyStartHp = null;
+			if (isPersistent) {
+				const hpFlag = await GlobalFlag.findOne({ where: { flag: `global.${enemyId}_hp` } });
+				if (hpFlag) {
+					enemyStartHp = parseInt(hpFlag.value) || null;
+				}
+			}
+
+			const combatOptions = enemyStartHp != null ? { enemyStartHp } : {};
+			const combatResult = await combatUtil.mainCombat(session.characterId, enemyId, combatOptions);
+
+			// Persist enemy HP if enemy survived the encounter
+			if (isPersistent) {
+				const enemyHpAfter = combatResult.finalState?.enemy?.hp ?? 0;
+				if (enemyHpAfter > 0) {
+					await GlobalFlag.upsert({ flag: `global.${enemyId}_hp`, value: String(enemyHpAfter) });
+					console.log(`[Combat] Saved persistent HP for ${enemyId}: ${enemyHpAfter}`);
+				}
+				else {
+					// Enemy was slain — clear the saved HP
+					await GlobalFlag.destroy({ where: { flag: `global.${enemyId}_hp` } });
+				}
+			}
 
 			// Determine outcome
 			const playerWon = combatResult.finalState?.player?.hp > 0;
@@ -332,7 +406,7 @@ class EventProcessor {
 	 */
 	async processChecks(eventId, session) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const checks = (eventData && eventData.check) ? [...eventData.check].sort((a, b) => (a.execution_order || 0) - (b.execution_order || 0)) : [];
+		const checks = (eventData && (eventData.check || eventData.checks)) ? [...(eventData.check || eventData.checks)].sort((a, b) => (a.execution_order || 0) - (b.execution_order || 0)) : [];
 
 		const results = {};
 		let branchEventId = null;
@@ -402,18 +476,45 @@ class EventProcessor {
 	 * Check flag condition
 	 */
 	async checkFlag(check, session) {
-		const { flag_name, flag_value, is_global_flag } = check.flag_data || {};
+		const { flag_name, flag_value, flag_comparison, is_global_flag } = check.flag_data || {};
 		if (!flag_name) return { success: false, message: 'Invalid flag check' };
 
 		// Convert boolean to FLAG_TYPE
 		const flagType = is_global_flag ? FLAG_TYPE.GLOBAL : FLAG_TYPE.CHARACTER;
 		let currentValue = await this.getFlagValue(flag_name, flagType, session);
-		const success = String(currentValue) === String(flag_value);
+		
+		// Default to 'equal' comparison for backwards compatibility
+		const comparison = flag_comparison || FLAG_COMPARISON.EQUAL;
+		let success = false;
+
+		switch (comparison) {
+		case FLAG_COMPARISON.GREATER_THAN:
+			success = currentValue > flag_value;
+			break;
+		case FLAG_COMPARISON.LESS_THAN:
+			success = currentValue < flag_value;
+			break;
+		case FLAG_COMPARISON.EQUAL:
+			success = currentValue === flag_value;
+			break;
+		case FLAG_COMPARISON.GREATER_EQUAL:
+			success = currentValue >= flag_value;
+			break;
+		case FLAG_COMPARISON.LESS_EQUAL:
+			success = currentValue <= flag_value;
+			break;
+		case FLAG_COMPARISON.NOT_EQUAL:
+			success = currentValue !== flag_value;
+			break;
+		default:
+			success = currentValue === flag_value;
+		}
 
 		return {
 			success,
 			value: currentValue,
 			expected: flag_value,
+			comparison: comparison,
 			message: success ? check.success_message : check.failure_message,
 		};
 	}
@@ -433,8 +534,8 @@ class EventProcessor {
 		let rollResult = null;
 
 		if (use_dice_roll) {
-			rollResult = Math.floor(Math.random() * 100) + 1;
-			const target = Math.max(1, statValue + (check.difficulty_modifier || 0));
+			rollResult = Math.floor(Math.random() * 1000) + 1;
+			const target = Math.max(1, Math.min(1000, Math.floor(statValue * ((check.difficulty_modifier || 1) * 10))));
 			success = rollResult <= target;
 		}
 		else {
@@ -659,7 +760,6 @@ class EventProcessor {
 			break;
 
 		case VARIABLE_SOURCE.INPUT:
-			console.log(`[DEBUG] Executing INPUT variable action for ${variable_name}`);
 			value = await this.collectModalInput(session, {
 				variable_name,
 				input_label: input_label || 'Enter value',
@@ -667,7 +767,6 @@ class EventProcessor {
 				input_default: input_default || '',
 				is_numeric: is_numeric || false,
 			});
-			console.log(`[DEBUG] INPUT variable action completed, value: ${value}`);
 			break;
 
 		case VARIABLE_SOURCE.CHAT_INPUT:
@@ -703,9 +802,6 @@ class EventProcessor {
 		const { variable_name, input_label, input_placeholder, input_default, is_numeric } = options;
 		let interaction = session.interaction;
 
-		console.log(`[DEBUG] collectModalInput called for variable: ${variable_name}`);
-		console.log(`[DEBUG] interaction type: ${interaction?.type}, replied: ${interaction?.replied}, deferred: ${interaction?.deferred}`);
-
 		// Create modal (title/label max 45 chars, placeholder max 100 chars)
 		const modalId = `input_modal_${variable_name}_${Date.now()}`;
 		const modal = new ModalBuilder()
@@ -729,10 +825,8 @@ class EventProcessor {
 		modal.addComponents(actionRow);
 
 		try {
-			console.log(`[DEBUG] Attempting to show modal...`);
 			// Show modal to user
 			await interaction.showModal(modal);
-			console.log(`[DEBUG] Modal shown successfully, waiting for submission...`);
 
 			// Wait for modal submission (5 minute timeout)
 			const modalSubmit = await interaction.awaitModalSubmit({
@@ -749,8 +843,6 @@ class EventProcessor {
 			// Update session interaction to use the modal submit for future responses
 			session.interaction = modalSubmit;
 
-			console.log(`[DEBUG] Modal input completed successfully, value: ${inputValue}`);
-
 			// Parse as number if needed
 			if (is_numeric) {
 				const numValue = parseInt(inputValue);
@@ -759,22 +851,28 @@ class EventProcessor {
 			return inputValue || input_default || '';
 		}
 		catch (error) {
-			// Timeout or error - acknowledge interaction if not already done
-			console.error(`[DEBUG] Modal input failed for ${variable_name}:`, error);
-			
-			// Emergency acknowledgment if interaction not already handled
+			console.error(`Modal input failed for ${variable_name}:`, error);
+
+			// If the modal never reached the user (interaction was already consumed),
+			// throw so the event aborts cleanly instead of saving a corrupted empty value.
+			if (error.code === 'InteractionAlreadyReplied') {
+				throw error;
+			}
+
+			// Genuine timeout (user saw modal but didn't respond) — fall back to default.
 			if (!interaction.replied && !interaction.deferred) {
 				try {
-					await interaction.reply({ 
+					await interaction.reply({
 						content: `${EMOJI.WARNING} Input timed out for ${variable_name}, using default: ${input_default}`,
-						ephemeral: true 
+						ephemeral: true,
 					});
-				} catch (e) {
-					console.error('Failed to acknowledge interaction after modal error:', e);
+				}
+				catch (e) {
+					console.error('Failed to acknowledge interaction after modal timeout:', e);
 				}
 			}
-			
-			console.log(`Modal input timed out or failed for ${variable_name}, using default: ${input_default}`);
+
+			console.log(`Modal input timed out for ${variable_name}, using default: ${input_default}`);
 			if (is_numeric) {
 				return parseInt(input_default) || 0;
 			}
@@ -847,7 +945,7 @@ class EventProcessor {
 	 */
 	async executeActionsByTrigger(eventId, session, trigger) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const allActions = (eventData && eventData.action) || [];
+		const allActions = (eventData && (eventData.actions || eventData.action)) || [];
 
 		// Execute variable actions FIRST to set up session variables for other actions
 		const variableActions = allActions.filter(a => a.type === 'variable');
@@ -890,6 +988,54 @@ class EventProcessor {
 		for (const action of shopActions) {
 			await this.executeShopAction(action, session);
 		}
+
+		// Execute narrate actions (post embed to a configured channel)
+		const narrateActions = allActions.filter(a => a.type === 'narrate');
+		for (const action of narrateActions) {
+			await this.executeNarrateAction(action, session);
+		}
+	}
+
+	/**
+	 * Post a narration embed to a configured channel.
+	 * YAML action fields: channel, title, text, color (optional)
+	 * `channel` must be a key in src/config/channels.js (case-insensitive).
+	 */
+	async executeNarrateAction(action, session) {
+		const channels = require('@root/config/channels.js');
+		const { EmbedBuilder } = require('discord.js');
+
+		const { channel: channelKey, title, text } = action;
+		if (!channelKey || !text) {
+			console.error('[Narrate] Action missing required fields (channel, text):', action);
+			return;
+		}
+
+		const channelId = channels[channelKey.toUpperCase()];
+		if (!channelId) {
+			console.error(`[Narrate] Unknown channel key '${channelKey}' in narrate action`);
+			return;
+		}
+
+		const client = session.interaction?.client;
+		if (!client) {
+			console.error('[Narrate] No client available in session for narrate action');
+			return;
+		}
+
+		const ch = await client.channels.fetch(channelId).catch(() => null);
+		if (!ch) {
+			console.error(`[Narrate] Could not fetch channel ${channelId}`);
+			return;
+		}
+
+		const embed = new EmbedBuilder()
+			.setDescription(text)
+			.setColor(action.color ?? 0x2f3136);
+
+		if (title) embed.setTitle(title);
+
+		await ch.send({ embeds: [embed] });
 	}
 
 	/**
@@ -902,7 +1048,6 @@ class EventProcessor {
 			// Check if already registered (prevent double application)
 			const alreadyRegistered = await characterUtil.getCharacterFlag(session.characterId, 'registration_complete');
 			if (alreadyRegistered) {
-				console.log('[handleFinishRegister] Registration already complete, skipping');
 				return;
 			}
 
@@ -925,7 +1070,6 @@ class EventProcessor {
 						'registration_record',
 						JSON.stringify(registrationRecord),
 					);
-					console.log('[handleFinishRegister] Saved registration record to character settings');
 				}
 				catch (saveError) {
 					console.error('[handleFinishRegister] Error saving registration record:', saveError);
@@ -933,13 +1077,10 @@ class EventProcessor {
 				}
 				
 				// Now end the log session and save file
-				const logPath = eventLogger.endSession(session.logSessionId);
-				console.log(`[handleFinishRegister] Event log saved: ${logPath}`);
+				eventLogger.endSession(session.logSessionId);
 			}
 
 			// 1. Read virtue flags from local session flags
-			console.log('[handleFinishRegister] ALL LOCAL FLAGS:', JSON.stringify(session.flags.local, null, 2));
-			
 			// Try both capitalized (database format) and lowercase (fallback)
 			// Default to 8 if not found (as per FINISH_REGISTER_TAG.md specification)
 		let fortitude = parseInt(session.flags.local.Fortitude || session.flags.local.fortitude) || 8;
@@ -1054,7 +1195,6 @@ class EventProcessor {
 					
 					if (hasStarterWeaponTag) {
 						await CharacterItem.destroy({ where: { id: charItem.id } });
-						console.log(`[handleRedo] Removed starter weapon: ${itemDef.name} (${itemDef.id})`);
 					}
 				}
 			}
@@ -1072,8 +1212,6 @@ class EventProcessor {
 			// 4. Reset registration flags so finish_register can run again
 			await characterUtil.updateCharacterFlag(session.characterId, 'registration_complete', null);
 			await characterUtil.updateCharacterFlag(session.characterId, 'unregistered', 1);
-
-			console.log(`[handleRedo] Reset character ${session.characterId} to base 9 stats and removed starter weapons only`);
 		}
 		catch (error) {
 			console.error('Error in handleRedo:', error);
@@ -1250,7 +1388,20 @@ class EventProcessor {
 		if (!session.characterId) return;
 
 		const { location, silent, custom_message } = action;
-		const location_id = location; // YAML uses 'location' instead of 'location_id'
+		let location_id = location; // YAML uses 'location' instead of 'location_id'
+
+		if (location === 'adjacent_random') {
+			const character = await characterUtil.getCharacterBase(session.characterId);
+			if (character?.location_id) {
+				const links = await locationUtil.getLinkedLocations(character.location_id);
+				if (links.length > 0) {
+					const picked = links[Math.floor(Math.random() * links.length)];
+					location_id = picked.linked_location_id;
+				}
+			}
+		}
+
+		if (!location_id || location_id === 'adjacent_random') return;
 		await locationUtil.moveCharacterToLocation(session.characterId, location_id);
 
 		// Add message if not silent
@@ -1599,7 +1750,7 @@ class EventProcessor {
 				await GlobalFlag.destroy({ where: { flag: flagName } });
 			}
 			else {
-				await GlobalFlag.upsert({ flag: flagName, value: String(entry.value) });
+				await GlobalFlag.upsert({ flag: flagName, value: entry.value });
 			}
 		}
 		if (session.characterId) {
@@ -1726,8 +1877,8 @@ class EventProcessor {
 	 */
 	async getVisibleOptions(eventId, session) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const options = (eventData && eventData.option)
-			? eventData.option.map(o => ({ ...o })).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+		const options = (eventData && (eventData.option || eventData.options))
+			? (eventData.option || eventData.options).map(o => ({ ...o })).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
 			: [];
 
 		// Get character for pronoun processing
@@ -1754,22 +1905,102 @@ class EventProcessor {
 	}
 
 	/**
-	 * Check if option is visible based on check results
+	 * Evaluate a single inline check condition
 	 */
-	async isOptionVisible(option, session) {
-		const checkResults = session.checkResults || {};
+	async evaluateInlineCheck(checkData, session) {
+		if (!checkData || !checkData.type) {
+			return { success: false, message: 'Invalid check data' };
+		}
 
-		// Required checks must pass
-		if (option.required_checks && option.required_checks.length > 0) {
-			for (const checkName of option.required_checks) {
-				if (!checkResults[checkName]?.success) return false;
+		// Resolve any expressions in the check data
+		const resolvedCheck = this.resolveCheckExpressions(checkData, session);
+
+		// Use existing check methods based on type
+		switch (resolvedCheck.type) {
+		case 'flag':
+			return await this.checkFlag(resolvedCheck, session);
+		case 'stat':
+			return await this.checkStat(resolvedCheck, session);
+		case 'item':
+			return await this.checkItem(resolvedCheck, session);
+		case 'skill':
+			return await this.checkSkill(resolvedCheck, session);
+		case 'level':
+			return await this.checkLevel(resolvedCheck, session);
+		default:
+			return { success: false, message: `Unsupported check type for options: ${resolvedCheck.type}` };
+		}
+	}
+
+	/**
+	 * Resolve expressions in check data objects
+	 */
+	resolveCheckExpressions(checkData, session) {
+		const resolved = { ...checkData };
+
+		// Resolve expressions in nested data objects
+		if (resolved.stat_data) {
+			resolved.stat_data = {
+				...resolved.stat_data,
+				stat_value: this.resolveExpression(resolved.stat_data.stat_value, session),
+			};
+		}
+		if (resolved.flag_data) {
+			resolved.flag_data = {
+				...resolved.flag_data,
+				flag_value: this.resolveExpression(resolved.flag_data.flag_value, session),
+			};
+		}
+		if (resolved.level_data) {
+			resolved.level_data = {
+				...resolved.level_data,
+				required_level: this.resolveExpression(resolved.level_data.required_level, session),
+			};
+		}
+		if (resolved.skill_data) {
+			resolved.skill_data = {
+				...resolved.skill_data,
+				required_level: this.resolveExpression(resolved.skill_data.required_level, session),
+			};
+		}
+		if (resolved.item_data) {
+			if (Array.isArray(resolved.item_data)) {
+				resolved.item_data = resolved.item_data.map(item => ({
+					...item,
+					required_quantity: this.resolveExpression(item.required_quantity, session),
+				}));
+			} else {
+				resolved.item_data = {
+					...resolved.item_data,
+					required_quantity: this.resolveExpression(resolved.item_data.required_quantity, session),
+				};
 			}
 		}
 
-		// Hidden checks must fail
+		return resolved;
+	}
+
+	/**
+	 * Check if option is visible based on inline check conditions
+	 */
+	async isOptionVisible(option, session) {
+		// Required checks - all must pass for option to appear
+		if (option.required_checks && option.required_checks.length > 0) {
+			for (const checkData of option.required_checks) {
+				const result = await this.evaluateInlineCheck(checkData, session);
+				if (!result.success) {
+					return false;
+				}
+			}
+		}
+
+		// Hidden checks - if any pass, option is hidden
 		if (option.hidden_checks && option.hidden_checks.length > 0) {
-			for (const checkName of option.hidden_checks) {
-				if (checkResults[checkName]?.success) return false;
+			for (const checkData of option.hidden_checks) {
+				const result = await this.evaluateInlineCheck(checkData, session);
+				if (result.success) {
+					return false;
+				}
 			}
 		}
 
@@ -1886,11 +2117,9 @@ class EventProcessor {
 			const buildRow = (opts) => new Discord.ActionRowBuilder().addComponents(
 				opts.map((option, idx) => {
 					const globalIdx = options.indexOf(option);
-					const rawLabel = option.button_label || option.text;
-					const label = rawLabel.length > 40 ? rawLabel.substring(0, 38) + '\u2026' : rawLabel;
 					return new Discord.ButtonBuilder()
 						.setCustomId(`event_opt_${session.sessionId}|${option.id}`)
-						.setLabel(`${globalIdx + 1}. ${label}`)
+						.setLabel(String(globalIdx + 1))
 						.setStyle(Discord.ButtonStyle.Secondary);
 				})
 			);
@@ -1941,11 +2170,11 @@ class EventProcessor {
 			await this.setupCollector(session, eventBase, nextEventId, dialogMessage);
 		}
 		else {
-			// Event ends here - flush flags, delete message, clean up
+			// Event ends here - flush flags, schedule message deletion, clean up
 			await this.flushPendingFlags(session);
 			await this.saveSession(session);
 			if (session.characterId) this.activeCharacters.delete(session.characterId);
-			await dialogMessage.delete().catch(e => console.error('Failed to delete terminal event message:', e));
+			await this._scheduleDeletion(session.characterId, dialogMessage);
 		}
 	}
 
@@ -2021,9 +2250,9 @@ class EventProcessor {
 					});
 				}
 				else {
-					// Event chain ended - flush flags, delete message
+					// Event chain ended - flush flags, schedule message deletion
 					await this.flushPendingFlags(session);
-					await message.delete().catch(e => console.error('Failed to delete event message:', e));
+					await this._scheduleDeletion(session.characterId, message);
 					this.activeEvents.delete(session.sessionId);
 					if (session.characterId) this.activeCharacters.delete(session.characterId);
 				}
@@ -2084,23 +2313,16 @@ class EventProcessor {
 
 					// Check if next event will need modal input - handle modal DIRECTLY
 					if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
-						console.log(`[DEBUG] Checking if event ${nextEventId} needs input...`);
 						const nextEventNeedsInput = await this.eventHasInputActions(nextEventId);
-						console.log(`[DEBUG] Event ${nextEventId} needs input: ${nextEventNeedsInput}`);
 						
 						if (nextEventNeedsInput) {
-							console.log(`[DEBUG] Starting direct modal handling for ${nextEventId}`);
 							// Get the input action details from YAML
 							const nextEventData = contentStore.events.findByPk(String(nextEventId));
-							const nextActions = (nextEventData && nextEventData.action) || [];
+							const nextActions = (nextEventData && (nextEventData.actions || nextEventData.action)) || [];
 
 							const inputAction = nextActions.find(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
-
-							console.log(`[DEBUG] Found input action:`, inputAction ? 'YES' : 'NO');
 							
 							if (inputAction) {
-								console.log(`[DEBUG] Showing modal DIRECTLY for ${inputAction.variable_name}`);
-								
 								// Create and show modal DIRECTLY - no event processing
 								const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 								
@@ -2126,11 +2348,8 @@ class EventProcessor {
 								modal.addComponents(actionRow);
 								
 								try {
-									console.log(`[DEBUG] About to show modal with componentInteraction - replied: ${componentInteraction.replied}, deferred: ${componentInteraction.deferred}`);
-									// Show modal with fresh componentInteraction
-									await componentInteraction.showModal(modal);
-									console.log(`[DEBUG] Modal shown successfully, waiting for input...`);
-									
+										// Show modal with fresh componentInteraction
+										await componentInteraction.showModal(modal);
 									// Wait for modal submission
 									const modalSubmit = await componentInteraction.awaitModalSubmit({
 										filter: i => i.customId === modalId && i.user.id === componentInteraction.user.id,
@@ -2139,7 +2358,6 @@ class EventProcessor {
 									
 									// Get the input value
 									const modalValue = modalSubmit.fields.getTextInputValue('input_value');
-									console.log(`[DEBUG] Modal input received: ${modalValue}`);
 									
 									// Parse as number if needed
 									let finalValue = modalValue;
@@ -2154,7 +2372,6 @@ class EventProcessor {
 									for (const statAction of statActions) {
 										if (statAction.stat_name) {
 											await characterUtil.setCharacterStat(session.characterId, statAction.stat_name, finalValue);
-											console.log(`[DEBUG] Saved ${statAction.stat_name} = ${finalValue}`);
 										}
 									}
 									
@@ -2186,8 +2403,6 @@ class EventProcessor {
 										components: [] 
 									});
 									
-									console.log(`[DEBUG] Direct modal handling completed, continuing to process event ${nextEventId}`);
-									
 									// Continue processing the event that had input actions
 									session.currentEventId = nextEventId;
 									await this.processEvent(nextEventId, modalSubmit, session.characterId, {
@@ -2199,7 +2414,7 @@ class EventProcessor {
 									return; // Event processing continues via processEvent
 								}
 								catch (error) {
-									console.error(`[DEBUG] Modal failed:`, error);
+									console.error('Modal input failed:', error);
 									// Emergency acknowledgment
 									if (!componentInteraction.replied && !componentInteraction.deferred) {
 										await componentInteraction.reply({ 
@@ -2207,22 +2422,14 @@ class EventProcessor {
 											ephemeral: true 
 										});
 									}
-									console.log(`[DEBUG] Modal error handling completed - RETURNING`);
 									return;
 								}
 							}
 							else {
-								console.log(`[DEBUG] No input action found for event ${nextEventId}`);
+								// No input action found, continue with normal processing
 							}
 						}
-						else {
-							console.log(`[DEBUG] Event ${nextEventId} does not need input, proceeding with normal processing`);
-						}
 					}
-					else {
-						console.log(`[DEBUG] No next event or invalid event ID: ${nextEventId}`);
-					}
-
 					// Handle save-X and clear-X tags
 					if (session.characterId && eventBase.tag && Array.isArray(eventBase.tag)) {
 						for (const tag of eventBase.tag) {
@@ -2323,12 +2530,20 @@ class EventProcessor {
 
 				// Process next event if exists and is not empty/blank
 				if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
-					// Normal processing - defer interaction and continue
-					await componentInteraction.deferUpdate();
-					
+					// Check if next event needs modal input BEFORE deferring.
+					// showModal() requires a fresh (non-deferred, non-replied) interaction,
+					// so we must NOT call deferUpdate() if the next event will show a modal.
+					const nextEventNeedsInput = !componentInteraction.replied && !componentInteraction.deferred
+						&& await this.eventHasInputActions(nextEventId);
+
+					if (!nextEventNeedsInput) {
+						// Normal processing - defer interaction and continue
+						await componentInteraction.deferUpdate();
+					}
+
 					// Save session flags before proceeding
 					await this.saveSession(session);
-					
+
 					await this.processEvent(nextEventId, componentInteraction, session.characterId, {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
@@ -2339,10 +2554,10 @@ class EventProcessor {
 					});
 				}
 				else {
-					// Event chain ended - flush flags, delete message, clean up
+					// Event chain ended - flush flags, schedule message deletion, clean up
 					await componentInteraction.deferUpdate();
 					await this.flushPendingFlags(session);
-					await componentInteraction.message.delete().catch(e => console.error('Failed to delete event message:', e));
+					await this._scheduleDeletion(session.characterId, componentInteraction.message);
 					await this.saveSession(session);
 					if (session.characterId) this.activeCharacters.delete(session.characterId);
 				}
@@ -2369,8 +2584,9 @@ class EventProcessor {
 	async eventHasInputActions(eventId) {
 		try {
 			const eventData = contentStore.events.findByPk(String(eventId));
-			if (!eventData || !eventData.action) return false;
-			return eventData.action.some(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
+			const actions = (eventData && (eventData.actions || eventData.action));
+			if (!actions) return false;
+			return actions.some(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
 		} catch (error) {
 			console.error(`Error checking input actions for event ${eventId}:`, error);
 			return false;

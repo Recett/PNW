@@ -16,7 +16,12 @@ These rules apply to every YAML file in the project without exception.
 
 IDs are kebab-case strings. They are permanent — once set, never changed. Renaming an ID breaks any reference to it.
 
-All string values use double quotes. Multiline text uses the YAML block scalar (|) operator.
+**String Quoting Guidelines:**
+- Simple strings: Use unquoted (`name: Simple Text`)
+- Numeric IDs: Quote to force string type (`id: "123"`)
+- Boolean-like values: Quote to force string type (`flag_value: "true"`)
+- Special characters: Quote when containing colons, brackets, or YAML reserved words (`text: "Yes: definitely"`)
+- Multiline text: Use YAML block scalar (`|`) operator
 
 Fields marked optional may be omitted entirely. Do not include them with null or empty values.
 
@@ -73,9 +78,9 @@ An enemy definition covers everything needed to instantiate and run a combat enc
 ```yaml
 enemies:
   - id: grey-wolf
-    name: "Grey Wolf"
-    unknown_name: "Large Predator"   # optional: shown before identified
-    avatar: "grey_wolf.png"          # optional
+    name: Grey Wolf
+    unknown_name: Large Predator   # optional: shown before identified
+    avatar: grey_wolf.png          # optional
     level: 3
     enemy_type: beast                # beast | humanoid | construct | undead | boss
     start_event: wolf_encounter_start  # optional: event to fire when combat begins
@@ -104,22 +109,22 @@ enemies:
           quantity: 2
     attacks:
       - id: bite
-        name: "Bite"
+        name: Bite
         base_damage: 18
         accuracy: 0.85
         critical_chance: 12
         cooldown: 90
-        description: "A lunging bite at the throat."
+        description: A lunging bite at the throat.
       - id: rend
-        name: "Rend"
+        name: Rend
         base_damage: 12
         accuracy: 0.90
         critical_chance: 5
         cooldown: 45
     abilities:
       - id: pack-instinct
-        name: "Pack Instinct"
-        description: "Calls for reinforcement when below 50% HP."
+        name: Pack Instinct
+        description: Calls for reinforcement when below 50% HP.
         effect: summon_ally
         value: 1
         target: self
@@ -227,7 +232,7 @@ Optional. One or more checks per event. Each check is an independent branching m
 |-------|------|:--------:|-------------|
 | `name` | `string` | yes | Unique within the event. |
 | `type` | `string` | yes | flag | stat | item | skill | level | random |
-| `flag_data` | `map` | — | type:flag — fields: flag_name, flag_value, is_global_flag. |
+| `flag_data` | `map` | — | type:flag — fields: flag_name, flag_value, is_global_flag, flag_comparison (optional). |
 | `stat_data` | `map` | — | type:stat — fields: stat_name, stat_comparison, stat_value, use_dice_roll. |
 | `item_data` | `list` | — | type:item — list of {item_id, required_quantity}. |
 | `skill_data` | `map` | — | type:skill — fields: skill_id, required_level. |
@@ -241,6 +246,58 @@ Optional. One or more checks per event. Each check is an independent branching m
 | `on_success` | `string` | — | Event ID to route to on pass. |
 | `on_failure` | `string` | — | Event ID to route to on fail. |
 | `execution_order` | `integer` | — | Order among checks. Default 0. |
+
+#### Flag Comparisons
+
+Flag checks support comparison operators via the optional `flag_comparison` field. If omitted, defaults to `equal` for backwards compatibility.
+
+**Supported Comparisons:**
+- `equal` — Flag value exactly matches (default)
+- `greater_than` — Flag value is greater than specified value  
+- `less_than` — Flag value is less than specified value
+- `greater_equal` — Flag value is greater than or equal to specified value
+- `less_equal` — Flag value is less than or equal to specified value
+- `not_equal` — Flag value does not match specified value
+
+**Flag Comparison Examples:**
+```yaml
+checks:
+  # Basic equality check (backwards compatible)
+  - name: met_npc
+    type: flag
+    flag_data:
+      flag_name: char.met_hale
+      flag_value: 1
+      is_global_flag: false
+      # No flag_comparison specified = defaults to 'equal'
+    
+  # Quest progress check
+  - name: progressed_enough  
+    type: flag
+    flag_data:
+      flag_name: char.quest_progress
+      flag_value: 5
+      flag_comparison: greater_equal
+      is_global_flag: false
+    
+  # Global server state check
+  - name: server_active
+    type: flag  
+    flag_data:
+      flag_name: global.event_active
+      flag_value: 0
+      flag_comparison: not_equal
+      is_global_flag: true
+      
+  # Attempt counter check
+  - name: too_many_attempts
+    type: flag
+    flag_data:
+      flag_name: char.login_attempts  
+      flag_value: 3
+      flag_comparison: greater_than
+      is_global_flag: false
+```
 
 ### 2.4 Combat
 
@@ -288,9 +345,81 @@ Optional. One or more enemy previews per event. Displays enemy information befor
 
 Optional. One or more player choices per event. Each option routes to a next event when selected.
 
-required_checks and hidden_checks are self-contained inline condition data. They have no connection to the event checks in section 2.3. Supported types: flag, stat, item, skill, level. Random is not supported.
+**Visibility Conditions:** `required_checks` and `hidden_checks` are self-contained inline condition data that control when options appear to players. They support the same check types as event-level checks: flag, stat, item, skill, level. Random checks are not supported for options.
 
-required_checks: all conditions must pass for the option to appear. hidden_checks: if any condition passes, the option is hidden.
+- **required_checks**: All conditions must pass for the option to appear
+- **hidden_checks**: If any condition passes, the option is hidden
+
+**Inline Check Examples:**
+
+```yaml
+options:
+  - id: strength-option
+    text: "Force open the door"
+    required_checks:
+      - type: stat
+        stat_data:
+          stat_name: strength
+          stat_comparison: greater_equal
+          stat_value: 15
+    next: door-forced-open
+
+  - id: rich-option  
+    text: "Buy the expensive item"
+    required_checks:
+      - type: stat
+        stat_data:
+          stat_name: gold
+          stat_comparison: greater_equal
+          stat_value: "${item_cost}"  # Supports expressions
+    next: purchase-expensive
+
+  - id: sneaky-option
+    text: "Pick the lock quietly"
+    required_checks:
+      - type: skill
+        skill_data:
+          skill_id: lockpicking
+          required_level: 3
+    hidden_checks:
+      - type: flag
+        flag_data:
+          flag_name: char.is_clumsy
+          flag_value: 1
+          flag_comparison: equal  # Default comparison
+          is_global_flag: false
+    next: lockpick-attempt
+
+  - id: veteran-option
+    text: "Draw upon years of experience (only if experienced)"
+    required_checks:
+      - type: flag
+        flag_data:
+          flag_name: char.quest_count
+          flag_value: 5
+          flag_comparison: greater_equal
+          is_global_flag: false
+    next: veteran-solution
+
+  - id: inventory-option
+    text: "Use your rope and grappling hook"
+    required_checks:
+      - type: item
+        item_data:
+          - item_id: rope
+            required_quantity: 1
+          - item_id: grappling-hook
+            required_quantity: 1
+    next: climb-window
+
+  - id: high-level-option
+    text: "Draw upon years of experience" 
+    required_checks:
+      - type: level
+        level_data:
+          required_level: 10
+    next: veteran-solution
+```
 
 | Field | Type | Required | Description |
 |-------|------|:--------:|-------------|
@@ -299,8 +428,8 @@ required_checks: all conditions must pass for the option to appear. hidden_check
 | `button_label` | `string` | — | Short label for the button (max ~40 chars). Overrides truncated `text` on the button. |
 | `description` | `string` | — | Hint text shown below label. |
 | `next` | `string` | — | Event ID triggered when option is selected. |
-| `required_checks` | `list` | — | Inline condition data. All must pass for option to appear. |
-| `hidden_checks` | `list` | — | Inline condition data. If any passes, option is hidden. |
+| `required_checks` | `list` | — | Inline condition data. All must pass for option to appear. See examples above. |
+| `hidden_checks` | `list` | — | Inline condition data. If any passes, option is hidden. See examples above. |
 | `is_default` | `boolean` | — | Default choice if player does not respond. Default false. |
 | `is_destructive` | `boolean` | — | Flags option as dangerous. Default false. |
 | `cooldown_seconds` | `integer` | — | Seconds before option can be selected again. Default 0. |
@@ -317,12 +446,21 @@ actions:
 
   - type: flag
     flag_name: char.met_hale
-    flag_value: "true"
-    flag_operation: set      # set | clear
-    flag_type: character     # character | global
+    flag_value: 1
+    flag_operation: set          # set | add | subtract | toggle
+    flag_type: character         # character | global | local  
     silent: true
     custom_message: null
     output_variable: null
+
+  - type: flag
+    flag_name: char.quest_progress
+    flag_value: 1
+    flag_operation: add          # Increment quest progress
+    flag_type: character
+    silent: false
+    custom_message: "Quest progress increased!"
+    output_variable: new_progress
 
   - type: item
     item: wolf-pelt
@@ -379,6 +517,14 @@ actions:
     trigger_condition: immediate   # immediate | on_confirm
     silent: false
     custom_message: null
+
+  - type: narrate
+    channel: storyboard     # Key from src/config/channels.js (case-insensitive)
+    title: "The Bilge Falls Silent"   # Optional embed title
+    text: |                 # Required embed body text
+      Full narrative text here.
+      Supports multi-line block scalar.
+    color: 0x2f3136        # Optional embed color. Default 0x2f3136
 ```
 
 ### 2.8 Action Field Reference
@@ -388,9 +534,9 @@ type: flag
 | Field | Type | Required | Description |
 |-------|------|:--------:|-------------|
 | `flag_name` | `string` | yes | Flag name including scope prefix. e.g. char.met_hale. |
-| `flag_value` | `string` | yes | Value to set. |
-| `flag_operation` | `string` | yes | set | clear |
-| `flag_type` | `string` | yes | character | global |
+| `flag_value` | `string` | yes | Value to set/add/subtract. String to support expressions. |
+| `flag_operation` | `string` | yes | set | add | subtract | toggle |
+| `flag_type` | `string` | yes | character | global | local |
 | `output_variable` | `string` | — | Session variable name to store result. |
 
 type: item
@@ -456,20 +602,29 @@ type: shop
 | `shop_type` | `string` | yes | item | perk | both |
 | `trigger_condition` | `string` | yes | immediate | on_confirm |
 
+type: narrate
+
+| Field | Type | Required | Description |
+|-------|------|:--------:|-------------|
+| `channel` | `string` | yes | Channel key from `src/config/channels.js` (case-insensitive). e.g. `storyboard`, `announcement`. |
+| `title` | `string` | — | Embed title. Optional. |
+| `text` | `string` | yes | Embed description. Supports multi-line YAML block scalar. |
+| `color` | `integer` | — | Embed sidebar color as hex integer. Default `0x2f3136`. |
+
 ### 2.9 Complete Example
 
 ```yaml
 events:
   - id: wolf-encounter
-    name: "Wolf Encounter"
+    name: Wolf Encounter
     event_type: combat
     next: null
     silent: false
     tags: [forest, combat]
 
     message:
-      title: "Grey Wolf"
-      text: "A wolf steps out from the treeline. It has not decided yet."
+      title: Grey Wolf
+      text: A wolf steps out from the treeline. It has not decided yet.
       message_type: encounter
 
     checks:
@@ -491,7 +646,7 @@ events:
 
     options:
       - id: fight
-        text: "Fight"
+        text: Fight
         next: wolf-combat
         required_checks: []
         hidden_checks: []
@@ -499,7 +654,7 @@ events:
         display_order: 0
 
       - id: flee
-        text: "Flee"
+        text: Flee
         next: wolf-flee
         required_checks: []
         hidden_checks:
@@ -511,7 +666,7 @@ events:
         display_order: 1
 
       - id: observe
-        text: "Observe quietly"
+        text: Observe quietly
         next: wolf-observe
         required_checks:
           - type: flag
@@ -543,8 +698,8 @@ Items are defined in itemLib. Weapon and armor stats are embedded inline under t
 ```yaml
 items:
   - id: longbow
-    name: "Longbow"
-    description: "A tall yew bow. Rewards patience."
+    name: Longbow
+    description: A tall yew bow. Rewards patience.
     item_type: weapon
     value: 120
     weight: 2
@@ -560,7 +715,7 @@ items:
       cooldown: 3
 
   - id: rapier
-    name: "Rapier"
+    name: Rapier
     item_type: weapon
     value: 95
     weight: 1
@@ -576,7 +731,7 @@ items:
       cooldown: 2
 
   - id: iron-chestplate
-    name: "Iron Chestplate"
+    name: Iron Chestplate
     item_type: armor
     value: 80
     weight: 5
@@ -589,8 +744,8 @@ items:
       crit_resistance: 8
 
   - id: health-potion
-    name: "Health Potion"
-    description: "Restores a moderate amount of HP."
+    name: Health Potion
+    description: Restores a moderate amount of HP.
     item_type: consumable
     value: 30
     weight: 0

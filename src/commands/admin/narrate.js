@@ -2,6 +2,7 @@ const {
 	SlashCommandBuilder,
 	PermissionFlagsBits,
 	InteractionContextType,
+	MessageFlags,
 	ModalBuilder,
 	TextInputBuilder,
 	TextInputStyle,
@@ -60,7 +61,15 @@ module.exports = {
 			.setDescription(text)
 			.setColor(0x2f3136);
 
-		// Send to the channel (not ephemeral - visible to everyone)
-		await interaction.reply({ embeds: [embed] });
+		// Acknowledge privately, then post as a regular bot message to avoid slash command attribution.
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+		if (!interaction.channel) {
+			await interaction.editReply({ content: 'Unable to post narration: channel not available.' });
+			return;
+		}
+
+		await interaction.channel.send({ embeds: [embed] });
+		await interaction.deleteReply();
 	},
 };

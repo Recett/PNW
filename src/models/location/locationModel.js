@@ -8,6 +8,7 @@ const locationBase = (sequelize) => {
 		type: Sequelize.STRING,
 		role: Sequelize.STRING,
 		lock: Sequelize.BOOLEAN,
+		hidden: { type: Sequelize.BOOLEAN, defaultValue: false },
 		tag: Sequelize.JSON,
 		time: Sequelize.STRING,
 	}, { timestamps: false });

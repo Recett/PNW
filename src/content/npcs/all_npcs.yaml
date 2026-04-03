@@ -20,7 +20,10 @@
 #     status: active                     # Optional: "active"|"inactive"
 #     stocks:                            # Optional: Shop inventory (loaded into npc_stocks table)
 #       - item: "1"                      # Item ID
-#         purchased: 0                   # Purchase counter
+#         amount: 10                     # Optional: Max stock; omit for unlimited
+#         required_building_id: 1        # Optional: Required building ID
+#         required_building_level: 1     # Optional: Minimum building level
+#     # Note: purchase counts are tracked in the DB (npc_purchases), not here
 #     perks:                             # Optional: Teachable perks (loaded into npc_perks table)
 #       - perk: "101"                    # Perk ID
 #         stamina_cost: 5                # Stamina cost for the player to learn
@@ -49,3 +52,155 @@ npcs:
     start_event: event_1771346274842
     age: 30
     status: active
+
+  - id: "john-galeby"
+    name: "Ông Galeby"
+    fullname: "John Galeby"
+    unknown_name: "Ông lão"
+    npc_type: "villager"
+    status: "active"
+    age: 47
+    description: |
+
+    start_event: "galeby-approach"
+    movement_pattern: "random"
+    player_to_npc: "bác"
+    required_checks:
+      - type: flag
+        flag_data:
+          flag_name: "global.galeby_present"
+          flag_value: 1
+          flag_comparison: equal
+          is_global_flag: true
+    pronouns:
+      older:
+        npc_self: "lão"
+      peer:
+        npc_self: "lão"
+
+  - id: "captain-vorne"
+    name: "Thuyền trưởng Vorne"
+    fullname: "Aldric Vorne"
+    unknown_name: "Sĩ quan"
+    npc_type: "guard"
+    status: "active"
+    age: 44
+    description: |
+
+    start_event: "talk-vorne"
+    movement_pattern: "stationary"
+    player_to_npc: "thuyền trưởng"
+    # No pronoun overrides — defaults are correct for his register.
+    # Post-prologue: Survives if ship Morale > 50 in Battle Phase 3.
+
+  - id: "quartermaster-york"
+    name: "Quân nhu trưởng York"
+    fullname: "Quân nhu trưởng York Waylan"
+    npc_type: "merchant"
+    status: "active"
+    age: 38
+    description: |
+
+    start_event: "talk-york"
+    movement_pattern: "stationary"
+    player_to_npc: "York"
+    # No pronoun overrides — defaults are correct.
+    # Post-prologue: Becomes settlement manager — permanent conduit between
+    # players and game master announcements.
+    stocks:
+      - item: shortbow_2
+        amount: 2
+      - item: longbow_2
+        amount: 2
+      - item: dagger_2
+        amount: 2
+      - item: rapier_2
+        amount: 2
+      - item: sword_2
+        amount: 2
+      - item: spear_2
+        amount: 2
+      - item: mace_2
+        amount: 2
+      - item: axe_2
+        amount: 2
+      - item: greatsword_2
+        amount: 2
+      - item: shield_2
+        amount: 2
+      - item: "11"
+        amount: 2
+      - item: "12"
+        amount: 2
+      - item: "13"
+        amount: 2
+      - item: "14"
+        amount: 1
+      - item: "15"
+        amount: 1
+      - item: "16"
+        amount: 1
+
+  - id: "law-hensbane"
+    name: "Hensbane"
+    fullname: "Lawrence Hensbane"
+    unknown_name: "Người lính đánh thuê"
+    npc_type: "guard"
+    status: "active"
+    age: 43
+    description: |
+
+    start_event: "hensbane-approach"
+    movement_pattern: "stationary"
+    player_to_npc: "anh"
+    # No pronoun overrides — defaults are correct.
+    # Post-prologue: Unlocks advanced training for players who sparred 3+
+    # times AND signaled him during the Privateer Officer chaos event.
+
+  - id: "ian-mcbetha"
+    name: "Linh mục Ian"
+    fullname: "Ian McBetha"
+    unknown_name: "Vị linh mục"
+    npc_type: "villager"
+    status: "active"
+    age: 55
+    description: |
+
+    start_event: "mcbetha-approach"
+    movement_pattern: "stationary"
+    player_to_npc: "cha"
+    pronouns:
+      much_older:
+        to_player:
+          male: "con"
+          female: "con"
+          default: "con"
+        npc_self: "cha"
+      older:
+        npc_self: "cha"
+      peer:
+        npc_self: "cha"
+      younger:
+        npc_self: "cha"
+      much_younger:
+        npc_self: "cha"
+
+  - id: "lt-morale"
+    name: "Morale"
+    fullname: "Trung úy Morale"
+    unknown_name: "Mèo"
+    npc_type: "villager"
+    status: "active"
+    description: |
+
+    start_event: "morale-approach"
+    movement_pattern: "random"
+    required_checks:
+      - type: flag
+        flag_data:
+          flag_name: "char.morale_cabinet_found"
+          flag_value: 1
+          flag_comparison: equal
+          is_global_flag: false
+    # No pronouns — cat.
+    # Kittens become companion items post-prologue if she survives.

@@ -1,0 +1,134 @@
+enemies:
+
+  # -----------------------------------------------
+  # RATS — HMS DIVINE PROLOGUE
+  # Fast and aggressive. Meaningful damage even through armor.
+  # Stat equivalents:
+  #   Rat:       STR6 DEX7 AGI10 CON4
+  #   Adult Rat: STR8 DEX8 AGI9  CON6
+  #
+  # vs starter armor (def=1): rat=58% player HP, adult=78%
+  # vs leather armor (def=4): rat=29% player HP, adult=44%
+  # Player needs 2 hits to kill rat, 4 for adult rat
+  # -----------------------------------------------
+
+  - id: rat
+    name: Rat
+    unknown_name: Rat
+    level: 1
+    enemy_type: beast
+    status: active
+    stats:
+      health: 20
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 11
+      speed: 10
+    attacks:
+      - id: bite
+        name: Bite
+        base_damage: 6
+        accuracy: 9
+        critical_chance: 2
+        cooldown: 80
+    reward:
+      exp: 30
+      items:
+        - id: rat_meat
+          chance: 0.7
+          quantity: 1
+
+  - id: rat_adult
+    name: Adult Rat
+    unknown_name: Adult Rat
+    level: 2
+    enemy_type: beast
+    status: active
+    stats:
+      health: 35
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 9
+      speed: 9
+    attacks:
+      - id: bite
+        name: Bite
+        base_damage: 8
+        accuracy: 8
+        critical_chance: 3
+        cooldown: 90
+    reward:
+      exp: 50
+      items:
+        - id: rat_meat
+          chance: 0.5
+          quantity: 1
+        - id: rat_meat
+          chance: 0.5
+          quantity: 2
+
+  - id: rat_king
+    name: Rat King
+    unknown_name: Rat King
+    level: 5
+    enemy_type: beast
+    status: active
+    tags:
+      - persistent_hp
+      - unique_per_voyage
+    stats:
+      health: 200
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 8
+      speed: 10
+    attacks:
+      - id: bite
+        name: Bite
+        base_damage: 10
+        accuracy: 10
+        critical_chance: 5
+        cooldown: 90
+    regen_per_day: 20
+    reward:
+      gold: 0
+      exp: 200
+    drops:
+      - id: rat_king_weapon
+        chance: 1.0
+        quantity: 1
+
+  - id: rat_king_enraged
+    name: Rat King
+    unknown_name: Rat King
+    level: 5
+    enemy_type: beast
+    status: active
+    tags:
+      - persistent_hp
+      - unique_per_voyage
+    stats:
+      health: 200
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 10
+      speed: 15
+    attacks:
+      - id: bite
+        name: Bite
+        base_damage: 18
+        accuracy: 8
+        critical_chance: 10
+        cooldown: 90
+    regen_per_day: 20
+    reward:
+      gold: 0
+      exp: 200
+    drops:
+      - id: rat_king_weapon
+        chance: 1.0
+        quantity: 1    

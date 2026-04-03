@@ -303,7 +303,6 @@ async function updateLocationRoles({ guild, memberId, newLocationId }) {
  */
 async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs = 5000 }) {
 	const member = await guild.members.fetch(memberId);
-	console.log(`[Move Debug] Character ${memberId} transitioning to location ${newLocationId}`);
 
 	// Get new location data (needed for channel link)
 	const newLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
@@ -312,10 +311,8 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 	let newRoleId = null;
 	if (newLoc && newLoc.role) {
 		newRoleId = newLoc.role;
-		console.log(`[Move Debug] Adding new role: ${newLoc.role} for location: ${newLoc.name}`);
 		try {
 			await member.roles.add(newLoc.role);
-			console.log(`[Move Debug] Successfully added role: ${newLoc.role}`);
 		}
 		catch (err) {
 			console.error('Error adding new location role:', err);
@@ -323,25 +320,20 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 	}
 
 	// Remove all OTHER location roles (not the new one) after delay
-	console.log(`[Move Debug] Scheduling old role removal in ${delayMs}ms`);
 	setTimeout(async () => {
 		try {
-			console.log(`[Move Debug] Executing delayed role cleanup for ${memberId}`);
 			const freshMember = await guild.members.fetch(memberId);
 			const allLocations = await LocationBase.findAll();
 			for (const loc of allLocations) {
 				if (loc.role && loc.role !== newRoleId && freshMember.roles.cache.has(loc.role)) {
-					console.log(`[Move Debug] Removing old role: ${loc.role} for location: ${loc.name}`);
 					try {
 						await freshMember.roles.remove(loc.role);
-						console.log(`[Move Debug] Successfully removed role: ${loc.role}`);
 					}
 					catch {
-						console.log(`[Move Debug] Failed to remove role: ${loc.role} (may not exist)`);
+						// Role removal failed, may not exist
 					}
 				}
 			}
-			console.log(`[Move Debug] Role cleanup completed for ${memberId}`);
 		}
 		catch (err) {
 			console.error('Error removing old location roles:', err);
@@ -379,12 +371,19 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
  * @param {Object} guild - Discord guild object (optional for role updates)
  */
 async function moveCharacterToLocation(characterId, newLocationId, guild = null) {
+	// Reset bilge depth if moving to a non-bilge location
+	const destLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
+	const isBilge = destLoc && Array.isArray(destLoc.tag) && destLoc.tag.includes('bilge');
+	if (!isBilge) {
+		await CharacterBase.update({ depth: 0 }, { where: { id: characterId } });
+	}
+
 	// Update character's location in CharacterBase
 	await CharacterBase.update(
 		{ location_id: newLocationId },
 		{ where: { id: characterId } },
 	);
-	
+
 	// Update LocationContain
 	await LocationContain.findOrCreate({
 		where: { object_id: characterId },
@@ -395,23 +394,20 @@ async function moveCharacterToLocation(characterId, newLocationId, guild = null)
 			return record.save();
 		}
 	});
-	
+
 	// Update Discord roles if guild is provided
 	if (guild) {
 		const member = await guild.members.fetch(characterId);
-		
+
 		// Add new location role FIRST
 		let newRoleId = null;
-		if (newLocationId) {
-			const newLoc = await LocationBase.findByPk(newLocationId);
-			if (newLoc && newLoc.role) {
-				newRoleId = newLoc.role;
-				try {
-					await member.roles.add(newLoc.role);
-				}
-				catch {
-					// Ignore if role not present or error
-				}
+		if (destLoc && destLoc.role) {
+			newRoleId = destLoc.role;
+			try {
+				await member.roles.add(destLoc.role);
+			}
+			catch {
+				// Ignore if role not present or error
 			}
 		}
 		

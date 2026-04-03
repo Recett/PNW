@@ -349,6 +349,8 @@ const store = {
 	houseUpgrades: null,
 	/** @type {ContentCollection} */
 	statuses: null,
+	/** @type {ContentCollection} */
+	tasks: null,
 
 	_loaded: false,
 	_loadingPromise: null,
@@ -396,7 +398,10 @@ const store = {
 		const allItems = [...weapons, ...armor, ...otherItems];
 		this.items = new ContentCollection('items', allItems);
 		this.enemies = new ContentCollection('enemies', loadDirectory('enemies', 'enemies', loadOptions));
-		this.events = new ContentCollection('events', loadDirectory('events', 'events', loadOptions));
+		this.events = new ContentCollection('events', [
+			...loadDirectory('events', 'events', loadOptions),
+			...loadDirectory('explore_event', 'events', loadOptions),
+		]);
 		this.npcs = new ContentCollection('npcs', loadDirectory('npcs', 'npcs', loadOptions));
 		this.skills = new ContentCollection('skills', loadDirectory('skills', 'skills', loadOptions));
 		this.perks = new ContentCollection('perks', loadDirectory('perks', 'perks', loadOptions));
@@ -404,6 +409,7 @@ const store = {
 		this.resourceNodes = new ContentCollection('resource_nodes', loadDirectory('resource_nodes', 'resource_nodes', loadOptions));
 		this.projects = new ContentCollection('projects', loadDirectory('projects', 'projects', loadOptions));
 		this.statuses = new ContentCollection('statuses', loadDirectory('statuses', 'statuses', loadOptions));
+		this.tasks = new ContentCollection('tasks', loadDirectory('tasks', 'tasks', loadOptions));
 
 		// Lazy load less critical collections
 		if (lazy && this._lazyCollections.has('objects')) {
@@ -440,7 +446,8 @@ const store = {
 			`${this.resourceNodes.size} resource_nodes, ` +
 			`${this.projects.size} projects, ` +
 			`${this.houseUpgrades?.size ?? 'lazy'} house_upgrades, ` +
-			`${this.statuses.size} statuses`,
+			`${this.statuses.size} statuses, ` +
+			`${this.tasks.size} tasks`,
 		);
 
 		// Run cross-reference validation
@@ -474,7 +481,7 @@ const store = {
 		this.items = new ContentCollection('items', allItems);
 
 		// Load critical collections in parallel
-		const [enemies, events, npcs, skills, perks, quests, resourceNodes, projects] = await Promise.all([
+		const [enemies, events, npcs, skills, perks, quests, resourceNodes, projects, tasks] = await Promise.all([
 			loadDirectory('enemies', 'enemies', loadOptions),
 			loadDirectory('events', 'events', loadOptions),
 			loadDirectory('npcs', 'npcs', loadOptions),
@@ -482,7 +489,8 @@ const store = {
 			loadDirectory('perks', 'perks', loadOptions),
 			loadDirectory('quests', 'quests', loadOptions),
 			loadDirectory('resource_nodes', 'resource_nodes', loadOptions),
-			loadDirectory('projects', 'projects', loadOptions)
+			loadDirectory('projects', 'projects', loadOptions),
+			loadDirectory('tasks', 'tasks', loadOptions)
 		]);
 
 		this.enemies = new ContentCollection('enemies', enemies);
@@ -493,6 +501,7 @@ const store = {
 		this.quests = new ContentCollection('quests', quests);
 		this.resourceNodes = new ContentCollection('resource_nodes', resourceNodes);
 		this.projects = new ContentCollection('projects', projects);
+		this.tasks = new ContentCollection('tasks', tasks);
 
 		const statuses = await loadDirectory('statuses', 'statuses', loadOptions);
 		this.statuses = new ContentCollection('statuses', statuses);
@@ -536,7 +545,8 @@ const store = {
 			`${this.resourceNodes.size} resource_nodes, ` +
 			`${this.projects.size} projects, ` +
 			`${this.houseUpgrades?.size ?? 'lazy'} house_upgrades, ` +
-			`${this.statuses.size} statuses`,
+			`${this.statuses.size} statuses, ` +
+			`${this.tasks.size} tasks`,
 		);
 
 		// Run cross-reference validation
@@ -663,7 +673,8 @@ const store = {
 				quests: this.quests?.size ?? 0,
 				resourceNodes: this.resourceNodes?.size ?? 0,
 				projects: this.projects?.size ?? 0,
-				houseUpgrades: this._houseUpgrades === null ? 'lazy' : (this._houseUpgrades?.size ?? 0)
+				houseUpgrades: this._houseUpgrades === null ? 'lazy' : (this._houseUpgrades?.size ?? 0),
+				tasks: this.tasks?.size ?? 0
 			}
 		};
 	},
@@ -687,38 +698,25 @@ const store = {
 	formatFiles(files = 'all', options = {}) {
 		const editor = this.getEditor();
 		
+		const defaultOptions = {
+			addComments: true,
+			sortByProperty: 'id',
+			validateSchema: true,
+			backup: true,
+			indent: 2,
+			lineWidth: 100,
+			enforceQuoting: true,  // Enforce YAML quoting conventions
+			...options
+		};
+		
 		if (files === 'all') {
-			editor.formatAll({
-				addComments: true,
-				sortByProperty: 'id',
-				validateSchema: true,
-				backup: true,
-				indent: 2,
-				lineWidth: 100,
-				...options
-			});
+			editor.formatAll(defaultOptions);
 		} else if (Array.isArray(files)) {
 			files.forEach(file => {
-				editor.formatFile(file, {
-					addComments: true,
-					sortByProperty: 'id',
-					validateSchema: true,
-					backup: true,
-					indent: 2,
-					lineWidth: 100,
-					...options
-				});
+				editor.formatFile(file, defaultOptions);
 			});
 		} else if (typeof files === 'string') {
-			editor.formatFile(files, {
-				addComments: true,
-				sortByProperty: 'id',
-				validateSchema: true,
-				backup: true,
-				indent: 2,
-				lineWidth: 100,
-				...options
-			});
+			editor.formatFile(files, defaultOptions);
 		}
 	},
 

@@ -1,0 +1,368 @@
+events:
+
+  # -----------------------------------------------
+  # BILGE ENCOUNTER — CORE LOOP
+  # Each /explore bilge: pay 2 stamina → depth +1 →
+  # determine rat tier → fight or flee.
+  #
+  # Flee: stamina paid upfront. Speed check (AGI).
+  #   Pass: escape, depth reset, ejected.
+  #   Fail: combat triggers anyway.
+  # -----------------------------------------------
+
+  - id: bilge-encounter-rat
+    name: "Bilge Rat"
+    event_type: encounter
+    message:
+      text: "Một con chuột cống lao ra từ giữa những thùng hàng. Móng vuốt của nó cào xước mặt gỗ ướt."
+
+    options:
+      - id: bilge-rat-fight
+        text: "Chiến đấu"
+        next: bilge-fight-rat
+        display_order: 0
+      - id: bilge-rat-flee
+        text: "Bỏ chạy"
+        next: bilge-flee-rat
+        display_order: 1
+
+  - id: bilge-fight-rat
+    name: "Fight rat"
+    event_type: combat
+    combat:
+      enemy: rat
+      on_victory: bilge-victory
+      on_defeat: bilge-defeat
+
+  - id: bilge-flee-rat
+    name: "Flee from rat"
+    event_type: encounter
+
+    checks:
+      - name: flee-speed-rat
+        type: stat
+        stat_data:
+          stat_name: agi
+          use_dice_roll: true
+          difficulty_modifier: 7.5
+        silent: true
+        on_success: bilge-flee-success
+        on_failure: bilge-flee-fail-rat
+
+    actions:
+      - type: stat
+        stat_name: stamina
+        value: "-8"
+        operation: add
+        silent: true
+
+  - id: bilge-flee-fail-rat
+    name: "Flee failed — rat"
+    event_type: combat
+
+    message:
+      text: "Bạn trượt chân trên sàn ướt. Con chuột lập tức lao tới tấn công."
+
+    combat:
+      enemy: rat
+      on_victory: bilge-victory
+      on_defeat: bilge-defeat
+
+  # ── RAT ADULT ENCOUNTER (depth 2+) ────────────
+
+  - id: bilge-encounter-rat-adult
+    name: "Adult Rat"
+    event_type: encounter
+
+    message:
+      text: "Một con chuột khổng lồ gầm gừ trên xà ngang. Nó trừng mắt nhìn bạn, sẵn sàng chiến đấu."
+
+    options:
+      - id: bilge-rat-adult-fight
+        text: "Chiến đấu"
+        next: bilge-fight-rat-adult
+        display_order: 0
+      - id: bilge-rat-adult-flee
+        text: "Bỏ chạy"
+        next: bilge-flee-rat-adult
+        display_order: 1
+
+  - id: bilge-fight-rat-adult
+    name: "Fight adult rat"
+    event_type: combat
+
+    combat:
+      enemy: rat_adult
+      on_victory: bilge-victory
+      on_defeat: bilge-defeat
+
+  - id: bilge-flee-rat-adult
+    name: "Flee from adult rat"
+    event_type: encounter
+
+    checks:
+      - name: flee-speed-rat-adult
+        type: stat
+        stat_data:
+          stat_name: agi
+          use_dice_roll: true
+          difficulty_modifier: 8
+        silent: true
+        on_success: bilge-flee-success
+        on_failure: bilge-flee-fail-rat-adult
+
+    actions:
+      - type: stat
+        stat_name: stamina
+        value: "-11"
+        operation: add
+        silent: true
+
+  - id: bilge-flee-fail-rat-adult
+    name: "Flee failed — adult rat"
+    event_type: combat
+
+    message:
+      text: "Bạn chạy không kịp. Con chuột lớn hung hãn đuổi theo sát gót."
+
+    combat:
+      enemy: rat_adult
+      on_victory: bilge-victory
+      on_defeat: bilge-defeat
+
+  # ── RAT KING ENCOUNTER (depth 4+, rare) ───────
+
+  - id: bilge-encounter-rat-king
+    name: "The Rat King"
+    event_type: encounter
+
+    message:
+      text: |
+        Bầy chuột đột ngột dạt ra hai bên. Một bóng đen khổng lồ lù lù xuất hiện trong bóng tối. Vua Chuột đang ở ngay trước mặt bạn.
+
+    enemies:
+      - enemy: rat_king
+        display_order: 0
+
+    options:
+      - id: bilge-rat-king-fight
+        text: "Chiến đấu"
+        next: bilge-fight-rat-king
+        display_order: 0
+      - id: bilge-rat-king-flee
+        text: "Bỏ chạy"
+        next: bilge-flee-rat-king
+        display_order: 1
+
+  - id: bilge-fight-rat-king
+    name: "Fight the Rat King"
+    event_type: combat
+
+    combat:
+      enemy: rat_king
+      on_victory: bilge-rat-king-victory
+      on_defeat: bilge-defeat
+
+  - id: bilge-flee-rat-king
+    name: "Flee from the Rat King"
+    event_type: encounter
+
+    checks:
+      - name: flee-speed-rat-king
+        type: stat
+        stat_data:
+          stat_name: agi
+          use_dice_roll: true
+          difficulty_modifier: 8.5
+        silent: true
+        on_success: bilge-flee-success
+        on_failure: bilge-flee-fail-rat-king
+
+    actions:
+      - type: stat
+        stat_name: stamina
+        value: "-15"
+        operation: add
+        silent: true
+
+  - id: bilge-flee-fail-rat-king
+    name: "Flee failed — Rat King"
+    event_type: combat
+
+    message:
+      text: "Bạn vấp ngã. Vua Chuột chặn đứng lối thoát và chuẩn bị nghiền nát bạn."
+
+    combat:
+      enemy: rat_king
+      on_victory: bilge-rat-king-victory
+      on_defeat: bilge-defeat
+
+  # ── RAT KING ENRAGED ENCOUNTER (no rats left) ──
+
+  - id: bilge-encounter-rat-king-enraged
+    name: "The Enraged Rat King"
+    event_type: encounter
+
+    message:
+      text: |
+        Hầm tàu im lặng đến rợn người. Không có gì di chuyển. Rồi bạn nghe thấy nó — một tiếng rít trầm, đều đặn, không ngừng. Vua Chuột xuất hiện từ bóng tối, đôi mắt đỏ rực. Không có bầy đàn nào ở đây nữa. Chỉ có nó.
+
+    enemies:
+      - enemy: rat_king_enraged
+        display_order: 0
+
+    options:
+      - id: bilge-rat-king-enraged-fight
+        text: "Chiến đấu"
+        next: bilge-fight-rat-king-enraged
+        display_order: 0
+      - id: bilge-rat-king-enraged-flee
+        text: "Bỏ chạy"
+        next: bilge-flee-rat-king-enraged
+        display_order: 1
+
+  - id: bilge-fight-rat-king-enraged
+    name: "Fight the Enraged Rat King"
+    event_type: combat
+
+    combat:
+      enemy: rat_king_enraged
+      on_victory: bilge-rat-king-victory
+      on_defeat: bilge-defeat
+
+  - id: bilge-flee-rat-king-enraged
+    name: "Flee from the Enraged Rat King"
+    event_type: encounter
+
+    checks:
+      - name: flee-speed-rat-king-enraged
+        type: stat
+        stat_data:
+          stat_name: agi
+          use_dice_roll: true
+          difficulty_modifier: 6.5
+        silent: true
+        on_success: bilge-flee-success
+        on_failure: bilge-flee-fail-rat-king-enraged
+
+    actions:
+      - type: stat
+        stat_name: stamina
+        value: "-15"
+        operation: add
+        silent: true
+
+  - id: bilge-flee-fail-rat-king-enraged
+    name: "Flee failed — Enraged Rat King"
+    event_type: combat
+
+    message:
+      text: "Không kịp. Vua Chuột cắn phập vào chân bạn từ phía sau."
+
+    combat:
+      enemy: rat_king_enraged
+      on_victory: bilge-rat-king-victory
+      on_defeat: bilge-defeat
+
+  # ── OUTCOMES ───────────────────────────────────
+
+  - id: bilge-victory
+    name: "Rat killed"
+    event_type: encounter
+
+    message:
+      text: "Bạn đã hạ gục con chuột. Thu được một ít thịt chuột."
+
+    actions:
+      - type: item
+        item: rat_meat
+        quantity: "1"
+        operation: give
+        silent: false
+      - type: flag
+        flag_name: global.rat_adults
+        flag_value: "1"
+        flag_operation: subtract
+        flag_type: global
+        silent: true
+
+  # Fired by hunt.js when rat_adults=0 AND rat_king_slain=1.
+  # Sets the permanent bilge_cleared flag, awards XP to all, then posts to storyboard.
+  - id: bilge-cleared
+    name: "Bilge Cleared"
+    event_type: encounter
+
+    message:
+      text: |
+        Hầm tàu im lặng. Mọi con chuột đều đã bị tiêu diệt — kể cả Vua Chuột. Con tàu thở phào nhẹ nhõm.
+        Tất cả thủy thủ được thưởng 1000 XP.
+
+    actions:
+      - type: flag
+        flag_name: global.bilge_cleared
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: narrate
+        channel: storyboard
+        title: "Hầm Tàu Im Lặng"
+        text: |
+          Ánh sáng bình minh xám xịt lọt qua lưới chắn hầm tàu, và lần đầu tiên kể từ khi chuyến hành trình bắt đầu, âm thanh duy nhất còn lại chỉ là tiếng gỗ đưa võng và sóng biển vỗ mạn.
+
+          Đàn chuột đã bị tiêu diệt. Từng con một — cả Vua Chuột cầm quyền vương quốc hôi thối của chúng trong bóng tối phía dưới.
+
+          Những thủy thủ đã quen với tiếng cào cấu và rí rí trong đêm nay bỗng dưng cảm thấy bị giật mình bởi sự im lặng. Một vài người tụ tập bên miệng hầm, nhìn xuống bóng tối phía dưới, hầu như không dám tin vào mắt mình.
+
+          Hầm tàu yên tĩnh.
+
+          Tin tức lan ra nhanh chóng khắp các boong: nạn dịch đã chấm dứt. Thủy thủ bước nhẹ hơn, ngủ sâu hơn. Tàu HMS Divine thở phào.
+
+          *Tất cả những ai đã chiến đấu trong bóng tối được thưởng 1000 XP.*
+
+  - id: bilge-rat-king-victory
+    name: "Rat King killed"
+    event_type: encounter
+
+    message:
+      text: |
+        Vua Chuột gục ngã, kéo theo sự hỗn loạn của cả bầy. Bạn nhổ được một chiếc răng nanh sắc nhọn từ xác nó, phần gốc còn dính cặn nhựa cây.
+
+    actions:
+      - type: item
+        item: ratsbane
+        quantity: "1"
+        operation: give
+        silent: false
+      - type: flag
+        flag_name: char.rat_king_slain
+        flag_value: "1"
+        flag_operation: set
+        flag_type: character
+        silent: true
+      - type: flag
+        flag_name: global.rat_king_slain
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+  - id: bilge-defeat
+    name: "Lost in bilge"
+    event_type: encounter
+
+    message:
+      text: "Bạn đã bị trọng thương, lên boong dưỡng sức."
+
+    actions:
+      - type: move
+        location: adjacent_random
+        movement_type: normal
+        silent: true
+
+  - id: bilge-flee-success
+    name: "Escaped bilge"
+    event_type: encounter
+
+    message:
+      text: "Bạn nhanh chân tẩu thoát lên boong chính an toàn."

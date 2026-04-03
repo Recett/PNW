@@ -3,44 +3,57 @@
 # ===============================================
 # This file defines all weapons in the game including melee weapons, ranged weapons, and shields.
 #
-# Complete Example (all possible fields):
-#   - id: "1"                            # Required: Unique identifier (string)
-#     name: "Iron Sword"                 # Required: Display name
-#     description: "A sturdy iron blade" # Optional: Flavor text
-#     item_type: weapon                  # Required: Must be "weapon"
-#     value: 100                         # Optional: Gold value for trading
-#     weight: 5                          # Optional: Inventory weight
-#     tag:                               # Optional: Classification array
-#       - melee
-#       - sword
-#     weapon:                            # Required: Combat properties
-#       slot: mainhand                   # Required: "mainhand"|"offhand"|"twohand"
-#       subtype: sword                   # Optional: dagger|sword|rapier|spear|axe|mace|shortbow|longbow|shield
-#       base_damage: 15                  # Required: Base damage before scaling
-#       scaling: 0.5                     # Required: Stat scaling (0.0-1.0)
-#       hit_mod: 0.75                    # Required: Hit chance modifier (0.0-1.0)
-#       cooldown: 100                    # Required: Attack speed (lower = faster)
+# Schema:
+#   id: string (required) - Unique identifier
+#   name: string (required) - Display name
+#   description: string - Flavor text
+#   item_type: "weapon" (required)
+#   value: number - Gold value
+#   weight: number - Inventory weight
+#   tags: array - Classification tags
+#   weapon: object (required) - Weapon properties
+#     slot: "mainhand"|"offhand"|"twohand"
+#     subtype: weapon category
+#     base_damage: number - Base damage
+#     scaling: number - Stat scaling (0.0-1.0)
+#     hit_mod: number - Hit chance (0.0-1.0)
+#     cooldown: number - Attack speed
 #
 # Last modified: 2026-03-23
 # ===============================================
 
 weapons:
-
   - id: "1"
     name: Frayed Bow
     description: Cây cung đã sờn và dây không chắc chắn.
     item_type: weapon
     value: 10
     weight: 3
-    tag:
+    tags:
       - starter_shortbow
     weapon:
       slot: twohand
       subtype: shortbow
-      base_damage: 4 # Base damage before scaling
-      scaling: 0.2 # Damage scaling with stats (0.0-1.0)
-      hit_mod: 0.85 # Hit chance modifier (0.0-1.0)
-      cooldown: 65 # Attack speed (lower = faster)
+      base_damage: 4
+      scaling: 0.2
+      hit_mod: 0.85
+      cooldown: 65
+
+  - id: shortbow_2
+    name: Hunting Bow
+    description: Cây cung săn bắn bằng gỗ sừng được chế tác cẩn thận, dây cung chắc chắn và đáng tin cậy.
+    item_type: weapon
+    value: 55
+    weight: 3
+    tag:
+      - shortbow
+    weapon:
+      slot: twohand
+      subtype: shortbow
+      base_damage: 6
+      scaling: 0.2
+      hit_mod: 0.85
+      cooldown: 65
 
   - id: "2"
     name: Warped Longbow
@@ -48,12 +61,28 @@ weapons:
     item_type: weapon
     value: 10
     weight: 8
-    tag:
+    tags:
       - starter_longbow
     weapon:
       slot: twohand
       subtype: longbow
       base_damage: 7
+      scaling: 0.45
+      hit_mod: 0.55
+      cooldown: 140
+
+  - id: longbow_2
+    name: Yew Longbow
+    description: Cây cung dài làm từ gỗ thủy tùng, uốn cong đều và giữ sức căng tốt qua nhiều lần bắn.
+    item_type: weapon
+    value: 70
+    weight: 8
+    tag:
+      - longbow
+    weapon:
+      slot: twohand
+      subtype: longbow
+      base_damage: 12
       scaling: 0.45
       hit_mod: 0.55
       cooldown: 140
@@ -64,12 +93,28 @@ weapons:
     item_type: weapon
     value: 10
     weight: 3
-    tag:
+    tags:
       - starter_dagger
     weapon:
       slot: mainhand
       subtype: dagger
       base_damage: 6
+      scaling: 0.25
+      hit_mod: 0.65
+      cooldown: 60
+
+  - id: dagger_2
+    name: Belt Dagger
+    description: Con dao nhỏ gọn được đeo ở thắt lưng, lưỡi dao sắc bén và cân bằng tốt cho đòn đâm nhanh.
+    item_type: weapon
+    value: 45
+    weight: 2
+    tag:
+      - dagger
+    weapon:
+      slot: mainhand
+      subtype: dagger
+      base_damage: 8
       scaling: 0.25
       hit_mod: 0.65
       cooldown: 60
@@ -80,12 +125,28 @@ weapons:
     item_type: weapon
     value: 10
     weight: 4
-    tag:
+    tags:
       - starter_rapier
     weapon:
       slot: mainhand
       subtype: rapier
       base_damage: 7
+      scaling: 0.3
+      hit_mod: 0.6
+      cooldown: 85
+
+  - id: rapier_2
+    name: Side Rapier
+    description: Thanh kiếm mảnh được đeo bên hông, thường thấy ở tầng lớp thương nhân và sĩ quan cấp thấp.
+    item_type: weapon
+    value: 65
+    weight: 4
+    tag:
+      - rapier
+    weapon:
+      slot: mainhand
+      subtype: rapier
+      base_damage: 10
       scaling: 0.3
       hit_mod: 0.6
       cooldown: 85
@@ -96,7 +157,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 5
-    tag:
+    tags:
       - starter_shortsword
     weapon:
       slot: mainhand
@@ -106,13 +167,29 @@ weapons:
       hit_mod: 0.75
       cooldown: 110
 
+  - id: sword_2
+    name: Infantry Sword
+    description: Kiếm bộ binh tiêu chuẩn, được trang bị cho lính thường của Gateland. Thực dụng và bền bỉ.
+    item_type: weapon
+    value: 55
+    weight: 5
+    tag:
+      - sword
+    weapon:
+      slot: mainhand
+      subtype: sword
+      base_damage: 10
+      scaling: 0.5
+      hit_mod: 0.75
+      cooldown: 110
+
   - id: "6"
     name: Splintered Spear
     description: Sản xuất hàng loạt, hầu như không được bảo dưỡng.
     item_type: weapon
     value: 10
     weight: 6
-    tag:
+    tags:
       - starter_spear
     weapon:
       slot: mainhand
@@ -122,18 +199,50 @@ weapons:
       hit_mod: 0.8
       cooldown: 120
 
+  - id: spear_2
+    name: Ash Spear
+    description: Cây giáo làm từ gỗ tần bì, nhẹ mà chắc. Loại vũ khí phổ biến nhất trong đội dân quân thuộc địa.
+    item_type: weapon
+    value: 60
+    weight: 6
+    tag:
+      - spear
+    weapon:
+      slot: mainhand
+      subtype: spear
+      base_damage: 8
+      scaling: 0.55
+      hit_mod: 0.8
+      cooldown: 120
+
   - id: "7"
     name: Cracked Mace
     description: Đầu dao mất cân bằng, cán dao được quấn.
     item_type: weapon
     value: 10
     weight: 8
-    tag:
+    tags:
       - starter_mace
     weapon:
       slot: mainhand
       subtype: mace
       base_damage: 6
+      scaling: 0.75
+      hit_mod: 0.75
+      cooldown: 145
+
+  - id: mace_2
+    name: Iron Mace
+    description: Chùy sắt đầu tròn được gia cố, nặng tay nhưng mỗi cú đánh đều mang sức công phá đáng kể.
+    item_type: weapon
+    value: 50
+    weight: 8
+    tag:
+      - mace
+    weapon:
+      slot: mainhand
+      subtype: mace
+      base_damage: 9
       scaling: 0.75
       hit_mod: 0.75
       cooldown: 145
@@ -144,7 +253,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 9
-    tag:
+    tags:
       - starter_axe
     weapon:
       slot: mainhand
@@ -152,7 +261,23 @@ weapons:
       base_damage: 7
       scaling: 0.85
       hit_mod: 0.7
-      cooldown: 150
+      cooldown: 130
+
+  - id: axe_2
+    name: Felling Axe
+    description: Rìu chặt cây được cải dụng làm vũ khí, lưỡi rìu sắc và tay cầm chắc chắn hơn loại công cụ thông thường.
+    item_type: weapon
+    value: 50
+    weight: 9
+    tag:
+      - axe
+    weapon:
+      slot: mainhand
+      subtype: axe
+      base_damage: 11
+      scaling: 0.85
+      hit_mod: 0.7
+      cooldown: 130
 
   - id: "9"
     name: Bent Greatsword
@@ -168,6 +293,22 @@ weapons:
       hit_mod: 0.65
       cooldown: 170
 
+  - id: greatsword_2
+    name: Soldier's Greatsword
+    description: Trường kiếm hai tay của lính chính quy, được rèn đúng cách và giữ thăng bằng tốt dù kích thước lớn.
+    item_type: weapon
+    value: 80
+    weight: 11
+    tag:
+      - greatsword
+    weapon:
+      slot: twohand
+      subtype: sword
+      base_damage: 12
+      scaling: 0.98
+      hit_mod: 0.70
+      cooldown: 165
+
   - id: "10"
     name: Bent Buckler
     description: Tấm chắn nhỏ bị móp với dây đeo lỏng lẻo.
@@ -181,3 +322,64 @@ weapons:
       scaling: 0.3
       hit_mod: 0.75
       cooldown: 120
+
+  - id: shield_2
+    name: Round Shield
+    description: Tấm khiên tròn bằng gỗ bọc sắt, dây đeo chắc chắn và đai tay vừa vặn, được dùng rộng rãi trong lực lượng dân quân.
+    item_type: weapon
+    value: 40
+    weight: 5
+    tag:
+      - shield
+    weapon:
+      slot: offhand
+      subtype: shield
+      base_damage: 6
+      scaling: 0.3
+      hit_mod: 0.75
+      cooldown: 110
+
+  - id: ratsbane
+    name: "Ratsbane"
+    description: "Một chiếc răng nanh dài bằng ngón tay, sắc đến mức cắt được da khi chạm nhẹ. Gốc răng được quấn dây thừng tẩm nhựa cây — ai đó đã biến nó thành vũ khí, hoặc nó vốn đã là vũ khí."
+    item_type: weapon
+    value: 0
+    weight: 1
+    tag:
+    weapon:
+      slot: mainhand
+      subtype: dagger
+      base_damage: 7
+      scaling: 0.3
+      hit_mod: 0.65
+      cooldown: 60
+
+  - id: galeby-wolf-spear
+    name: "Wolf Spear"
+    description: Cây giáo được chạm khắc hoa văn sói trên cán gỗ sẫm. Khác với giáo của người Gateland, vũ khí này có vẻ nhẹ hơn đáng kể.
+    item_type: weapon
+    value: 0
+    weight: 4
+    tags: 
+    weapon:
+      slot: mainhand
+      subtype: spear
+      base_damage: 7
+      scaling: 0.5
+      hit_mod: 0.75
+      cooldown: 90
+
+  - id: galeby-rapier
+    name: "Galeby's Rapier"
+    description: Thanh rapier cũ nhưng được giữ gìn tốt.
+    item_type: weapon
+    value: 75
+    weight: 4
+    tags:
+    weapon:
+      slot: mainhand
+      subtype: rapier
+      base_damage: 10
+      scaling: 0.3
+      hit_mod: 0.7
+      cooldown: 85

@@ -1,0 +1,121 @@
+tasks:
+  - id: galeby-daily-progression
+    name: "Galeby Daily Conversation Progression"
+    description: "Consume galeby_talked_today flags and advance gale_met counter at end of day"
+    schedule: daily
+    active: true
+    tags: [conversation, daily_progression, galeby]
+    
+    # Target characters who have talked to Galeby today
+    checks:
+      - name: has_talked_today
+        type: flag
+        flag_data:
+          flag_name: char.galeby_talked_today
+          flag_value: 1
+          flag_comparison: equals
+          is_global_flag: false
+        is_required: true
+        silent: true
+        execution_order: 0
+    
+    # Actions to perform on eligible characters
+    actions:
+      # First, consume the "talked today" ticket
+      - type: flag
+        flag_name: char.galeby_talked_today
+        flag_value: 0
+        flag_operation: set
+        flag_type: character
+        silent: true
+        
+      # Then advance the conversation counter
+      - type: flag
+        flag_name: char.gale_met
+        flag_value: 1
+        flag_operation: add
+        flag_type: character
+        silent: true
+
+  # Example: Daily HP/Stamina regeneration for characters in town
+  - id: daily-town-regen
+    name: "Daily Town Regeneration"
+    description: "Characters in town locations regenerate 10% HP and Stamina daily"
+    schedule: daily
+    active: false  # Disabled for now - example only
+    tags: [regeneration, daily, town]
+    
+    checks:
+      # Check if character has 'in_town' flag set
+      - name: in_town_check
+        type: flag
+        flag_data:
+          flag_name: char.in_town
+          flag_value: 1
+          flag_comparison: equals
+          is_global_flag: false
+        is_required: true
+        silent: true
+        execution_order: 0
+      
+      # Check if character needs healing (HP < max)
+      - name: needs_healing
+        type: stat
+        stat_data:
+          stat_name: hp
+          comparison: less_than_max
+        is_required: false
+        silent: true
+        execution_order: 1
+    
+    actions:
+      # Regenerate 10% HP (using percentage operation)
+      - type: stat
+        stat_name: hp
+        stat_value: "10"
+        operation: add_percent_of_max
+        silent: true
+        
+      # Regenerate 10% Stamina
+      - type: stat
+        stat_name: stamina
+        stat_value: "10"
+        operation: add_percent_of_max
+        silent: true
+
+  # Example: Weekly skill point bonus for active characters
+  - id: weekly-activity-bonus
+    name: "Weekly Activity Bonus"
+    description: "Characters who were active this week get bonus skill points"
+    schedule: weekly
+    active: false  # Disabled for now - example only
+    tags: [bonus, weekly, skill_points]
+    
+    checks:
+      # Check if character has been active (has activity points)
+      - name: was_active
+        type: flag
+        flag_data:
+          flag_name: char.weekly_activity
+          flag_value: 3
+          flag_comparison: greater_equal
+          is_global_flag: false
+        is_required: true
+        silent: true
+        execution_order: 0
+    
+    actions:
+      # Give bonus skill points
+      - type: stat
+        stat_name: skill_points
+        stat_value: "5"
+        operation: add
+        silent: true
+        
+      # Reset weekly activity counter
+      - type: flag
+        flag_name: char.weekly_activity
+        flag_value: 0
+        flag_operation: set
+        flag_type: character
+        silent: true

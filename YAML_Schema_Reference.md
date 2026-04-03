@@ -102,6 +102,12 @@ events:
         expression: "${var_a + var_b}"        # Optional: for literal/expression types
         input_label: "Enter value"            # Optional: label text for input/chat_input types
         input_placeholder: "e.g., 50"         # Optional: placeholder hint for input types
+      - type: "narrate"                       # Post embed to a Discord channel
+        channel: "storyboard"                 # Key from src/config/channels.js (case-insensitive)
+        title: "Title Text"                   # Optional embed title
+        text: |                               # Required embed body
+          Narrative text here.
+        color: 0x2f3136                       # Optional embed color (default 0x2f3136)
 ```
 
 ### Combat Event Structure
@@ -243,6 +249,17 @@ npcs:
     start_event: "event_id"               # Optional: Event triggered on first interaction
     age: 30                               # Optional: Age (used for Vietnamese pronoun system)
     gender: "male"                         # Optional: "male"|"female" (default: male)
+    player_to_npc: "anh"                   # Optional: Custom override for ${npc_2p} (how player addresses NPC)
+    pronouns:                             # Optional: Custom relational pronoun overrides
+      much_older:                         # When NPC is 2+ brackets older than player
+        to_player:                        # Override ${2p} - how NPC addresses player
+          male: "cháu"                    # For male players
+          female: "cháu"                  # For female players  
+          default: "cháu"                 # Default fallback
+        npc_self: "ông"                   # Override ${npc_1p} - how NPC refers to self
+      older:                              # When NPC is 1 bracket older
+        npc_self: "tôi"                   # Can override just npc_self without to_player
+      # peer, younger, much_younger also supported with same structure
     status: "active"                       # Optional: "active"|"inactive"
     stocks:                               # Optional: Shop inventory (loaded into npc_stocks DB table)
       - item: "item_id"                   # Item ID

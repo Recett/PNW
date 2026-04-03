@@ -49,6 +49,10 @@ module.exports = {
 				.addBooleanOption(option =>
 					option.setName('lock')
 						.setDescription('Lock or unlock the location')
+						.setRequired(false))
+				.addBooleanOption(option =>
+					option.setName('hidden')
+						.setDescription('Hide or show the location in move command')
 						.setRequired(false)))
 		.addSubcommand(subcommand =>
 			subcommand
@@ -62,6 +66,14 @@ module.exports = {
 			subcommand
 				.setName('unlock')
 				.setDescription('Unlock the current location'))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('hide')
+				.setDescription('Hide the current location from the move command'))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('unhide')
+				.setDescription('Make the current location visible in the move command'))
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('duplicate')
@@ -108,6 +120,12 @@ module.exports = {
 		}
 		else if (subcommand === 'duplicate') {
 			return this.handleDuplicate(interaction);
+		}
+		else if (subcommand === 'hide') {
+			return this.handleHide(interaction);
+		}
+		else if (subcommand === 'unhide') {
+			return this.handleUnhide(interaction);
 		}
 	},
 
@@ -174,10 +192,12 @@ module.exports = {
 		const name = interaction.options.getString('name');
 		const type = interaction.options.getString('type');
 		const lock = interaction.options.getBoolean('lock');
+		const hidden = interaction.options.getBoolean('hidden');
 
 		if (name !== null) updates.name = name;
 		if (type !== null) updates.type = type;
 		if (lock !== null) updates.lock = lock;
+		if (hidden !== null) updates.hidden = hidden;
 
 		if (Object.keys(updates).length === 0) {
 			return interaction.reply({ content: 'No fields to update.', flags: MessageFlags.Ephemeral });
@@ -496,6 +516,40 @@ module.exports = {
 				return await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
 			}
 		}
+	},
+
+	async handleHide(interaction) {
+		const channelId = interaction.channel.id;
+
+		const location = await LocationBase.findOne({ where: { channel: channelId } });
+
+		if (!location) {
+			return interaction.reply({ content: 'No location found for this channel.', flags: MessageFlags.Ephemeral });
+		}
+
+		if (location.hidden) {
+			return interaction.reply({ content: 'This location is already hidden.', flags: MessageFlags.Ephemeral });
+		}
+
+		await location.update({ hidden: true });
+		return interaction.reply({ content: 'Location hidden. It will no longer appear in the move command.', flags: MessageFlags.Ephemeral });
+	},
+
+	async handleUnhide(interaction) {
+		const channelId = interaction.channel.id;
+
+		const location = await LocationBase.findOne({ where: { channel: channelId } });
+
+		if (!location) {
+			return interaction.reply({ content: 'No location found for this channel.', flags: MessageFlags.Ephemeral });
+		}
+
+		if (!location.hidden) {
+			return interaction.reply({ content: 'This location is not hidden.', flags: MessageFlags.Ephemeral });
+		}
+
+		await location.update({ hidden: false });
+		return interaction.reply({ content: 'Location is now visible in the move command.', flags: MessageFlags.Ephemeral });
 	},
 
 	async handleLockModal(interaction) {

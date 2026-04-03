@@ -1,0 +1,66 @@
+enemies:
+
+  # -----------------------------------------------
+  # AQUATIC ENEMIES — HMS DIVINE PROLOGUE
+  # Encountered via /fish on deck.
+  #
+  # Giant Crab:  DEF2 shell, slow but hits hard. Tanky.
+  #   Roughly equivalent to an adult rat in difficulty.
+  #
+  # Shark:       Fast, multi-attack, no defense.
+  #   Rare encounter. High risk, high reward.
+  # -----------------------------------------------
+
+  - id: giant_crab
+    name: Giant Crab
+    unknown_name: Giant Crab
+    level: 2
+    enemy_type: beast
+    status: active
+    stats:
+      health: 40
+      defense: 4
+      defense_percent: 0
+      crit_resistance: 3
+      evade: 3
+      speed: 6
+    attacks:
+      - id: claw_snap
+        name: Claw Snap
+        base_damage: 10
+        accuracy: 8
+        critical_chance: 2
+        cooldown: 100
+    reward:
+      exp: 60
+      items:
+        - id: crab_meat
+          chance: 0.85
+          quantity: 1
+
+  - id: shark
+    name: Shark
+    unknown_name: Shark
+    level: 4
+    enemy_type: beast
+    status: active
+    stats:
+      health: 70
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 1
+      evade: 9
+      speed: 13
+    attacks:
+      - id: shark_bite
+        name: Bite
+        base_damage: 15
+        accuracy: 10
+        critical_chance: 5
+        cooldown: 80
+    reward:
+      exp: 100
+      items:
+        - id: shark_meat
+          chance: 1.0
+          quantity: 1

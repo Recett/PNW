@@ -334,6 +334,12 @@ async function handleCookingInteraction(interaction) {
 		else if (customId === 'cook_cancel_selection') {
 			await cookCommand.handleCookingCancelSelection(interaction);
 		}
+		else if (customId === 'cook_eat') {
+			await cookCommand.handleEatDish(interaction);
+		}
+		else if (customId === 'cook_feed_morale') {
+			await cookCommand.handleFeedMorale(interaction);
+		}
 		else {
 			return false; // Not a cooking interaction
 		}

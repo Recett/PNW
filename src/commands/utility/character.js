@@ -285,9 +285,24 @@ async function handleStat(interaction, userId) {
 	const avatarUrl = character.avatar || displayUser.displayAvatarURL({ forceStatic: false });
 	console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!character.avatar, ')');
 
+	// Query active food buff rows for (+X) annotation
+	const foodBuffRows = await CharacterStatus.findAll({ where: { character_id: targetId, source: 'food' } });
+
+	// Build food gain map for plain-text annotation
+	const FOOD_PLAIN_MULT = { attack: 1 / 3, defense: 1 / 5, defense_percent: 1 / 3, evade: 1 / 3, speed: 1 / 3, accuracy: 1 / 3, critical: 2, critical_damage: 2, crit_resistance: 2 };
+	const foodGainMap = {};
+	for (const fb of foodBuffRows) {
+		const mult = FOOD_PLAIN_MULT[fb.stat_target];
+		if (mult != null) {
+			const gain = Math.floor(fb.potency * mult);
+			if (gain > 0) foodGainMap[fb.stat_target] = (foodGainMap[fb.stat_target] || 0) + gain;
+		}
+	}
+	const foodNote = (stat) => foodGainMap[stat] ? ` (+${foodGainMap[stat]})` : '';
+
 	if (!isPlain) {
 		try {
-			const imageBuffer = await generateStatCard(character, combat, attack, equipment, avatarUrl);
+			const imageBuffer = await generateStatCard(character, combat, attack, equipment, avatarUrl, foodBuffRows);
 			const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
 			return await interaction.editReply({ files: [attachment] });
 		}
@@ -303,16 +318,16 @@ async function handleStat(interaction, userId) {
 		`CON: ${character.con ?? '-'}`,
 	];
 	const combatFields = combat ? [
-		`Defense: ${combat.defense ?? '-'}`,
-		`Speed: ${combat.speed ?? '-'}`,
-		`Evade: ${combat.evade ?? '-'}`,
+		`Defense: ${combat.defense ?? '-'}${foodNote('defense')}`,
+		`Speed: ${combat.speed ?? '-'}${foodNote('speed')}`,
+		`Evade: ${combat.evade ?? '-'}${foodNote('evade')}`,
 		`Current Weight: ${combat.currentWeight ?? '-'}`,
 		`Max Weight: ${combat.maxWeight ?? '-'}`,
 	] : ['None'];
 	const attackFields = attack ? [
-		`Attack: ${attack.attack ?? '-'}`,
-		`Accuracy: ${attack.accuracy ?? '-'}`,
-		`Critical: ${attack.critical ?? '-'}`,
+		`Attack: ${attack.attack ?? '-'}${foodNote('attack')}`,
+		`Accuracy: ${attack.accuracy ?? '-'}${foodNote('accuracy')}`,
+		`Critical: ${attack.critical ?? '-'}${foodNote('critical')}`,
 	] : ['None'];
 	const equipList = equipment.length > 0 ? equipment.map(eq => `- ${eq.itemName}`).join('\n') : 'None';
 	const hpBar = createColorBar(character.currentHp, character.maxHp, 'hp');
@@ -450,37 +465,38 @@ async function handleEdit(interaction, userId) {
 		.setLabel('Full Name')
 		.setStyle(TextInputStyle.Short)
 		.setPlaceholder('Your character\'s full name')
-		.setValue(character.fullname || '')
 		.setRequired(true)
 		.setMinLength(2)
 		.setMaxLength(64);
+	if ((character.fullname || '').length >= 2) nameInput.setValue(character.fullname);
 
 	const ageInput = new TextInputBuilder()
 		.setCustomId('character_age')
 		.setLabel('Age')
 		.setStyle(TextInputStyle.Short)
 		.setPlaceholder('e.g. 25 (optional)')
-		.setValue(character.age != null ? String(character.age) : '')
 		.setRequired(false)
 		.setMaxLength(3);
+	const ageStr = character.age != null ? String(character.age) : '';
+	if (ageStr.length >= 2) ageInput.setValue(ageStr);
 
 	const avatarInput = new TextInputBuilder()
 		.setCustomId('character_avatar')
 		.setLabel('Avatar URL')
 		.setStyle(TextInputStyle.Short)
 		.setPlaceholder('https://example.com/image.png (optional)')
-		.setValue(currentAvatar)
 		.setRequired(false)
 		.setMaxLength(500);
+	if (currentAvatar.length >= 2) avatarInput.setValue(currentAvatar);
 
 	const descriptionInput = new TextInputBuilder()
 		.setCustomId('character_description')
 		.setLabel('Description')
 		.setStyle(TextInputStyle.Paragraph)
 		.setPlaceholder('A brief description of your character (optional)')
-		.setValue(currentDescription)
 		.setRequired(false)
 		.setMaxLength(1000);
+	if (currentDescription.length >= 2) descriptionInput.setValue(currentDescription);
 
 	modal.addComponents(
 		new ActionRowBuilder().addComponents(nameInput),
@@ -769,6 +785,13 @@ async function handleDelete(interaction, userId) {
 	const character = await CharacterBase.findOne({ where: { id: targetId } });
 	if (!character) return await interaction.editReply({ content: 'Character not found.' });
 
+	// Reply before deleting threads — if the command was run inside a character thread,
+	// deleting that thread invalidates the interaction message and editReply throws 10008.
+	const message = targetUser && targetUser.id !== userId
+		? `Character for ${targetUser.username} has been deleted.`
+		: 'Your character and all associated data have been deleted.';
+	await interaction.editReply({ content: message });
+
 	// Delete threads: grant each thread's parent channel role first, then delete, then clean up.
 	// Mirrors the pattern in register.js — private thread ops require the user to have
 	// access to the parent channel. We temporarily re-grant the role to guarantee access.
@@ -834,9 +857,4 @@ async function handleDelete(interaction, userId) {
 		LocationContain.destroy({ where: { object_id: targetId } }),
 	]);
 	await CharacterBase.destroy({ where: { id: targetId } });
-
-	const message = targetUser && targetUser.id !== userId
-		? `Character for ${targetUser.username} has been deleted.`
-		: 'Your character and all associated data have been deleted.';
-	await interaction.editReply({ content: message });
 }

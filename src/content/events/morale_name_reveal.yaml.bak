@@ -1,0 +1,319 @@
+events:
+
+  # ─────────────────────────────────────────────
+  # MORALE APPROACH  EDISPATCHER
+  # ─────────────────────────────────────────────
+
+  - id: "morale-approach"
+    name: "Morale  ETiếp Cận"
+    event_type: "npc"
+    silent: true
+    next: "morale-gate"
+
+    checks:
+      - name: "name-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: "morale-subsequent"
+
+  - id: "morale-gate"
+    name: "Morale  EGate"
+    event_type: "npc"
+    silent: true
+    next: "morale-pre-quest"
+
+    checks:
+      - name: "york-asked"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_bilge_key_asked"
+          flag_value: 1
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: "morale-first-interaction"
+
+  - id: "morale-pre-quest"
+    name: "Morale  EPre-Quest"
+    event_type: "npc"
+    is_active: true
+
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Cô ấy nằm cuộn tròn trên một cuộn dây thừng, mắt nhắm hềE Trông như cô ấy không quan tâm đến sự có mặt của bạn.
+
+  # ─────────────────────────────────────────────
+  # BILGE DOOR
+  # ─────────────────────────────────────────────
+
+  - id: "bilge-door-locked"
+    name: "The Bilge Door"
+    description: "Triggered on /explore bilge before key is obtained."
+    event_type: "exploration"
+    is_active: true
+    message:
+      text: |
+        Cánh cửa đóng chặt. Một ềEkhóa sắt nặng  Eai đó đã quyết định giữ nó khép lại.
+    checks:
+      - name: "has-bilge-key"
+        type: "item"
+        item_data:
+          - item_id: "bilge-key"
+            required_quantity: 1
+        is_required: true
+        silent: true
+        on_failure: "bilge-door-locked-options"
+    next: null
+
+  - id: "bilge-door-locked-options"
+    name: "The Bilge Door  EOptions"
+    is_active: true
+    actions:
+      - type: flag
+        flag_name: "char.bilge_door_encountered"
+        flag_value: "1"
+        flag_operation: set
+        flag_type: character
+        silent: true
+    options:
+      - id: "look-for-another-way"
+        text: "Tìm lối vào khác"
+        next: "bilge-door-no-other-way"
+      - id: "ask-around"
+        text: "Hỏi xem ai có chìa khóa"
+        next: null
+
+  - id: "bilge-door-no-other-way"
+    name: "The Bilge Door  ENo Other Way"
+    is_active: true
+    message:
+      text: |
+        Không có lối nào khác.
+
+  # ─────────────────────────────────────────────
+  # NPC INTERACTIONS  EBILGE KEY
+  # ─────────────────────────────────────────────
+
+  - id: "vorne-bilge-key"
+    name: "Vorne  EBilge Key"
+    description: "Triggered by player asking Vorne about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "aldric-vorne"
+      text: |
+        "${npc_1p} không rõ chuyện đó. Chìa khóa và kho bãi  Eđó là việc của York."
+    actions:
+      - type: flag
+        flag_name: "char.vorne_bilge_key_asked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "york-bilge-key"
+    name: "York  EBilge Key"
+    description: "Triggered by player asking York about the bilge key."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "name-not-yet-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_success: null
+        on_failure: "york-bilge-key-message"
+    next: "york-bilge-key-message"
+
+  - id: "york-bilge-key-message"
+    name: "York  EBilge Key Message"
+    is_active: true
+    message:
+      npc_speaker: "york-waylan"
+      text: |
+        "Chìa khóa hầm tàu? Trung úy Morale quản lý khu vực đó, nên chắc cô ấy đang giữ. Cô ấy không được khỏe chuyến này  Etheo ${npc_1p} thì nên nghềEbệnh, nhưng cô ấy không chịu nghe. Có lẽ cô ấy đang nghềEtrong phòng. ${npc_1p} mong là vậy."
+    actions:
+      - type: flag
+        flag_name: "char.york_bilge_key_asked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "york-morale-pregnant"
+    name: "York  EMorale Pregnant"
+    description: "Subsequent York interaction after player has retrieved the key. Unlocks cooking minigame."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "name-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_failure: null
+      - name: "cooking-not-yet-unlocked"
+        type: "flag"
+        flag_data:
+          flag_name: "global.cooking_unlocked"
+          flag_value: 1
+          flag_comparison: not_equal
+          is_global_flag: true
+        is_required: true
+        silent: true
+        on_success: null
+      - name: "not-yet-told"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_morale_pregnant_told"
+          flag_value: 1
+          flag_comparison: not_equal
+          is_global_flag: false
+        is_required: true
+        silent: true
+        on_success: null
+    message:
+      npc_speaker: "york-waylan"
+      text: |
+        "${2p} tìm được cô ấy rồi à. Tốt. Cô ấy sẽ không tự nói ra đâu, nhưng cô ấy đang trong giai đoạn khó khăn  Ecô ấy đang mang thai, trên hết mọi thứ. ${npc_1p} định nhềEai đó chuẩn bềEgì đó tươm tất cho cô ấy, nhưng đó không phải việc của ${npc_1p}. Nếu ${2p} có lòng và tìm được nguyên liệu phù hợp, ${npc_1p} nghĩ cô ấy sẽ biết ơn."
+    actions:
+      - type: flag
+        flag_name: "global.cooking_unlocked"
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: "char.york_morale_pregnant_told"
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  - id: "hensbane-bilge-key"
+    name: "Hensbane  EBilge Key"
+    description: "Triggered by player asking Hensbane about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "lawrence-hensbane"
+      text: |
+        "Chuyện đó không phải việc ${npc_1p} theo dõi. Hỏi York đi  Ekho bãi là lãnh địa của ông ấy."
+
+  - id: "mcbetha-bilge-key"
+    name: "Father McBetha  EBilge Key"
+    description: "Triggered by player asking Father McBetha about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "ian-mcbetha"
+      text: |
+        "Chìa khóa hầm tàu. ${npc_1p} e rằng điều đó nằm ngoài phạm vi của ${npc_1p}. York sẽ biết."
+
+  - id: "galeby-bilge-key"
+    name: "Galeby  EBilge Key"
+    description: "Triggered by player asking Galeby about the bilge key."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "galeby"
+      text: |
+        "${npc_1p} chẳng rõ chuyện đó. Hỏi người quản lý trên tàu thì chắc hơn."
+
+  # ─────────────────────────────────────────────
+  # MORALE INTERACTIONS
+  # ─────────────────────────────────────────────
+
+  - id: "morale-first-interaction"
+    name: "Morale  EFirst Interaction"
+    description: "Triggered by /talk morale after player has spoken to York about the key."
+    event_type: "npc"
+    is_active: true
+    checks:
+      - name: "york-asked"
+        type: "flag"
+        flag_data:
+          flag_name: "char.york_bilge_key_asked"
+          flag_value: 1
+          is_global_flag: false
+        is_required: true
+        silent: true
+        on_failure: null
+      - name: "name-not-yet-revealed"
+        type: "flag"
+        flag_data:
+          flag_name: "global.morale_name_revealed"
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: "morale-subsequent"
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Cô ấy nằm thu mình trong một hốc giữa hai cuộn dây thừng, nhìn bạn với sự kiên nhẫn của thứ gì đó không có nơi nào đềEđến và biết rõ điều đó.
+
+        Bạn nói với cô ấy rằng York nhềEđến. Rằng bạn đang tìm chìa khóa hầm tàu.
+
+        Cô ấy khẽ xê dịch  EchềEmột chút  Evà thứ gì đó lóe sáng phía sau. Một chiếc chìa khóa trên sợi dây ngắn, nửa chìm dưới hông cô ấy. Cô ấy nhìn bạn nhìn nó.
+    options:
+      - id: "take-the-key"
+        text: "Lấy chìa khóa"
+        next: "morale-key-taken"
+
+  - id: "morale-key-taken"
+    name: "Morale  EKey Taken"
+    is_active: true
+    message:
+      text: |
+        Bạn nhẹ nhàng nhấc nó lên. Cô ấy nằm lại, mắt khép dần.
+    actions:
+      - type: item
+        item: "bilge-key"
+        quantity: "1"
+        operation: give
+        silent: false
+        custom_message: "Bạn có chìa khóa hầm tàu."
+      - type: flag
+        flag_name: "global.morale_name_revealed"
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+  - id: "morale-subsequent"
+    name: "Morale  ESubsequent Interaction"
+    description: "Available after name is revealed."
+    event_type: "npc"
+    is_active: true
+    message:
+      npc_speaker: "lt-morale"
+      text: |
+        Cô ấy vẫn ềEchềEcũ. Một mắt mềEkhi bạn đến gần, khép lại khi bạn không mang gì thú vềE
+    options:
+      - id: "stay-a-moment"
+        text: "Ngồi lại một lúc"
+        next: "morale-stay"
+      - id: "leave-her-to-it"
+        text: "ĐềEcô ấy nghềE
+        next: null
+
+  - id: "morale-stay"
+    name: "Morale  EStay"
+    is_active: true
+    message:
+      text: |
+        Bạn ngồi xuống gần đó. Một lúc sau cô ấy xê dịch, áp nhẹ hông vào người bạn.

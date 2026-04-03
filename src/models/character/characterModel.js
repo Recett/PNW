@@ -210,6 +210,14 @@ const characterStatus = (sequelize) => {
 			type: Sequelize.INTEGER,
 			allowNull: true,              // null = permanent
 		},
+		duration_unit: {
+			type: Sequelize.ENUM('tick', 'player_turn', 'enemy_turn', 'hit_received', 'battle', 'seconds', 'permanent'),
+			allowNull: true,              // null = permanent
+		},
+		expires_at: {
+			type: Sequelize.DATE,
+			allowNull: true,              // populated only when duration_unit is 'seconds'
+		},
 
 		// --- Source (stub) ---
 		source: {

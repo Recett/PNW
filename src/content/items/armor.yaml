@@ -28,7 +28,7 @@ armor:
     name: Cloth Hood
     description: Mũ trùm đầu bằng vải đơn giản chỉ có tác dụng giữ ấm.
     item_type: armor
-    value: 10
+    value: 20
     weight: 1
     armor:
       slot: head
@@ -41,7 +41,7 @@ armor:
     name: Cloth Tunic
     description: Quần áo mỏng hàng ngày, dễ bị rách trong chiến đấu.
     item_type: armor
-    value: 10
+    value: 50
     weight: 2
     armor:
       slot: body
@@ -54,7 +54,7 @@ armor:
     name: Cloth Trousers
     description: Quần vải rộng thùng thình không có khả năng bảo vệ thực sự.
     item_type: armor
-    value: 10
+    value: 30
     weight: 1
     armor:
       slot: leg
@@ -80,7 +80,7 @@ armor:
     name: Leather Jerkin
     description: Áo giáp da cơ bản được khâu chắc chắn.
     item_type: armor
-    value: 10
+    value: 100
     weight: 5
     armor:
       slot: body
@@ -93,7 +93,7 @@ armor:
     name: Leather Pants
     description: Quần da được xử lý để chịu được những cú đánh nhẹ.
     item_type: armor
-    value: 10
+    value: 60
     weight: 4
     armor:
       slot: leg
@@ -106,12 +106,12 @@ armor:
     name: Rusted Helm
     description: Mũ sắt rỉ sét lấy từ một quá khứ không rõ.
     item_type: armor
-    value: 10
+    value: 40
     weight: 6
     armor:
       slot: head
       subtype: heavy
-      defense: 3
+      defense: 2
       defense_percent: 0
       crit_resistance: 0
 

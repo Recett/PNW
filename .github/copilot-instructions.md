@@ -100,6 +100,13 @@ await characterUtil.addCharacterItem(characterId, itemId, quantity);
 - In template literals: `${EMOJI.WARNING}`, `${EMOJI.FAILURE}`, `${EMOJI.SUCCESS}`, etc.
 - When referencing standalone (not in a template): `EMOJI.SWORD`, `EMOJI.SKULL`, etc.
 
+**YAML content files with Vietnamese text (CRITICAL):**
+- **Never use PowerShell `Set-Content` or `Get-Content` on any `.yaml` file containing Vietnamese text** — it silently corrupts multi-byte UTF-8 sequences even when `-Encoding UTF8` is specified in some PS versions
+- **Safe write methods only**: use the `create_file` tool, `replace_string_in_file` tool, or Node.js `fs.writeFileSync(path, content, 'utf8')` for any YAML with Vietnamese content
+- **Always backup before batch text transforms**: before running any script that rewrites YAML content, write a `.bak` copy first (e.g., `fs.copyFileSync(path, path + '.bak')`)
+- **Catalog-first for bulk fixes**: when fixing widespread corruption, build a catalog of `(damaged_text → correct_text)` pairs and validate with the user before executing replacements
+- **Space-eating corruption**: a second-pass bad replacement script can eat the space adjacent to a corrupted sequence — `XềEY` → `XY` instead of `X Y`. A simple `string.split(badText).join(goodText)` will fail to find `" để hỏi"` when it became `"đểhỏi"`. Use a flex-whitespace regex joining each word with `[ \t]{0,2}` to match both cases
+
 ## Database Structure
 
 **Database Location:** `src/database.sqlite` (SQLite3)
@@ -251,7 +258,7 @@ const equipped = await CharacterItem.findAll({
 
 4. **Plural table names** - Model `EventBase` maps to table `event_bases`, not `event_base`
 
-5. **Flag values are strings** - Even numeric flags are stored as strings in character_flags and must be parsed
+5. **Flag values are integers** - Flag values are stored as INTEGER type in both character_flags and global_flags tables
 
 6. **ALWAYS verify field names** - Never assume field names. Always check the actual model definition in `src/models/` before using any field. For example, LocationLink uses `linked_location_id`, not `link_id`. When in doubt, look up the schema.
 

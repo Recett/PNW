@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const contentStore = require('@root/contentStore.js');
+const characterUtil = require('@utility/characterUtility.js');
 
 // Will be initialized after dbObject is loaded
 let Trade, TradeItem, CharacterItem, CharacterBase;
@@ -242,6 +243,16 @@ async function executeTrade(tradeId) {
 		return { success: false, error: 'Trade not found or not active.' };
 	}
 
+	// Check daily trade limit (1 successful trade per player per UTC day)
+	const todayDay = Math.floor(Date.now() / 86400000);
+	const [initiatorLastDay, recipientLastDay] = await Promise.all([
+		characterUtil.getCharacterFlag(trade.initiator_id, 'last_trade_day'),
+		characterUtil.getCharacterFlag(trade.recipient_id, 'last_trade_day'),
+	]);
+	if (initiatorLastDay === todayDay || recipientLastDay === todayDay) {
+		return { success: false, error: 'One or both players have already completed a trade today. Try again tomorrow (resets at UTC midnight).' };
+	}
+
 	const tradeItems = await TradeItem.findAll({ where: { trade_id: tradeId } });
 
 	// Use a transaction for atomic swap
@@ -304,6 +315,13 @@ async function executeTrade(tradeId) {
 		await TradeItem.destroy({ where: { trade_id: tradeId }, transaction });
 
 		await transaction.commit();
+
+		// Record today's UTC day for both players to enforce the daily limit
+		await Promise.all([
+			characterUtil.updateCharacterFlag(trade.initiator_id, 'last_trade_day', todayDay),
+			characterUtil.updateCharacterFlag(trade.recipient_id, 'last_trade_day', todayDay),
+		]);
+
 		return { success: true, bothConfirmed: true };
 	}
 	catch (error) {

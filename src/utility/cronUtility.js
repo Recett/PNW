@@ -1,7 +1,14 @@
 const { CronJob } = require('cron');
 
 // This job runs every day at 00:00 (midnight)
-const { CronLog, NpcPurchase } = require('@root/dbObject.js');
+const { CronLog, NpcPurchase, GlobalFlag } = require('@root/dbObject.js');
+const contentStore = require('@root/contentStore.js');
+const taskUtility = require('./taskUtility');
+const { getCronMonitor } = require('./cronMonitor');
+
+let _discordClient = null;
+
+const GALEBY_APPEAR_CHANCE = 25; // 25% per hour → ~6 visible hours per 24h
 
 const job = new CronJob('0 0 * * *', async () => {
 	await performCronJob();
@@ -14,6 +21,16 @@ const hourlyJob = new CronJob('0 * * * *', async () => {
 // This job runs every Sunday at 00:00 — resets NPC shop purchase counts
 const weeklyStockResetJob = new CronJob('0 0 * * 0', async () => {
 	await performWeeklyStockReset();
+});
+
+// This job runs every day at 01:00 — processes daily tasks (offset from midnight job)
+const dailyTaskJob = new CronJob('0 1 * * *', async () => {
+	await performDailyTasks();
+});
+
+// This job runs every 30 minutes — health monitoring and alerting
+const healthMonitorJob = new CronJob('*/30 * * * *', async () => {
+	await performHealthCheck();
 });
 
 // Do NOT start the job automatically
@@ -29,6 +46,7 @@ async function performCronJob() {
 		});
 
 		// Place your scheduled code here
+		await performBilgeEcosystemDailyCycle();
 
 		// Mark job as stopped (success)
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
@@ -55,12 +73,21 @@ async function performCronJob() {
 	}
 }
 
-const { CharacterBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterSetting } = require('@root/dbObject.js');
 
 async function performHourlyJob() {
 	const jobName = 'hourly_job';
+	const monitor = getCronMonitor();
+	let tracker = null;
+
 	try {
-		// Mark job as running
+		// Start enhanced monitoring
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Hourly HP/Stamina regeneration and cleanup',
+			expected_duration_ms: 10000, // Expected ~10 seconds
+		});
+
+		// Mark job as running (legacy CronLog)
 		await CronLog.upsert({
 			job_name: jobName,
 			status: 'running',
@@ -68,33 +95,57 @@ async function performHourlyJob() {
 		});
 
 		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
-		await CharacterBase.sequelize.query(`
+		const staminaResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
 			WHERE maxStamina IS NOT NULL 
 				AND currentStamina IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 		`);
+		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
+
 		// Increase every character's currentHp by 5% of maxHp, up to maxHp (only in town locations)
-		await CharacterBase.sequelize.query(`
+		const hpResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.05 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 		`);
+		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
 
-		// Mark job as stopped (success)
+		// Clean up stale pending message deletions
+		const cleanupCount = await performPendingDeleteCleanup();
+		monitor.logDatabaseOperation(tracker.id, cleanupCount);
+
+		// Roll Galeby's hourly presence
+		await performGalebyCycle();
+
+		// Mark job as stopped (success) - legacy CronLog
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		await job.update({
 			status: 'stopped',
 			execution_count: (job.execution_count || 0) + 1,
 			success_count: (job.success_count || 0) + 1,
 		});
+
+		// Complete monitoring
+		await monitor.completeExecution(tracker.id, {
+			stamina_updates: staminaResult[1] || 0,
+			hp_updates: hpResult[1] || 0,
+			cleanup_count: cleanupCount,
+		});
+
 	}
 	catch (error) {
 		console.error(`Error in ${jobName}:`, error);
-		// Mark job as error
+		
+		// Handle monitoring failure
+		if (tracker) {
+			await monitor.failExecution(tracker.id, error);
+		}
+
+		// Mark job as error - legacy CronLog
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		if (job) {
 			await job.update({
@@ -107,6 +158,50 @@ async function performHourlyJob() {
 		}
 		throw error;
 	}
+}
+
+async function performGalebyCycle() {
+	try {
+		const roll = Math.floor(Math.random() * 100) + 1;
+		const present = roll <= GALEBY_APPEAR_CHANCE;
+		await GlobalFlag.upsert({ flag_name: 'galeby_present', flag_value: present ? 1 : 0 });
+		console.log(`[Galeby] Hour roll: ${present ? 'present' : 'absent'} (${roll}/100)`);
+	}
+	catch (error) {
+		console.error('[Galeby] Error in performGalebyCycle:', error);
+	}
+}
+
+async function performPendingDeleteCleanup() {
+	if (!_discordClient) return 0;
+	const ONE_HOUR_MS = 60 * 60 * 1000;
+	let cleaned = 0;
+	try {
+		const rows = await CharacterSetting.findAll({ where: { setting: '_pending_delete' } });
+		for (const row of rows) {
+			const parts = row.value.split('|');
+			if (parts.length >= 3) {
+				const age = Date.now() - parseInt(parts[2], 10);
+				if (age < ONE_HOUR_MS) continue; // Still within the 1hr window
+			}
+			// Older than 1hr (or missing timestamp) — delete message and destroy row
+			try {
+				const channel = await _discordClient.channels.fetch(parts[0]).catch(() => null);
+				if (channel) {
+					const msg = await channel.messages.fetch(parts[1]).catch(() => null);
+					if (msg) await msg.delete().catch(() => {});
+				}
+			}
+			catch (e) { /* channel or message may not exist */ }
+			await row.destroy();
+			cleaned++;
+		}
+		if (cleaned > 0) console.log(`[PendingDeleteCleanup] Cleaned ${cleaned} stale pending deletion(s).`);
+	}
+	catch (error) {
+		console.error('[PendingDeleteCleanup] Error:', error);
+	}
+	return cleaned;
 }
 
 async function performWeeklyStockReset() {
@@ -145,7 +240,239 @@ async function performWeeklyStockReset() {
 	}
 }
 
-async function startCronJob() {
+async function performBilgeEcosystemDailyCycle() {
+	const DEFAULTS = { rat_adults: 20, rat_babies: 8, food_stock: 300 };
+	const MAX_ADULTS = 100;
+	const BASE_FOOD_DRAIN = 10;
+
+	// Helper to read a global flag as integer
+	async function readFlag(name) {
+		const record = await GlobalFlag.findOne({ where: { flag: name } });
+		return record ? parseInt(record.value) || 0 : null;
+	}
+
+	// Helper to write a global flag
+	async function writeFlag(name, value) {
+		await GlobalFlag.upsert({ flag: name, value: String(value) });
+	}
+
+	// --- Initialize flags if not yet seeded ---
+	for (const [key, defaultVal] of Object.entries(DEFAULTS)) {
+		const existing = await readFlag(`global.${key}`);
+		if (existing === null) {
+			await writeFlag(`global.${key}`, defaultVal);
+			console.log(`[BilgeEcosystem] Initialized global.${key} = ${defaultVal}`);
+		}
+	}
+
+	let adults = await readFlag('global.rat_adults');
+	let babies = await readFlag('global.rat_babies');
+	let food = await readFlag('global.food_stock');
+
+	console.log(`[BilgeEcosystem] Before cycle — adults: ${adults}, babies: ${babies}, food: ${food}`);
+
+	// --- START OF DAY SEQUENCE ---
+	// 1. Food drain for current day
+	const ratDrain = (adults * 2) + (babies * 1);
+	const totalDrain = ratDrain + BASE_FOOD_DRAIN;
+	food = Math.max(0, food - totalDrain);
+
+	// 2. Births (logistic growth, clamped to [10, 20]; peaks at ~50 adults)
+	const births = Math.max(10, Math.min(20, Math.floor(adults * 0.8 * (1 - adults / MAX_ADULTS))));
+
+	// 3. Previous babies are promoted to adults (capped at MAX_ADULTS)
+	adults = Math.min(MAX_ADULTS, adults + babies);
+
+	// 4. New babies added to pool
+	babies = births;
+
+	// Ensure non-negative
+	adults = Math.max(0, adults);
+	babies = Math.max(0, babies);
+
+	console.log(`[BilgeEcosystem] After cycle — adults: ${adults}, babies: ${babies}, food: ${food} (drained: ${totalDrain}, births: ${births})`);
+
+	await writeFlag('global.rat_adults', adults);
+	await writeFlag('global.rat_babies', babies);
+	await writeFlag('global.food_stock', food);
+
+	// --- Rat King HP regen ---
+	// Only applies if the Rat King has been wounded but not slain
+	const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_slain' } });
+	const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
+	if (!ratKingSlain) {
+		const hpFlagRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_hp' } });
+		if (hpFlagRecord) {
+			// Determine max HP from content store (use rat_king base, fallback 200)
+			const ratKingBase = contentStore.enemies.findByPk('rat_king');
+			const maxHp = ratKingBase?.stats?.health || 200;
+			const REGEN = ratKingBase?.regen_per_day || 20;
+			const currentHp = parseInt(hpFlagRecord.value) || 0;
+			const newHp = Math.min(maxHp, currentHp + REGEN);
+			await writeFlag('global.rat_king_hp', newHp);
+			console.log(`[BilgeEcosystem] Rat King HP regenerated: ${currentHp} -> ${newHp} (max ${maxHp})`);
+		}
+	}
+}
+
+async function performDailyTasks() {
+	const jobName = 'daily_task_processor';
+	const monitor = getCronMonitor();
+	let tracker = null;
+
+	try {
+		// Start enhanced monitoring
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Daily automated task processing for all characters',
+			expected_duration_ms: 30000, // Expected ~30 seconds
+		});
+
+		// Mark job as running (legacy CronLog)
+		await CronLog.upsert({
+			job_name: jobName,
+			status: 'running',
+			last_run: new Date(),
+		});
+
+		// Execute all daily tasks using taskUtility
+		console.log('[DailyTaskProcessor] Starting daily task processing...');
+		const results = await taskUtility.processScheduledTasks('daily', { verbose: true });
+		
+		// Log monitoring data
+		monitor.logDatabaseOperation(tracker.id, results.charactersProcessed);
+		
+		console.log(`[DailyTaskProcessor] Completed: ${results.tasksProcessed} tasks, ${results.charactersProcessed} characters processed, ${results.succeeded} succeeded, ${results.failed} failed`);
+
+		// Check for any failures and log warnings
+		if (results.failed > 0) {
+			monitor.logWarning(tracker.id, `${results.failed} task executions failed during daily processing`);
+		}
+
+		// Mark job as stopped (success) - legacy CronLog
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		await job.update({
+			status: 'stopped',
+			execution_count: (job.execution_count || 0) + 1,
+			success_count: (job.success_count || 0) + 1,
+		});
+
+		// Complete monitoring
+		await monitor.completeExecution(tracker.id, {
+			tasks_processed: results.tasksProcessed,
+			characters_processed: results.charactersProcessed,
+			succeeded: results.succeeded,
+			failed: results.failed,
+			task_details: results.taskResults || [],
+		});
+
+	}
+	catch (error) {
+		console.error(`Error in ${jobName}:`, error);
+		
+		// Handle monitoring failure
+		if (tracker) {
+			await monitor.failExecution(tracker.id, error);
+		}
+
+		// Mark job as error - legacy CronLog
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		if (job) {
+			await job.update({
+				status: 'error',
+				execution_count: (job.execution_count || 0) + 1,
+				error_count: (job.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
+		throw error;
+	}
+}
+
+async function performHealthCheck() {
+	const jobName = 'health_monitor';
+	const monitor = getCronMonitor();
+	let tracker = null;
+
+	try {
+		// Start lightweight monitoring (no console capture for monitoring job)
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Health monitoring and alert checking for all cron jobs',
+			expected_duration_ms: 5000, // Expected ~5 seconds
+		});
+
+		console.log('[HealthMonitor] Starting scheduled health check...');
+
+		// Get list of all jobs to monitor
+		const allJobs = await CronLog.findAll({
+			attributes: ['job_name'],
+		});
+
+		let healthyCount = 0;
+		let warningCount = 0;
+		let criticalCount = 0;
+
+		// Update health status for each job
+		for (const job of allJobs) {
+			if (job.job_name === 'health_monitor') continue; // Skip self-monitoring
+
+			try {
+				await monitor.updateHealthStatus(job.job_name);
+				monitor.logDatabaseOperation(tracker.id, 1);
+				
+				// Get latest health status for counting
+				const { CronHealthCheck } = require('@root/dbObject.js');
+				const latestHealth = await CronHealthCheck.findOne({
+					where: { job_name: job.job_name },
+					order: [['check_time', 'DESC']],
+				});
+
+				if (latestHealth) {
+					switch (latestHealth.health_status) {
+					case 'healthy':
+						healthyCount++;
+						break;
+					case 'warning':
+						warningCount++;
+						break;
+					case 'critical':
+						criticalCount++;
+						break;
+					}
+				}
+			}
+			catch (error) {
+				monitor.logWarning(tracker.id, `Failed to update health for ${job.job_name}: ${error.message}`);
+			}
+		}
+
+		console.log(`[HealthMonitor] Health check completed: ${healthyCount} healthy, ${warningCount} warnings, ${criticalCount} critical`);
+
+		// Log warnings for any critical jobs
+		if (criticalCount > 0) {
+			monitor.logWarning(tracker.id, `Found ${criticalCount} jobs in critical status requiring attention`);
+		}
+
+		// Complete monitoring
+		await monitor.completeExecution(tracker.id, {
+			jobs_checked: allJobs.length - 1, // Exclude self
+			healthy_count: healthyCount,
+			warning_count: warningCount,
+			critical_count: criticalCount,
+		});
+
+	}
+	catch (error) {
+		console.error(`Error in ${jobName}:`, error);
+		
+		if (tracker) {
+			await monitor.failExecution(tracker.id, error);
+		}
+	}
+}
+
+async function startCronJob(client) {
+	_discordClient = client || null;
 	// Helper for catch-up: run hourly job for a specific time
 	async function performHourlyJobForTime(runTime) {
 		const jobName = 'hourly_job';
@@ -279,11 +606,42 @@ async function startCronJob() {
 		console.log('Weekly stock reset cron job started.');
 	}
 
+	if (!dailyTaskJob.running) {
+		// Initialize daily task job in database
+		await CronLog.upsert({
+			job_name: 'daily_task_processor',
+			status: 'stopped',
+			schedule: '0 1 * * *',
+			description: 'Daily task processor for character progression (runs at 01:00)',
+			is_enabled: true,
+		});
+
+		// Catch-up: if last run was more than 24 hours ago, run now
+		const lastDaily = await CronLog.findOne({ where: { job_name: 'daily_task_processor' } });
+		if (!lastDaily || !lastDaily.last_run || (Date.now() - new Date(lastDaily.last_run).getTime()) > 24 * 60 * 60 * 1000) {
+			console.log('[DailyTaskProcessor] Running catch-up for missed daily tasks...');
+			await performDailyTasks();
+		}
+
+		dailyTaskJob.start();
+		console.log('Daily task processor cron job started.');
+	}
+
+	// Start health monitoring job
+	healthMonitorJob.start();
+	console.log('Health monitor cron job started (runs every 30 minutes).');
+
+	// Run pending deletion cleanup immediately on startup to catch any stragglers from previous session
+	performPendingDeleteCleanup().catch(e => console.error('[PendingDeleteCleanup] Startup run failed:', e));
+
 }
 
 module.exports = {
 	job,
 	hourlyJob,
 	weeklyStockResetJob,
+	dailyTaskJob,
+	healthMonitorJob,
 	startCronJob,
+	performHealthCheck,
 };

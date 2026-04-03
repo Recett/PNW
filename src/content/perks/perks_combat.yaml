@@ -1,0 +1,301 @@
+perks:
+  - id: sword-tempo-1
+    name: Tempo I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - sword
+      - tempo
+  - id: sword-art-1
+    name: Art I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - sword
+      - art
+  - id: sword-stance-1
+    name: Stance I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - sword
+      - stance
+  - id: rapier-parry-1
+    name: Parry I
+    category: combat
+    skill: rapier
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - rapier
+      - parry
+  - id: rapier-riposte-1
+    name: Riposte I
+    category: combat
+    skill: rapier
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - rapier
+      - riposte
+  - id: dagger-bleed-1
+    name: Bleed I
+    category: combat
+    skill: dagger
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - dagger
+      - bleed
+  - id: dagger-lethality-1
+    name: Lethality I
+    category: combat
+    skill: dagger
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - dagger
+      - lethality
+  - id: spear-reduction-1
+    name: Reduction I
+    category: combat
+    skill: spear
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - spear
+      - reduction
+  - id: spear-counter-1
+    name: Counter I
+    category: combat
+    skill: spear
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - spear
+      - counter
+  - id: axe-fury-1
+    name: Fury I
+    category: combat
+    skill: axe
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - axe
+      - fury
+  - id: axe-wrath-1
+    name: Wrath I
+    category: combat
+    skill: axe
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - axe
+      - wrath
+  - id: mace-charge-1
+    name: Charge I
+    category: combat
+    skill: mace
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - mace
+      - charge
+  - id: mace-impact-1
+    name: Impact I
+    category: combat
+    skill: mace
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - mace
+      - impact
+  - id: shield-reactive-1
+    name: Reactive I
+    category: combat
+    skill: shield
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - shield
+      - reactive
+  - id: shield-aggressive-1
+    name: Aggressive I
+    category: combat
+    skill: shield
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - shield
+      - aggressive
+  - id: sbow-evasion-1
+    name: Evasion Stack I
+    category: combat
+    skill: shortbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - shortbow
+      - evasion
+  - id: sbow-momentum-1
+    name: Momentum I
+    category: combat
+    skill: shortbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - shortbow
+      - momentum
+  - id: lbow-sniper-1
+    name: Sniper I
+    category: combat
+    skill: longbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: battle_start
+    tags:
+      - core
+      - longbow
+      - sniper
+  - id: lbow-marksman-1
+    name: Marksman I
+    category: combat
+    skill: longbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: battle_start
+    tags:
+      - core
+      - longbow
+      - marksman
+  - id: larmor-evasion-1
+    name: Evasion I
+    category: combat
+    skill: light-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - light-armor
+      - evasion
+  - id: larmor-counter-1
+    name: Counter I
+    category: combat
+    skill: light-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+    tags:
+      - core
+      - light-armor
+      - counter
+  - id: marmor-critres-1
+    name: Crit Resistance I
+    category: combat
+    skill: medium-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+    tags:
+      - core
+      - medium-armor
+      - crit-res
+  - id: marmor-statres-1
+    name: Status Resistance I
+    category: combat
+    skill: medium-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - medium-armor
+      - status-res
+  - id: harmor-wm-1
+    name: Weight Management I
+    category: combat
+    skill: heavy-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - heavy-armor
+      - weight-mgmt
+  - id: harmor-fort-1
+    name: Fortification I
+    category: combat
+    skill: heavy-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+    tags:
+      - core
+      - heavy-armor
+      - fortification
