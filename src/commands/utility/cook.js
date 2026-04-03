@@ -381,8 +381,8 @@ const EAT_FLAVOR = {
 	Common:    'Bình thường. Đủ no, không thêm gì hơn.',
 	Uncommon:  'Khá ổn. Bạn nhận ra mình ăn nhanh hơn dự tính.',
 	Rare:      'Thực sự ngon. Vị cân bằng, no bụng và cơ thể đáp lại tích cực.',
-	Epic:      'Xuất sắc. Tất cả đã vào đúng chỗ — bạn cảm nhận được sự khác biệt ngay lập tức.',
-	Legendary: 'Hoàn hảo. Loại bữa ăn khó mà diễn đạt bằng lời sau khi đã xong. Bạn đặt bát xuống và cảm thấy sẵn sàng cho bất cứ điều gì.',
+	Epic:      'Xuất sắc. Vị ngon trên từng ngón tay.',
+	Legendary: 'Ngon vãi nồi. Bạn cảm giác mình thoát ra khỏi quần áo để mà thăng hoa.',
 };
 
 // Handle the player eating the finished dish
