@@ -305,7 +305,7 @@ async function performBilgeEcosystemDailyCycle() {
 		if (hpFlagRecord) {
 			// Determine max HP from content store (use rat_king base, fallback 200)
 			const ratKingBase = contentStore.enemies.findByPk('rat_king');
-			const maxHp = ratKingBase?.stats?.health || 200;
+			const maxHp = ratKingBase?.stat?.health || 200;
 			const REGEN = ratKingBase?.regen_per_day || 20;
 			const currentHp = parseInt(hpFlagRecord.value) || 0;
 			const newHp = Math.min(maxHp, currentHp + REGEN);

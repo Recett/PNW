@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType, EmbedBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { LocationBase, LocationContain } = require('@root/dbObject.js');
+const { LocationBase, LocationContain, LocationLink } = require('@root/dbObject.js');
 const locationUtil = require('@utility/locationUtility.js');
 const contentStore = require('@root/contentStore.js');
 const gamecon = require('@root/Data/gamecon.json');
@@ -154,6 +154,44 @@ module.exports = {
 						.setRequired(false)))
 		.addSubcommand(subcommand =>
 			subcommand
+				.setName('link')
+				.setDescription('Add a connection between two locations')
+				.addStringOption(option =>
+					option
+						.setName('to_location')
+						.setDescription('Target location ID or name')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('from_location')
+						.setDescription('Source location ID or name (defaults to current channel)')
+						.setRequired(false))
+				.addBooleanOption(option =>
+					option
+						.setName('bidirectional')
+						.setDescription('Also add the reverse link (default: true)')
+						.setRequired(false)))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('unlink')
+				.setDescription('Remove a connection between two locations')
+				.addStringOption(option =>
+					option
+						.setName('to_location')
+						.setDescription('Target location ID or name')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('from_location')
+						.setDescription('Source location ID or name (defaults to current channel)')
+						.setRequired(false))
+				.addBooleanOption(option =>
+					option
+						.setName('bidirectional')
+						.setDescription('Also remove the reverse link (default: true)')
+						.setRequired(false)))
+		.addSubcommand(subcommand =>
+			subcommand
 				.setName('duplicate')
 				.setDescription('Duplicate a location with a different time of day')
 				.addStringOption(option =>
@@ -216,6 +254,12 @@ module.exports = {
 		}
 		else if (subcommand === 'removeobject') {
 			return this.handleRemoveObject(interaction);
+		}
+		else if (subcommand === 'link') {
+			return this.handleLink(interaction);
+		}
+		else if (subcommand === 'unlink') {
+			return this.handleUnlink(interaction);
 		}
 	},
 
@@ -777,6 +821,96 @@ module.exports = {
 
 		await location.update({ hidden: false });
 		return interaction.reply({ content: 'Location is now visible in the move command.', flags: MessageFlags.Ephemeral });
+	},
+
+	async handleLink(interaction) {
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		try {
+			const fromInput = interaction.options.getString('from_location');
+			const toInput = interaction.options.getString('to_location');
+			const bidirectional = interaction.options.getBoolean('bidirectional') ?? true;
+
+			const fromLocation = await this._resolveLocation(interaction, fromInput);
+			if (!fromLocation) {
+				return interaction.editReply({ content: 'Source location not found.' });
+			}
+
+			const toLocation = await this._resolveLocation(interaction, toInput);
+			if (!toLocation) {
+				return interaction.editReply({ content: 'Target location not found.' });
+			}
+
+			if (fromLocation.id === toLocation.id) {
+				return interaction.editReply({ content: 'Cannot link a location to itself.' });
+			}
+
+			const lines = [];
+
+			const [, createdFwd] = await LocationLink.findOrCreate({
+				where: { location_id: fromLocation.id, linked_location_id: toLocation.id },
+			});
+			lines.push(createdFwd
+				? `Added: **${fromLocation.name}** → **${toLocation.name}**`
+				: `Already exists: **${fromLocation.name}** → **${toLocation.name}**`);
+
+			if (bidirectional) {
+				const [, createdRev] = await LocationLink.findOrCreate({
+					where: { location_id: toLocation.id, linked_location_id: fromLocation.id },
+				});
+				lines.push(createdRev
+					? `Added: **${toLocation.name}** → **${fromLocation.name}**`
+					: `Already exists: **${toLocation.name}** → **${fromLocation.name}**`);
+			}
+
+			return interaction.editReply({ content: lines.join('\n') });
+		}
+		catch (error) {
+			interaction.client.error(error);
+			return interaction.editReply({ content: `Error linking locations: ${error.message}` });
+		}
+	},
+
+	async handleUnlink(interaction) {
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+		try {
+			const fromInput = interaction.options.getString('from_location');
+			const toInput = interaction.options.getString('to_location');
+			const bidirectional = interaction.options.getBoolean('bidirectional') ?? true;
+
+			const fromLocation = await this._resolveLocation(interaction, fromInput);
+			if (!fromLocation) {
+				return interaction.editReply({ content: 'Source location not found.' });
+			}
+
+			const toLocation = await this._resolveLocation(interaction, toInput);
+			if (!toLocation) {
+				return interaction.editReply({ content: 'Target location not found.' });
+			}
+
+			const lines = [];
+
+			const deletedFwd = await LocationLink.destroy({
+				where: { location_id: fromLocation.id, linked_location_id: toLocation.id },
+			});
+			lines.push(deletedFwd
+				? `Removed: **${fromLocation.name}** → **${toLocation.name}**`
+				: `Not found: **${fromLocation.name}** → **${toLocation.name}**`);
+
+			if (bidirectional) {
+				const deletedRev = await LocationLink.destroy({
+					where: { location_id: toLocation.id, linked_location_id: fromLocation.id },
+				});
+				lines.push(deletedRev
+					? `Removed: **${toLocation.name}** → **${fromLocation.name}**`
+					: `Not found: **${toLocation.name}** → **${fromLocation.name}**`);
+			}
+
+			return interaction.editReply({ content: lines.join('\n') });
+		}
+		catch (error) {
+			interaction.client.error(error);
+			return interaction.editReply({ content: `Error unlinking locations: ${error.message}` });
+		}
 	},
 
 	async handleLockModal(interaction) {

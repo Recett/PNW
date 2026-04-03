@@ -9,7 +9,7 @@ events:
     event_type: "npc"
     silent: true
     next: "morale-gate"
-    checks:
+    check:
       - name: "name-revealed"
         type: "flag"
         flag_data:
@@ -25,7 +25,7 @@ events:
     event_type: "npc"
     silent: true
     next: "morale-pre-quest"
-    checks:
+    check:
       - name: "york-asked"
         type: "flag"
         flag_data:
@@ -63,7 +63,7 @@ events:
     message:
       text: |
         Cánh cửa đóng chặt. Một ổ khóa sắt nặng — ai đó đã quyết định giữ nó khép lại.
-    checks:
+    check:
       - name: "has-bilge-key"
         type: "item"
         item_data:
@@ -77,14 +77,14 @@ events:
   - id: "bilge-door-locked-options"
     name: "The Bilge Door — Options"
     is_active: true
-    actions:
+    action:
       - type: flag
         flag_name: "char.bilge_door_encountered"
         flag_value: "1"
         flag_operation: set
         flag_type: character
         silent: true
-    options:
+    option:
       - id: "look-for-another-way"
         text: "Tìm lối vào khác"
         next: "bilge-door-no-other-way"
@@ -112,7 +112,7 @@ events:
       npc_speaker: "aldric-vorne"
       text: |
         "${npc_1p} không rõ chuyện đó. Chìa khóa và kho bãi — đó là việc của York."
-    actions:
+    action:
       - type: flag
         flag_name: "char.vorne_bilge_key_asked"
         flag_value: 1
@@ -125,7 +125,7 @@ events:
     description: "Triggered by player asking York about the bilge key."
     event_type: "npc"
     is_active: true
-    checks:
+    check:
       - name: "name-not-yet-revealed"
         type: "flag"
         flag_data:
@@ -145,7 +145,7 @@ events:
       npc_speaker: "york-waylan"
       text: |
         "Chìa khóa hầm tàu? Trung úy Morale quản lý khu vực đó, nên chắc cô ấy đang giữ. Cô ấy không được khỏe chuyến này — theo ${npc_1p} thì nên nghỉ bệnh, nhưng cô ấy không chịu nghe. Có lẽ cô ấy đang nghỉ trong phòng. ${npc_1p} mong là vậy."
-    actions:
+    action:
       - type: flag
         flag_name: "char.york_bilge_key_asked"
         flag_value: 1
@@ -158,7 +158,7 @@ events:
     description: "Subsequent York interaction after player has retrieved the key. Unlocks cooking minigame."
     event_type: "npc"
     is_active: true
-    checks:
+    check:
       - name: "name-revealed"
         type: "flag"
         flag_data:
@@ -192,7 +192,7 @@ events:
       npc_speaker: "york-waylan"
       text: |
         "${2p} tìm được cô ấy rồi à. Tốt. Cô ấy sẽ không tự nói ra đâu, nhưng cô ấy đang trong giai đoạn khó khăn — cô ấy đang mang thai, trên hết mọi thứ. ${npc_1p} định nhờ ai đó chuẩn bị gì đó tươm tất cho cô ấy, nhưng đó không phải việc của ${npc_1p}. Nếu ${2p} có lòng và tìm được nguyên liệu phù hợp, ${npc_1p} nghĩ cô ấy sẽ biết ơn."
-    actions:
+    action:
       - type: flag
         flag_name: "global.cooking_unlocked"
         flag_value: 1
@@ -245,7 +245,7 @@ events:
     description: "Triggered by /talk morale after player has spoken to York about the key."
     event_type: "npc"
     is_active: true
-    checks:
+    check:
       - name: "york-asked"
         type: "flag"
         flag_data:
@@ -276,7 +276,7 @@ events:
         Thân người khẽ dịch sang một bên, để lộ sợi dây nhỏ và chiếc chìa khóa nằm dưới hông. Cô ấy không rời mắt khỏi bạn, chỉ chớp mắt chậm một cái.
 
         Chiếc chìa khóa nằm đó, rõ ràng và dễ lấy.
-    options:
+    option:
       - id: "take-the-key"
         text: "Lấy chìa khóa"
         next: "morale-key-taken"
@@ -287,7 +287,7 @@ events:
     message:
       text: |
         Khi bạn nhấc nó lên, cô ấy phát ra một tiếng "prrt" nhỏ rồi đặt đầu xuống lại, như thể công việc đã xong.
-    actions:
+    action:
       - type: item
         item: "bilge-key"
         quantity: "1"
@@ -322,7 +322,7 @@ events:
         Ánh nhìn dừng lại trên tay bạn, như đang kiểm tra xem bạn có mang theo thứ gì không. Không thấy gì thú vị, mắt cô ấy khép lại, nhưng tai vẫn hướng về phía bạn.
 
         Đuôi khẽ vẫy một cái chậm rãi.
-    options:
+    option:
       - id: "pet-her"
         text: "Vuốt đầu cô ấy"
         next: "morale-stay"
@@ -346,7 +346,7 @@ events:
         "prrr..."
 
         Rất khẽ, gần như chỉ nghe thấy khi không còn âm thanh nào khác trên tàu.
-    options:
+    option:
       - id: "reach-out"
         text: "Đưa tay lại gần"
         next: "morale-pet-1"
@@ -365,7 +365,7 @@ events:
         "prr."
 
         Một tiếng rất nhỏ, gần như rung nhẹ trong cổ họng. Cô ấy vẫn nằm yên, chỉ có đuôi khẽ quét một vòng chậm rãi trên dây thừng.
-    options:
+    option:
       - id: "pet-again-2"
         text: "Vuốt tiếp"
         next: "morale-pet-2"
@@ -384,7 +384,7 @@ events:
         Tiếng kêu trầm và đều. Một chân trước duỗi ra, rồi thu lại, giữ nguyên tư thế nằm cuộn.
 
         Đuôi đập nhẹ một cái lên sàn, rồi lại yên.
-    options:
+    option:
       - id: "pet-again-3"
         text: "Vuốt thêm lần nữa"
         next: "morale-pet-3"

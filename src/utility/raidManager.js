@@ -757,8 +757,8 @@ class RaidManager {
 			? Math.max(...queuedMonsters.map(m => m.queue_position)) + 1
 			: 0;
 
-		// Get HP from enemy stats (YAML uses `stats.health`)
-		const maxHp = enemy.stats?.health || 100;
+		// Get HP from enemy stats (YAML uses `stat.health`)
+		const maxHp = enemy.stat?.health || 100;
 
 		// Create the monster record
 		const raidMonster = await RaidMonster.create({

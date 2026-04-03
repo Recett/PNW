@@ -32,7 +32,7 @@ enemies:
     name: Mercenary Captain
     unknown_name: "???"
     level: 1 # Enemy difficulty level
-    stats:
+    stat:
       health: 30
       defense: 3
       defense_percent: 0
@@ -51,7 +51,7 @@ enemies:
     reward:
       gold: 10
       exp: 5
-    stats:
+    stat:
       health: 30
       defense: 2
       defense_percent: 0
@@ -70,7 +70,7 @@ enemies:
     reward:
       gold: 25
       exp: 15
-    stats:
+    stat:
       health: 60
       defense: 5
       defense_percent: 5
@@ -89,7 +89,7 @@ enemies:
     reward:
       gold: 50
       exp: 30
-    stats:
+    stat:
       health: 120
       defense: 10
       defense_percent: 10

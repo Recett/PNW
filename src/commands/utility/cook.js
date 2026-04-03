@@ -128,7 +128,7 @@ async function handleIngredientSelection(interaction) {
 		await characterUtil.modifyCharacterStat(userId, 'currentStamina', -STAMINA_COST, 'add');
 
 		// Start cooking session with any initial traits from the ingredient
-		const initialTraits = ingredient.metadata?.initialTraits || [];
+		const initialTraits = ingredient.metadata?.initialTrait || [];
 		const result = await specialEventUtil.startCookingSession(userId, ingredientId, { initialTraits });
 
 		if (!result.success) {

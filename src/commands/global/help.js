@@ -89,7 +89,25 @@ module.exports = {
 					adminSeparatorAdded = true;
 				}
 
-				embed.addFields({ name: section.category, value: lines.join('\n') });
+				// Discord caps field values at 1024 chars — chunk if needed
+				const chunks = [];
+				let current = '';
+				for (const line of lines) {
+					const next = current ? `${current}\n${line}` : line;
+					if (next.length > 1024) {
+						chunks.push(current);
+						current = line;
+					}
+					else {
+						current = next;
+					}
+				}
+				if (current) chunks.push(current);
+
+				for (let i = 0; i < chunks.length; i++) {
+					const fieldName = i === 0 ? section.category : `${section.category} (cont.)`;
+					embed.addFields({ name: fieldName, value: chunks[i] });
+				}
 			}
 
 			await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

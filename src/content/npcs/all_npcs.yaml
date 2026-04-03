@@ -65,14 +65,14 @@ npcs:
     start_event: "galeby-approach"
     movement_pattern: "random"
     player_to_npc: "bác"
-    required_checks:
+    required_check:
       - type: flag
         flag_data:
           flag_name: "global.galeby_present"
           flag_value: 1
           flag_comparison: equal
           is_global_flag: true
-    pronouns:
+    pronoun:
       older:
         npc_self: "lão"
       peer:
@@ -107,7 +107,7 @@ npcs:
     # No pronoun overrides — defaults are correct.
     # Post-prologue: Becomes settlement manager — permanent conduit between
     # players and game master announcements.
-    stocks:
+    stock:
       - item: shortbow_2
         amount: 2
       - item: longbow_2
@@ -169,7 +169,7 @@ npcs:
     start_event: "mcbetha-approach"
     movement_pattern: "stationary"
     player_to_npc: "cha"
-    pronouns:
+    pronoun:
       much_older:
         to_player:
           male: "con"
@@ -195,7 +195,7 @@ npcs:
 
     start_event: "morale-approach"
     movement_pattern: "random"
-    required_checks:
+    required_check:
       - type: flag
         flag_data:
           flag_name: "char.morale_cabinet_found"

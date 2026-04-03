@@ -17,14 +17,14 @@ enemies:
     level: 2
     enemy_type: beast
     status: active
-    stats:
+    stat:
       health: 40
       defense: 4
       defense_percent: 0
       crit_resistance: 3
       evade: 3
       speed: 6
-    attacks:
+    attack:
       - id: claw_snap
         name: Claw Snap
         base_damage: 10
@@ -33,7 +33,7 @@ enemies:
         cooldown: 100
     reward:
       exp: 60
-      items:
+      item:
         - id: crab_meat
           chance: 0.85
           quantity: 1
@@ -44,14 +44,14 @@ enemies:
     level: 4
     enemy_type: beast
     status: active
-    stats:
+    stat:
       health: 70
       defense: 0
       defense_percent: 0
       crit_resistance: 1
       evade: 9
       speed: 13
-    attacks:
+    attack:
       - id: shark_bite
         name: Bite
         base_damage: 15
@@ -60,7 +60,7 @@ enemies:
         cooldown: 80
     reward:
       exp: 100
-      items:
+      item:
         - id: shark_meat
           chance: 1.0
           quantity: 1

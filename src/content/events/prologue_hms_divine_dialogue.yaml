@@ -10,7 +10,7 @@ events:
     silent: true
     next: york-first-meeting
 
-    checks:
+    check:
       - name: quartermaster-york_known
         type: flag
         flag_data:
@@ -39,7 +39,7 @@ events:
 
         "${npc_1p} là York Waylan —cứ gọi ${npc_1p} là York thôi. ${npc_1p} quản lý mọi thứ trên tàu này ngoại trừ việc lái nó —và một phần không nhỏ của cả việc lái nữa. Nếu ${2p} cần gì, ${npc_1p} là người đúng để hỏi. Nếu ${npc_1p} không có, thứ đó không tồn tại."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.quartermaster-york_known
         flag_value: 1
@@ -56,7 +56,7 @@ events:
       message_type: dialogue
       text: "York đang ngồi sau bàn làm việc. Một cuốn sổ cái đang mở Hai cuốn khác đang chờ"
 
-    options:
+    option:
       - id: how-things
         text: "Mọi thứ thế nào rồi, ${npc_2p}?"
         next: york-how-things
@@ -81,7 +81,7 @@ events:
         text: "Chìa khóa hầm tàu biến đâu rồi?"
         next: york-bilge-key
         display_order: 4
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -99,7 +99,7 @@ events:
         text: "Về Trung úy Morale..."
         next: york-morale-pregnant
         display_order: 5
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -137,7 +137,7 @@ events:
       message_type: dialogue
       text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một sềEquân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
 
-    actions:
+    action:
       - type: shop
         npc: quartermaster-york
         shop_type: item
@@ -152,7 +152,7 @@ events:
       message_type: dialogue
       text: "\"Còn việc gì không?\""
 
-    options:
+    option:
       - id: how-things
         text: "Mọi thứ thế nào rồi, ${npc_2p}?"
         next: york-how-things
@@ -177,7 +177,7 @@ events:
         text: "Chìa khóa hầm tàu biến đâu rồi?"
         next: york-bilge-key
         display_order: 4
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -195,7 +195,7 @@ events:
         text: "VềTrung úy Morale..."
         next: york-morale-pregnant
         display_order: 5
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -258,7 +258,7 @@ events:
 
         "Nếu ${2p} có thời gian rảnh, hầm tàu là nơi đáng để dành thời gian đó."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.york_mentioned_bilge
         flag_value: 1
@@ -292,7 +292,7 @@ events:
     silent: true
     next: vorne-first-meeting
 
-    checks:
+    check:
       - name: captain-vorne_known
         type: flag
         flag_data:
@@ -325,7 +325,7 @@ events:
 
         "Aldric Vorne. ${npc_1p} chỉhuy con tàu này."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.captain-vorne_known
         flag_value: 1
@@ -342,7 +342,7 @@ events:
       message_type: dialogue
       text: "Thuyền trưởng đứng ở bánh lái."
 
-    options:
+    option:
       - id: journey
         text: "Còn bao lâu nữa thì đến nơi?"
         next: vorne-journey-ahead
@@ -362,7 +362,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: vorne-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -389,7 +389,7 @@ events:
       message_type: dialogue
       text: "\"Gì nữa?\""
 
-    options:
+    option:
       - id: journey
         text: "Còn bao lâu nữa thì đến nơi?"
         next: vorne-journey-ahead
@@ -409,7 +409,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: vorne-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -454,7 +454,7 @@ events:
 
         "Từ đó trở đi là Biển Hỗn Loạn."
 
-    options:
+    option:
       - id: chaotic-sea
         text: "Biển Hỗn Loạn trông như thế nào?"
         next: vorne-chaotic-sea
@@ -506,7 +506,7 @@ events:
     silent: true
     next: mcbetha-first-meeting
 
-    checks:
+    check:
       - name: ian-mcbetha_known
         type: flag
         flag_data:
@@ -535,7 +535,7 @@ events:
 
         "${npc_1p} thấy biển tốt cho việc suy ngẫm. Biển không cãi lại. Cô Vane thì tiếc là có. ${2p} có hay cãi không?"
 
-    actions:
+    action:
       - type: flag
         flag_name: char.ian-mcbetha_known
         flag_value: 1
@@ -552,7 +552,7 @@ events:
       message_type: dialogue
       text: "${npc_name} đang ở boong mũi với một cuốn sách. Ông khép nó lại khi nhận ra ${2p}."
 
-    options:
+    option:
       - id: worry
         text: "${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?"
         next: mcbetha-worry
@@ -572,7 +572,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có hay biết không?"
         next: mcbetha-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -599,7 +599,7 @@ events:
       message_type: dialogue
       text: "\"Còn điều gì muốn hỏi không?\""
 
-    options:
+    option:
       - id: worry
         text: "${npc_2p} có lo lắng về những gì chúng ta sẽ tìm thấy không?"
         next: mcbetha-worry
@@ -619,7 +619,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có hay biết không?"
         next: mcbetha-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -689,7 +689,7 @@ events:
     silent: true
     next: hensbane-first-meeting
 
-    checks:
+    check:
       - name: law-hensbane_known
         type: flag
         flag_data:
@@ -718,7 +718,7 @@ events:
 
         "${npc_1p} không biến người ta thành lính chuyên nghiệp trong vài tuần, nhưng ${npc_1p} có thểgiúp họ đủ bình tĩnh để không hoảng loạn khi gặp rắc rối. Như vậy thường đã đủ rồi."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.law-hensbane_known
         flag_value: 1
@@ -735,7 +735,7 @@ events:
       message_type: dialogue
       text: "Hensbane quay sang khi ${2p} đến gần."
 
-    options:
+    option:
       - id: available
         text: "${npc_2p} có rảnh không?"
         next: hensbane-available
@@ -770,7 +770,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
         next: hensbane-bilge-key
         display_order: 6
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -797,7 +797,7 @@ events:
       message_type: dialogue
       text: "\"Còn muốn hỏi gì nữa không?\""
 
-    options:
+    option:
       - id: available
         text: "${npc_2p} có rảnh không?"
         next: hensbane-available
@@ -827,7 +827,7 @@ events:
         text: "${1p} muốn luyện tập."
         next: hensbane-training
         display_order: 5
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: char.hensbane_rank
@@ -839,7 +839,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
         next: hensbane-bilge-key
         display_order: 6
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -948,7 +948,7 @@ events:
     silent: true
     next: hensbane-combat-r1
 
-    checks:
+    check:
       - name: rank_4
         type: flag
         flag_data:
@@ -1058,7 +1058,7 @@ events:
     silent: true
     next: hensbane-sparring-win
 
-    actions:
+    action:
       - type: flag
         flag_name: char.hensbane_rank
         flag_value: 1
@@ -1072,7 +1072,7 @@ events:
     silent: true
     next: hensbane-sparring-win
 
-    actions:
+    action:
       - type: flag
         flag_name: char.hensbane_rank
         flag_value: 1
@@ -1086,7 +1086,7 @@ events:
     silent: true
     next: hensbane-sparring-win
 
-    actions:
+    action:
       - type: flag
         flag_name: char.hensbane_rank
         flag_value: 1
@@ -1100,7 +1100,7 @@ events:
     silent: true
     next: hensbane-sparring-win
 
-    actions:
+    action:
       - type: flag
         flag_name: char.hensbane_rank
         flag_value: 1
@@ -1114,7 +1114,7 @@ events:
     silent: true
     next: hensbane-sparring-win
 
-    actions:
+    action:
       - type: flag
         flag_name: char.hensbane_rank
         flag_value: 1
@@ -1178,7 +1178,7 @@ events:
     silent: true
     next: galeby-first-meeting
 
-    checks:
+    check:
       - name: visit_5_done
         type: flag
         flag_data:
@@ -1244,7 +1244,7 @@ events:
       text: |
         Một ông lão mặc chiếc áo khoác bạc màu đứng bên mạn tàu, tay tựa lên lan can gỗ, nhìn ra mặt nước.
 
-    options:
+    option:
       - id: weather
         text: "Gió hôm nay lạnh thật, ${npc_2p} nhỉ"
         next: galeby-weather
@@ -1264,7 +1264,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: galeby-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -1292,7 +1292,7 @@ events:
       text: |
         "Ừ, ra xa bờ gió mạnh hơn. ${2p} nên vào trong nếu không có áo dày, đứng lâu dễ cảm lạnh."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1310,7 +1310,7 @@ events:
       text: |
         "Không có gì đặc biệt. Đứng một lát cho thoáng rồi xuống nghỉ"
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1328,7 +1328,7 @@ events:
       text: |
         "Đứng ngoài này dễchịu hơn dưới khoang."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1348,7 +1348,7 @@ events:
 
         "Gió biển mang theo muối mặn. Nó ăn mòn sắt thép và cả xương cốt. ${2p} không bảo dưỡng đểđạc, chúng sẽ phản bội ${2p} khi ${2p} cần đến nhất."
 
-    options:
+    option:
       - id: curious
         text: "Vật ${npc_2p} đang cầm là gì vậy?"
         next: galeby-hometown
@@ -1368,7 +1368,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: galeby-bilge-key
         display_order: 3
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -1396,7 +1396,7 @@ events:
       text: |
         "Một món nợ cũ. ${npc_1p} đã giữ thói quen lau chùi nó suốt hai mươi năm qua. Chuyến này là chuyến cuối, hy vọng ${npc_1p} sẽ tìm được người để trả lại trước khi nghỉ ngơi."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1414,7 +1414,7 @@ events:
       text: |
         "Nó từng cứu mạng ${npc_1p} một lần ở bờ biển lục địa mới. Giữ nó bên người nhắc ${npc_1p} nhớ về cái giá của việc sống sót. Cập bến lần này, ${npc_1p} hy vọng có thể để nó lại."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1432,7 +1432,7 @@ events:
       text: |
         "${2p} hiểu nguyên tắc đấy. Vũ khí hay con người, đến một lúc nào đó cũng phải hao mòn. Chuyến này là chuyến cuối của ${npc_1p}. Cập bến rồi ${npc_1p} sẽ buông bỏ nó."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1450,7 +1450,7 @@ events:
       text: |
         Galeby đứng tựa vào lan can, gõ nhẹ chiếc tẩu rỗng xuống gỗ Khi thấy ${2p} đến gần, ông khẽ gật đầu.
 
-    actions:
+    action:
       - type: flag
         flag_name: char.john-galeby_known
         flag_value: 1
@@ -1458,7 +1458,7 @@ events:
         flag_type: character
         silent: true
 
-    options:
+    option:
       - id: thoughts
         text: "${npc_2p} đang nghĩ gì vậy?"
         next: galeby-thoughts
@@ -1473,7 +1473,7 @@ events:
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: galeby-bilge-key
         display_order: 2
-        hidden_checks:
+        hidden_check:
           - type: flag
             flag_data:
               flag_name: global.morale_name_revealed
@@ -1507,7 +1507,7 @@ events:
 
         "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1531,7 +1531,7 @@ events:
 
         "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_talked_today
         flag_value: 1
@@ -1549,7 +1549,7 @@ events:
       text: |
         Khi thấy ${2p} đến gần, Galeby đứng thẳng người dậy. Đôi vai ông hơi chùng xuống, vẻ mặt hiện rõ sự trăn trở
 
-    options:
+    option:
       - id: tired
         text: "Trông ${npc_2p} có vẻ mệt mỏi."
         next: galeby-share
@@ -1575,7 +1575,7 @@ events:
       text: |
         "Nếu sau này ${2p} có đi về phía lục địa mới, thấy ai mang hình xăm sói trên tay, để ý giúp ${npc_1p} xem có người phụ nữ nào tên Aela không. Biết cô ấy vẫn ổn là được."
 
-    actions:
+    action:
       - type: flag
         flag_name: char.galeby_quest_aela
         flag_value: 1
@@ -1596,7 +1596,7 @@ events:
     silent: true
     next: galeby-end-no-gift
 
-    checks:
+    check:
       - name: spear_available
         type: flag
         flag_data:
@@ -1631,7 +1631,7 @@ events:
 
         Ông đặt ngọn thương vào tay ${2p} rồi khẽ gật đầu bước đi.
 
-    actions:
+    action:
       - type: flag
         flag_name: global.galeby_spear_taken
         flag_value: 1
@@ -1656,7 +1656,7 @@ events:
 
         Ông đặt thanh rapier lên lan can rồi khẽ gật đầu bước đi.
 
-    actions:
+    action:
       - type: flag
         flag_name: global.galeby_rapier_taken
         flag_value: 1
@@ -1693,7 +1693,7 @@ events:
 
         "Trời hôm nay quang đãng."
 
-    options:
+    option:
       - id: career
         text: "${npc_2p} đã đi biển bao lâu rồi?"
         next: galeby-career

@@ -167,7 +167,7 @@ class TaskUtility {
 		// Get all characters from database
 		const allCharacters = await CharacterBase.findAll();
 		
-		if (!task.checks || task.checks.length === 0) {
+		if (!task.check || task.check.length === 0) {
 			// If no checks defined, task applies to all characters
 			return allCharacters;
 		}
@@ -216,7 +216,7 @@ class TaskUtility {
 		};
 
 		// Check all task conditions
-		for (const check of task.checks || []) {
+		for (const check of task.check || []) {
 			try {
 				let checkResult = { success: false };
 
@@ -285,7 +285,7 @@ class TaskUtility {
 		};
 
 		// Execute all task actions
-		for (const action of task.actions || []) {
+		for (const action of task.action || []) {
 			try {
 				await this.executeTaskAction(action, session, task.id);
 			} catch (error) {
@@ -362,8 +362,8 @@ class TaskUtility {
 			}
 
 			// Validate checks
-			if (task.checks) {
-				for (const [index, check] of (task.checks || []).entries()) {
+			if (task.check) {
+				for (const [index, check] of (task.check || []).entries()) {
 					if (!check.type) {
 						errors.push(`Task ${task.id}: check[${index}] missing type field`);
 					}
@@ -374,8 +374,8 @@ class TaskUtility {
 			}
 
 			// Validate actions
-			if (task.actions) {
-				for (const [index, action] of (task.actions || []).entries()) {
+			if (task.action) {
+				for (const [index, action] of (task.action || []).entries()) {
 					if (!action.type) {
 						errors.push(`Task ${task.id}: action[${index}] missing type field`);
 					}

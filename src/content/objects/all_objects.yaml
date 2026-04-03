@@ -20,7 +20,7 @@ objects:
     type: "furniture"
     status: "active"
     start_event: "obj-small-cabinet-discovery"
-    hidden_checks:
+    hidden_check:
       - type: flag
         flag_data:
           flag_name: "char.morale_cabinet_found"

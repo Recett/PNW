@@ -16,7 +16,7 @@ events:
     message:
       text: "Một con chuột cống lao ra từ giữa những thùng hàng. Móng vuốt của nó cào xước mặt gỗ ướt."
 
-    options:
+    option:
       - id: bilge-rat-fight
         text: "Chiến đấu"
         next: bilge-fight-rat
@@ -38,7 +38,7 @@ events:
     name: "Flee from rat"
     event_type: encounter
 
-    checks:
+    check:
       - name: flee-speed-rat
         type: stat
         stat_data:
@@ -49,7 +49,7 @@ events:
         on_success: bilge-flee-success
         on_failure: bilge-flee-fail-rat
 
-    actions:
+    action:
       - type: stat
         stat_name: stamina
         value: "-8"
@@ -77,7 +77,7 @@ events:
     message:
       text: "Một con chuột khổng lồ gầm gừ trên xà ngang. Nó trừng mắt nhìn bạn, sẵn sàng chiến đấu."
 
-    options:
+    option:
       - id: bilge-rat-adult-fight
         text: "Chiến đấu"
         next: bilge-fight-rat-adult
@@ -100,7 +100,7 @@ events:
     name: "Flee from adult rat"
     event_type: encounter
 
-    checks:
+    check:
       - name: flee-speed-rat-adult
         type: stat
         stat_data:
@@ -111,7 +111,7 @@ events:
         on_success: bilge-flee-success
         on_failure: bilge-flee-fail-rat-adult
 
-    actions:
+    action:
       - type: stat
         stat_name: stamina
         value: "-11"
@@ -140,11 +140,11 @@ events:
       text: |
         Bầy chuột đột ngột dạt ra hai bên. Một bóng đen khổng lồ lù lù xuất hiện trong bóng tối. Vua Chuột đang ở ngay trước mặt bạn.
 
-    enemies:
+    enemy:
       - enemy: rat_king
         display_order: 0
 
-    options:
+    option:
       - id: bilge-rat-king-fight
         text: "Chiến đấu"
         next: bilge-fight-rat-king
@@ -167,7 +167,7 @@ events:
     name: "Flee from the Rat King"
     event_type: encounter
 
-    checks:
+    check:
       - name: flee-speed-rat-king
         type: stat
         stat_data:
@@ -178,7 +178,7 @@ events:
         on_success: bilge-flee-success
         on_failure: bilge-flee-fail-rat-king
 
-    actions:
+    action:
       - type: stat
         stat_name: stamina
         value: "-15"
@@ -207,11 +207,11 @@ events:
       text: |
         Hầm tàu im lặng đến rợn người. Không có gì di chuyển. Rồi bạn nghe thấy nó — một tiếng rít trầm, đều đặn, không ngừng. Vua Chuột xuất hiện từ bóng tối, đôi mắt đỏ rực. Không có bầy đàn nào ở đây nữa. Chỉ có nó.
 
-    enemies:
+    enemy:
       - enemy: rat_king_enraged
         display_order: 0
 
-    options:
+    option:
       - id: bilge-rat-king-enraged-fight
         text: "Chiến đấu"
         next: bilge-fight-rat-king-enraged
@@ -234,7 +234,7 @@ events:
     name: "Flee from the Enraged Rat King"
     event_type: encounter
 
-    checks:
+    check:
       - name: flee-speed-rat-king-enraged
         type: stat
         stat_data:
@@ -245,7 +245,7 @@ events:
         on_success: bilge-flee-success
         on_failure: bilge-flee-fail-rat-king-enraged
 
-    actions:
+    action:
       - type: stat
         stat_name: stamina
         value: "-15"
@@ -273,7 +273,7 @@ events:
     message:
       text: "Bạn đã hạ gục con chuột. Thu được một ít thịt chuột."
 
-    actions:
+    action:
       - type: item
         item: rat_meat
         quantity: "1"
@@ -297,7 +297,7 @@ events:
         Hầm tàu im lặng. Mọi con chuột đều đã bị tiêu diệt — kể cả Vua Chuột. Con tàu thở phào nhẹ nhõm.
         Tất cả thủy thủ được thưởng 1000 XP.
 
-    actions:
+    action:
       - type: flag
         flag_name: global.bilge_cleared
         flag_value: "1"
@@ -328,7 +328,7 @@ events:
       text: |
         Vua Chuột gục ngã, kéo theo sự hỗn loạn của cả bầy. Bạn nhổ được một chiếc răng nanh sắc nhọn từ xác nó, phần gốc còn dính cặn nhựa cây.
 
-    actions:
+    action:
       - type: item
         item: ratsbane
         quantity: "1"
@@ -354,7 +354,7 @@ events:
     message:
       text: "Bạn đã bị trọng thương, lên boong dưỡng sức."
 
-    actions:
+    action:
       - type: move
         location: adjacent_random
         movement_type: normal

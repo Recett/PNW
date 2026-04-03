@@ -23,16 +23,16 @@ enemies:
     level: 1
     enemy_type: humanoid
     status: active
-    tags:
+    tag:
       - pick_one
-    stats:
+    stat:
       health: 80
       defense: 1
       defense_percent: 0
       crit_resistance: 0
       evade: 6
       speed: 9
-    attacks:
+    attack:
       - id: sword
         name: Sword
         base_damage: 9
@@ -73,16 +73,16 @@ enemies:
     level: 2
     enemy_type: humanoid
     status: active
-    tags:
+    tag:
       - pick_one
-    stats:
+    stat:
       health: 90
       defense: 1
       defense_percent: 0
       crit_resistance: 0
       evade: 8
       speed: 10
-    attacks:
+    attack:
       - id: sword
         name: Sword
         base_damage: 9
@@ -123,16 +123,16 @@ enemies:
     level: 3
     enemy_type: humanoid
     status: active
-    tags:
+    tag:
       - pick_one
-    stats:
+    stat:
       health: 95
       defense: 1
       defense_percent: 0
       crit_resistance: 0
       evade: 10
       speed: 11
-    attacks:
+    attack:
       - id: sword
         name: Sword
         base_damage: 10
@@ -173,16 +173,16 @@ enemies:
     level: 4
     enemy_type: humanoid
     status: active
-    tags:
+    tag:
       - pick_one
-    stats:
+    stat:
       health: 100
       defense: 2
       defense_percent: 0
       crit_resistance: 0
       evade: 11
       speed: 11
-    attacks:
+    attack:
       - id: sword
         name: Sword
         base_damage: 10
@@ -223,16 +223,16 @@ enemies:
     level: 5
     enemy_type: humanoid
     status: active
-    tags:
+    tag:
       - pick_one
-    stats:
+    stat:
       health: 110
       defense: 2
       defense_percent: 0
       crit_resistance: 0
       evade: 12
       speed: 12
-    attacks:
+    attack:
       - id: sword
         name: Sword
         base_damage: 11

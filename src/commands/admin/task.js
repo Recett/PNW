@@ -103,8 +103,8 @@ module.exports = {
 						hourly: '⏰'
 					}[task.schedule] || '📋';
 
-					const checksCount = task.checks ? task.checks.length : 0;
-					const actionsCount = task.actions ? task.actions.length : 0;
+					const checksCount = task.check ? task.check.length : 0;
+					const actionsCount = task.action ? task.action.length : 0;
 
 					return `${statusEmoji} ${scheduleEmoji} **${task.id}**\n` +
 						`  ${task.name || 'No name'}\n` +
@@ -132,20 +132,20 @@ module.exports = {
 				}
 
 				const statusEmoji = task.active !== false ? '🟢' : '⚫';
-				const checksCount = task.checks ? task.checks.length : 0;
-				const actionsCount = task.actions ? task.actions.length : 0;
+				const checksCount = task.check ? task.check.length : 0;
+				const actionsCount = task.action ? task.action.length : 0;
 
 				// Format checks and actions
 				let checksText = 'None';
-				if (task.checks && task.checks.length > 0) {
-					checksText = task.checks.map((check, i) => 
+				if (task.check && task.check.length > 0) {
+					checksText = task.check.map((check, i) => 
 						`${i + 1}. **${check.name}** (${check.type})`
 					).join('\n');
 				}
 
 				let actionsText = 'None';
-				if (task.actions && task.actions.length > 0) {
-					actionsText = task.actions.map((action, i) => 
+				if (task.action && task.action.length > 0) {
+					actionsText = task.action.map((action, i) => 
 						`${i + 1}. **${action.type}** action`
 					).join('\n');
 				}
@@ -163,10 +163,10 @@ module.exports = {
 					color: task.active !== false ? 0x57F287 : 0x99AAB5,
 				};
 
-				if (task.tags && task.tags.length > 0) {
+				if (task.tag && task.tag.length > 0) {
 					embed.fields.push({
 						name: 'Tags',
-						value: task.tags.join(', '),
+						value: task.tag.join(', '),
 						inline: false
 					});
 				}

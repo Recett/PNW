@@ -178,7 +178,7 @@ async function startCookingSession(characterId, baseIngredientId, options = {}) 
 				name: baseItem.name,
 				description: baseItem.description
 			},
-			traits: options.initialTraits || [],
+			traits: options.initialTrait || [],
 			additivesUsed: [],
 			startTime: Date.now(),
 			status: 'active'

@@ -7,7 +7,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - sword
       - tempo
@@ -19,7 +19,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - sword
       - art
@@ -31,7 +31,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - sword
       - stance
@@ -43,7 +43,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - rapier
       - parry
@@ -55,7 +55,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - rapier
       - riposte
@@ -67,7 +67,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - dagger
       - bleed
@@ -79,7 +79,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - dagger
       - lethality
@@ -91,7 +91,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - spear
       - reduction
@@ -103,7 +103,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - spear
       - counter
@@ -115,7 +115,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - axe
       - fury
@@ -127,7 +127,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - axe
       - wrath
@@ -139,7 +139,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - mace
       - charge
@@ -151,7 +151,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - mace
       - impact
@@ -163,7 +163,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - shield
       - reactive
@@ -175,7 +175,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - shield
       - aggressive
@@ -187,7 +187,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - shortbow
       - evasion
@@ -199,7 +199,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - shortbow
       - momentum
@@ -211,7 +211,7 @@ perks:
     power: 0
     cost: 0
     timing: battle_start
-    tags:
+    tag:
       - core
       - longbow
       - sniper
@@ -223,7 +223,7 @@ perks:
     power: 0
     cost: 0
     timing: battle_start
-    tags:
+    tag:
       - core
       - longbow
       - marksman
@@ -235,7 +235,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - light-armor
       - evasion
@@ -247,7 +247,7 @@ perks:
     power: 0
     cost: 0
     timing: after_turn
-    tags:
+    tag:
       - core
       - light-armor
       - counter
@@ -259,7 +259,7 @@ perks:
     power: 0
     cost: 0
     timing: before_turn
-    tags:
+    tag:
       - core
       - medium-armor
       - crit-res
@@ -271,7 +271,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - medium-armor
       - status-res
@@ -283,7 +283,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - heavy-armor
       - weight-mgmt
@@ -295,7 +295,7 @@ perks:
     power: 0
     cost: 0
     timing: on_equip
-    tags:
+    tag:
       - core
       - heavy-armor
       - fortification

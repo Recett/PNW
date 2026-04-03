@@ -77,14 +77,14 @@ async function isEntityVisible(entity, userId, eventUtil) {
 		characterId: userId,
 		flags: { local: {}, global: {}, character: {} },
 	};
-	if (entity.required_checks && entity.required_checks.length > 0) {
-		for (const check of entity.required_checks) {
+	if (entity.required_check && entity.required_check.length > 0) {
+		for (const check of entity.required_check) {
 			const result = await eventUtil.evaluateInlineCheck(check, session);
 			if (!result.success) return false;
 		}
 	}
-	if (entity.hidden_checks && entity.hidden_checks.length > 0) {
-		for (const check of entity.hidden_checks) {
+	if (entity.hidden_check && entity.hidden_check.length > 0) {
+		for (const check of entity.hidden_check) {
 			const result = await eventUtil.evaluateInlineCheck(check, session);
 			if (result.success) return false;
 		}

@@ -22,7 +22,7 @@ events:
     message:
       text: "York glances at whatever you're carrying. \"Got something for the stores? I'll take it off your hands — fair price.\""
 
-    options:
+    option:
       - id: york-turnin-rat
         text: "Hand over rat meat"
         next: york-turnin-check-rat
@@ -54,7 +54,7 @@ events:
     name: "York — Check rat meat"
     event_type: encounter
 
-    checks:
+    check:
       - name: has-rat-meat
         type: item
         item_data:
@@ -71,7 +71,7 @@ events:
     message:
       text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you two coins."
 
-    actions:
+    action:
       - type: item
         item: rat_meat
         quantity: "1"
@@ -97,7 +97,7 @@ events:
     name: "York — Check herring"
     event_type: encounter
 
-    checks:
+    check:
       - name: has-herring
         type: item
         item_data:
@@ -114,7 +114,7 @@ events:
     message:
       text: "\"Herring. Good.\" York marks it in his ledger and counts out four coins without looking up."
 
-    actions:
+    action:
       - type: item
         item: herring
         quantity: "1"
@@ -140,7 +140,7 @@ events:
     name: "York — Check mackerel"
     event_type: encounter
 
-    checks:
+    check:
       - name: has-mackerel
         type: item
         item_data:
@@ -157,7 +157,7 @@ events:
     message:
       text: "York lifts the mackerel, squeezes it once. \"This'll do.\" Six coins land on the table."
 
-    actions:
+    action:
       - type: item
         item: mackerel
         quantity: "1"
@@ -183,7 +183,7 @@ events:
     name: "York — Check crab meat"
     event_type: encounter
 
-    checks:
+    check:
       - name: has-crab-meat
         type: item
         item_data:
@@ -200,7 +200,7 @@ events:
     message:
       text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. Nine coins."
 
-    actions:
+    action:
       - type: item
         item: crab_meat
         quantity: "1"
@@ -226,7 +226,7 @@ events:
     name: "York — Check shark meat"
     event_type: encounter
 
-    checks:
+    check:
       - name: has-shark-meat
         type: item
         item_data:
@@ -243,7 +243,7 @@ events:
     message:
       text: "York stares at the shark meat for a moment. Then at you. \"Ten coins. Don't make a habit of nearly dying.\""
 
-    actions:
+    action:
       - type: item
         item: shark_meat
         quantity: "1"

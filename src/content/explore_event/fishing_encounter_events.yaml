@@ -24,7 +24,7 @@ events:
         Có gì đó giật dây mạnh đến nỗi cần câu gần gãy. Bạn kéo lên — một con cua biển khổng lồ, càng kẹp loạn xạ.
         Và giờ nó đang ở trên boong tàu cùng với bạn.
 
-    options:
+    option:
       - id: fish-crab-fight
         text: "Chiến đấu"
         next: fish-fight-crab
@@ -57,7 +57,7 @@ events:
     message:
       text: "Bạn ghim con cua xuống và gỡ nó ra. Thịt ngon đấy. Bếp trưởng sẽ hài lòng."
 
-    actions:
+    action:
       - type: item
         item: crab_meat
         quantity: "1"
@@ -75,7 +75,7 @@ events:
         Dây câu căng đến mức gần đứt — cần câu suýt bứt khỏi tay bạn. Thứ ở đầu kia dây thật khổng lồ.
         Rồi con cá mập trồi lên mặt nước.
 
-    options:
+    option:
       - id: fish-shark-fight
         text: "Giữ dây và chiến đấu"
         next: fish-fight-shark
@@ -108,7 +108,7 @@ events:
     message:
       text: "Bạn dồn toàn lực. Con cá mập nằm im trên boong, nặng nề. Cả thủy thủ đoàn sẽ kể mãi chuyện này."
 
-    actions:
+    action:
       - type: item
         item: shark_meat
         quantity: "1"

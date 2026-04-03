@@ -98,7 +98,7 @@ events:
       avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
-    actions:
+    action:
       - type: "flag"
         flag_name: "global.lt_morale_best_reaction_seen"
         flag_value: "true"
@@ -121,7 +121,7 @@ events:
     event_type: "npc_triggered"
     is_active: true
 
-    checks:
+    check:
       - name: "rat_king_slain"
         type: "flag"
         flag_data:
@@ -155,7 +155,7 @@ events:
       avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
-    actions:
+    action:
       - type: "flag"
         flag_name: "char.lt_morale_recognized"
         flag_value: "true"

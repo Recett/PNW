@@ -14,7 +14,7 @@ events:
       text: "Một gian bếp nhỏ gọn với một cái bếp củi, một vài dụng cụ nấu ăn và một cái chậu rửa. Khá là hạn chế, nhưng trên tàu thì có vậy thôi. Cẩn thận củi lửa."
       message_type: "normal"
 
-    options:
+    option:
       - id: "kt-cook"
         text: "Nấu ăn"
         next: "kitchen-cook"
@@ -31,7 +31,7 @@ events:
     message:
       title: "Bếp"
 
-    actions:
+    action:
       - type: cook
 
   # ─────────────────────────────────────────────
@@ -48,7 +48,7 @@ events:
       text: "Một cây cần câu cũ kỹ tựa vào lan can thuyền, dây câu đã được móc mồi và buông thõng trên mặt nước."
       message_type: "normal"
 
-    options:
+    option:
       - id: "fp-cast"
         text: "Thả câu"
         next: "fishing-pole-cast"
@@ -65,7 +65,7 @@ events:
     message:
       title: "Cần Câu"
 
-    actions:
+    action:
       - type: fish
 
   # ─────────────────────────────────────────────
@@ -89,7 +89,7 @@ events:
         Nó rướn cổ về phía mép sáng, đôi mắt vàng chớp nhẹ.
       message_type: "normal"
 
-    actions:
+    action:
       - type: flag
         flag_name: "char.morale_cabinet_found"
         flag_value: 1

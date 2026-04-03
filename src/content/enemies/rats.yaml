@@ -18,14 +18,14 @@ enemies:
     level: 1
     enemy_type: beast
     status: active
-    stats:
+    stat:
       health: 20
       defense: 0
       defense_percent: 0
       crit_resistance: 0
       evade: 11
       speed: 10
-    attacks:
+    attack:
       - id: bite
         name: Bite
         base_damage: 6
@@ -34,7 +34,7 @@ enemies:
         cooldown: 80
     reward:
       exp: 30
-      items:
+      item:
         - id: rat_meat
           chance: 0.7
           quantity: 1
@@ -45,14 +45,14 @@ enemies:
     level: 2
     enemy_type: beast
     status: active
-    stats:
+    stat:
       health: 35
       defense: 0
       defense_percent: 0
       crit_resistance: 0
       evade: 9
       speed: 9
-    attacks:
+    attack:
       - id: bite
         name: Bite
         base_damage: 8
@@ -61,7 +61,7 @@ enemies:
         cooldown: 90
     reward:
       exp: 50
-      items:
+      item:
         - id: rat_meat
           chance: 0.5
           quantity: 1
@@ -75,17 +75,17 @@ enemies:
     level: 5
     enemy_type: beast
     status: active
-    tags:
+    tag:
       - persistent_hp
       - unique_per_voyage
-    stats:
+    stat:
       health: 200
       defense: 1
       defense_percent: 0
       crit_resistance: 0
       evade: 8
       speed: 10
-    attacks:
+    attack:
       - id: bite
         name: Bite
         base_damage: 10
@@ -96,7 +96,7 @@ enemies:
     reward:
       gold: 0
       exp: 200
-    drops:
+    drop:
       - id: rat_king_weapon
         chance: 1.0
         quantity: 1
@@ -107,17 +107,17 @@ enemies:
     level: 5
     enemy_type: beast
     status: active
-    tags:
+    tag:
       - persistent_hp
       - unique_per_voyage
-    stats:
+    stat:
       health: 200
       defense: 1
       defense_percent: 0
       crit_resistance: 0
       evade: 10
       speed: 15
-    attacks:
+    attack:
       - id: bite
         name: Bite
         base_damage: 18
@@ -128,7 +128,7 @@ enemies:
     reward:
       gold: 0
       exp: 200
-    drops:
+    drop:
       - id: rat_king_weapon
         chance: 1.0
         quantity: 1    

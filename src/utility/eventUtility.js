@@ -323,10 +323,12 @@ class EventProcessor {
 			const options = await this.getVisibleOptions(eventId, session);
 
 			// 6. Display to Discord
-			await this.displayEvent(session, messageData, options, eventBase, nextEventId);
+			const needsCollector = await this.displayEvent(session, messageData, options, eventBase, nextEventId);
 
-			// Store session for option handling
-			this.activeEvents.set(session.sessionId, session);
+			// Store session for option handling only if a collector was set up
+			if (needsCollector) {
+				this.activeEvents.set(session.sessionId, session);
+			}
 
 			return { sessionId: session.sessionId, success: true };
 		}
@@ -365,7 +367,7 @@ class EventProcessor {
 
 			// Handle persistent HP enemies (e.g. Rat King)
 			const enemyBase = contentStore.enemies.findByPk(String(enemyId));
-			const enemyTags = Array.isArray(enemyBase?.tags) ? enemyBase.tags : [];
+			const enemyTags = Array.isArray(enemyBase?.tag) ? enemyBase.tag : [];
 			const isPersistent = enemyTags.includes('persistent_hp');
 
 			let enemyStartHp = null;
@@ -428,7 +430,7 @@ class EventProcessor {
 	 */
 	async processChecks(eventId, session) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const checks = (eventData && (eventData.check || eventData.checks)) ? [...(eventData.check || eventData.checks)].sort((a, b) => (a.execution_order || 0) - (b.execution_order || 0)) : [];
+		const checks = (eventData && eventData.check) ? [...eventData.check].sort((a, b) => (a.execution_order || 0) - (b.execution_order || 0)) : [];
 
 		const results = {};
 		let branchEventId = null;
@@ -967,7 +969,7 @@ class EventProcessor {
 	 */
 	async executeActionsByTrigger(eventId, session, trigger) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const allActions = (eventData && (eventData.actions || eventData.action)) || [];
+		const allActions = (eventData && eventData.action) || [];
 
 		// Execute variable actions FIRST to set up session variables for other actions
 		const variableActions = allActions.filter(a => a.type === 'variable');
@@ -1604,7 +1606,7 @@ class EventProcessor {
 			const purchases = await NpcPurchase.findAll({ where: { npc_id: npc_id } });
 			const purchaseMap = new Map(purchases.map(p => [String(p.item_id), p.purchased || 0]));
 
-			const stock = (npc.stocks || []).map(s => ({
+			const stock = (npc.stock || []).map(s => ({
 				...s,
 				item: contentStore.items.findByPk(String(s.item)),
 				remaining: s.amount != null ? s.amount - (purchaseMap.get(String(s.item)) || 0) : null,
@@ -1959,7 +1961,7 @@ class EventProcessor {
 		}
 
 		// Add enemy preview if present
-		const enemies = (eventBase.enemies || [])
+		const enemies = (eventBase.enemy || [])
 			.filter(e => !e.is_hidden)
 			.sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
 
@@ -2002,8 +2004,8 @@ class EventProcessor {
 	 */
 	async getVisibleOptions(eventId, session) {
 		const eventData = contentStore.events.findByPk(String(eventId));
-		const options = (eventData && (eventData.option || eventData.options))
-			? (eventData.option || eventData.options).map(o => ({ ...o })).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+		const options = (eventData && eventData.option)
+			? eventData.option.map(o => ({ ...o })).sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
 			: [];
 
 		// Get character for pronoun processing
@@ -2110,8 +2112,8 @@ class EventProcessor {
 	 */
 	async isOptionVisible(option, session) {
 		// Required checks - all must pass for option to appear
-		if (option.required_checks && option.required_checks.length > 0) {
-			for (const checkData of option.required_checks) {
+		if (option.required_check && option.required_check.length > 0) {
+			for (const checkData of option.required_check) {
 				const result = await this.evaluateInlineCheck(checkData, session);
 				if (!result.success) {
 					return false;
@@ -2120,8 +2122,8 @@ class EventProcessor {
 		}
 
 		// Hidden checks - if any pass, option is hidden
-		if (option.hidden_checks && option.hidden_checks.length > 0) {
-			for (const checkData of option.hidden_checks) {
+		if (option.hidden_check && option.hidden_check.length > 0) {
+			for (const checkData of option.hidden_check) {
 				const result = await this.evaluateInlineCheck(checkData, session);
 				if (result.success) {
 					return false;
@@ -2293,6 +2295,7 @@ class EventProcessor {
 		// Set up collector if there are components
 		if (components.length > 0) {
 			await this.setupCollector(session, eventBase, nextEventId, dialogMessage);
+			return true;
 		}
 		else {
 			// Event ends here - flush flags, schedule message deletion, clean up
@@ -2300,6 +2303,7 @@ class EventProcessor {
 			await this.saveSession(session);
 			if (session.characterId) this.activeCharacters.delete(session.characterId);
 			await this._scheduleDeletion(session.characterId, dialogMessage);
+			return false;
 		}
 	}
 
@@ -2443,7 +2447,7 @@ class EventProcessor {
 						if (nextEventNeedsInput) {
 							// Get the input action details from YAML
 							const nextEventData = contentStore.events.findByPk(String(nextEventId));
-							const nextActions = (nextEventData && (nextEventData.actions || nextEventData.action)) || [];
+							const nextActions = (nextEventData && nextEventData.action) || [];
 
 							const inputAction = nextActions.find(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
 							
@@ -2679,11 +2683,12 @@ class EventProcessor {
 					});
 				}
 				else {
-					// Event chain ended - flush flags, schedule message deletion, clean up
-					await componentInteraction.deferUpdate();
+					// Event chain ended - remove buttons, flush flags, schedule message deletion, clean up
+					await componentInteraction.update({ components: [] });
 					await this.flushPendingFlags(session);
 					await this._scheduleDeletion(session.characterId, componentInteraction.message);
 					await this.saveSession(session);
+					this.activeEvents.delete(session.sessionId);
 					if (session.characterId) this.activeCharacters.delete(session.characterId);
 				}
 			}
@@ -2709,7 +2714,7 @@ class EventProcessor {
 	async eventHasInputActions(eventId) {
 		try {
 			const eventData = contentStore.events.findByPk(String(eventId));
-			const actions = (eventData && (eventData.actions || eventData.action));
+			const actions = (eventData && eventData.action);
 			if (!actions) return false;
 			return actions.some(a => a.type === 'variable' && a.source_type === VARIABLE_SOURCE.INPUT);
 		} catch (error) {

@@ -242,11 +242,11 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
 	if (!enemyBase) throw new Error('Enemy not found');
 
-	const enemyBaseStat = enemyBase.stats;
+	const enemyBaseStat = enemyBase.stat;
 	if (!enemyBaseStat) throw new Error('Enemy stats not found');
 
 	// Get Enemy attacks from embedded YAML data
-	let enemyAttacks = enemyBase.attacks;
+	let enemyAttacks = enemyBase.attack;
 	if (!enemyAttacks || enemyAttacks.length === 0) {
 		throw new Error('Enemy has no attacks');
 	}
@@ -765,10 +765,10 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		lootResults.remainingXp = expResult.remainingXp;
 	}
 
-	// Handle item drops — support both reward.items and top-level drops field
+	// Handle item drops — support both reward.item and top-level drop field
 	const itemDropList = [
-		...(reward.items && Array.isArray(reward.items) ? reward.items : []),
-		...(enemyBase.drops && Array.isArray(enemyBase.drops) ? enemyBase.drops : []),
+		...(reward.item && Array.isArray(reward.item) ? reward.item : []),
+		...(enemyBase.drop && Array.isArray(enemyBase.drop) ? enemyBase.drop : []),
 	];
 	if (itemDropList.length > 0) {
 		for (const itemDrop of itemDropList) {

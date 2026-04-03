@@ -360,7 +360,7 @@ weapons:
     item_type: weapon
     value: 0
     weight: 4
-    tags: 
+    tag: 
     weapon:
       slot: mainhand
       subtype: spear
@@ -375,7 +375,7 @@ weapons:
     item_type: weapon
     value: 75
     weight: 4
-    tags:
+    tag:
     weapon:
       slot: mainhand
       subtype: rapier

@@ -4,10 +4,10 @@ tasks:
     description: "Consume galeby_talked_today flags and advance gale_met counter at end of day"
     schedule: daily
     active: true
-    tags: [conversation, daily_progression, galeby]
+    tag: [conversation, daily_progression, galeby]
     
     # Target characters who have talked to Galeby today
-    checks:
+    check:
       - name: has_talked_today
         type: flag
         flag_data:
@@ -20,7 +20,7 @@ tasks:
         execution_order: 0
     
     # Actions to perform on eligible characters
-    actions:
+    action:
       # First, consume the "talked today" ticket
       - type: flag
         flag_name: char.galeby_talked_today
@@ -43,9 +43,9 @@ tasks:
     description: "Characters in town locations regenerate 10% HP and Stamina daily"
     schedule: daily
     active: false  # Disabled for now - example only
-    tags: [regeneration, daily, town]
+    tag: [regeneration, daily, town]
     
-    checks:
+    check:
       # Check if character has 'in_town' flag set
       - name: in_town_check
         type: flag
@@ -68,7 +68,7 @@ tasks:
         silent: true
         execution_order: 1
     
-    actions:
+    action:
       # Regenerate 10% HP (using percentage operation)
       - type: stat
         stat_name: hp
@@ -89,9 +89,9 @@ tasks:
     description: "Characters who were active this week get bonus skill points"
     schedule: weekly
     active: false  # Disabled for now - example only
-    tags: [bonus, weekly, skill_points]
+    tag: [bonus, weekly, skill_points]
     
-    checks:
+    check:
       # Check if character has been active (has activity points)
       - name: was_active
         type: flag
@@ -104,7 +104,7 @@ tasks:
         silent: true
         execution_order: 0
     
-    actions:
+    action:
       # Give bonus skill points
       - type: stat
         stat_name: skill_points
