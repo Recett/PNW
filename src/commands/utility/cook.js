@@ -344,6 +344,47 @@ function getDishBuff(traits, quality) {
 	}));
 }
 
+/**
+ * For spoiled dishes: calculates debuffs from positive traits.
+ * Amplifies the dish's numeric score by negativeTraitCount, maps that to a
+ * quality tier, then uses that tier's mult for potency (negated).
+ */
+function scoreToQualityMult(score) {
+	if (score > 200) return FOOD_QUALITY_MULT.Legendary;
+	if (score > 100) return FOOD_QUALITY_MULT.Epic;
+	if (score > 50)  return FOOD_QUALITY_MULT.Rare;
+	if (score > 20)  return FOOD_QUALITY_MULT.Uncommon;
+	return FOOD_QUALITY_MULT.Common;
+}
+
+function getDishDebuff(traits, score) {
+	if (!traits || traits.length === 0) return [];
+	const negativeCount = traits.filter(t => FOOD_NEGATIVE_TRAITS.includes(t)).length;
+	const negativeMult = Math.max(1, negativeCount);
+	const amplifiedScore = (score ?? 0) * negativeMult;
+	const qualityMult = scoreToQualityMult(amplifiedScore);
+	const positiveTraits = traits.filter(t => !FOOD_NEGATIVE_TRAITS.includes(t));
+	const votes = {};
+	for (const trait of positiveTraits) {
+		const stat = FOOD_TRAIT_STATS[trait];
+		if (stat) votes[stat] = (votes[stat] || 0) + 1;
+	}
+	return Object.entries(votes).map(([stat_target, count]) => ({
+		stat_target,
+		potency: -(count * qualityMult),
+	}));
+}
+
+const EAT_FLAVOR = {
+	spoiled:   'Vị không ổn ngay từ miếng đầu. Bạn cố nuốt hết vì không có lựa chọn nào khác, nhưng dạ dày bắt đầu phản đối.',
+	plain:     'Ăn được. Nhạt và không để lại ấn tượng gì — nhưng cũng đã từng tệ hơn.',
+	Common:    'Bình thường. Đủ no, không thêm gì hơn.',
+	Uncommon:  'Khá ổn. Bạn nhận ra mình ăn nhanh hơn dự tính.',
+	Rare:      'Thực sự ngon. Vị cân bằng, no bụng và cơ thể đáp lại tích cực.',
+	Epic:      'Xuất sắc. Tất cả đã vào đúng chỗ — bạn cảm nhận được sự khác biệt ngay lập tức.',
+	Legendary: 'Hoàn hảo. Loại bữa ăn khó mà diễn đạt bằng lời sau khi đã xong. Bạn đặt bát xuống và cảm thấy sẵn sàng cho bất cứ điều gì.',
+};
+
 // Handle the player eating the finished dish
 async function handleEatDish(interaction) {
 	const userId = interaction.user.id;
@@ -369,12 +410,38 @@ async function handleEatDish(interaction) {
 
 		const buffs = getDishBuff(dish.traits, dish.quality);
 		let buffDescription;
+		let embedColor;
 
 		if (buffs === null) {
-			buffDescription = 'This dish had spoiled traits. No buff was granted.';
+			// Spoiled: positive traits become debuffs at negated potency
+			const debuffs = getDishDebuff(dish.traits, dish.score);
+			for (const debuff of debuffs) {
+				await CharacterStatus.create({
+					character_id: userId,
+					status_id: 'food_debuff',
+					category: 'debuff',
+					scope: 'persistent',
+					stat_target: debuff.stat_target,
+					value_type: 'flat',
+					potency: debuff.potency,
+					duration: 3600,
+					duration_unit: 'seconds',
+					expires_at: new Date(Date.now() + 3600 * 1000),
+					source: 'food',
+				});
+			}
+			await characterUtil.recalculateCharacterStats({ id: userId });
+			const debuffList = debuffs
+				.map(b => `${Math.ceil(b.potency * FOOD_STAT_MULT[b.stat_target])} ${FOOD_STAT_LABEL[b.stat_target]}`)
+				.join(', ');
+			buffDescription = debuffs.length > 0
+				? `${EAT_FLAVOR.spoiled}\n\n**${debuffList}**`
+				: EAT_FLAVOR.spoiled;
+			embedColor = 0x8B0000;
 		}
 		else if (buffs.length === 0) {
-			buffDescription = 'The dish was too plain to provide any benefit.';
+			buffDescription = EAT_FLAVOR.plain;
+			embedColor = 0x888888;
 		}
 		else {
 			for (const buff of buffs) {
@@ -396,13 +463,19 @@ async function handleEatDish(interaction) {
 			const buffList = buffs
 				.map(b => `+${Math.floor(b.potency * FOOD_STAT_MULT[b.stat_target])} ${FOOD_STAT_LABEL[b.stat_target]}`)
 				.join(', ');
-			buffDescription = `You feel invigorated! **${buffList}** applied.`;
+			const flavorMsg = EAT_FLAVOR[dish.quality] || EAT_FLAVOR.Common;
+			buffDescription = `${flavorMsg}\n\n**${buffList}**`;
+			embedColor = dish.quality === 'Legendary' ? 0xFFD700
+				: dish.quality === 'Epic' ? 0x9B59B6
+				: dish.quality === 'Rare' ? 0x3498DB
+				: dish.quality === 'Uncommon' ? 0x2ECC71
+				: 0x00FF00;
 		}
 
 		const embed = new EmbedBuilder()
 			.setTitle('You ate the dish!')
 			.setDescription(`**${dish.name}**\n\n${buffDescription}`)
-			.setColor(buffs && buffs.length > 0 ? 0x00FF00 : 0x888888);
+			.setColor(embedColor);
 
 		await interaction.update({
 			embeds: [embed],
