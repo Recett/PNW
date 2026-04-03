@@ -274,6 +274,28 @@ class EventProcessor {
 			// Execute immediate actions BEFORE silent check (modals need fresh interaction)
 			await this.executeActionsByTrigger(eventId, session, TRIGGER_CONDITION.IMMEDIATE);
 
+			// Chain to encounter event if fishing action triggered a combat roll
+			if (session.fishNextEvent) {
+				const fishNextId = session.fishNextEvent;
+				delete session.fishNextEvent;
+				return await this.processEvent(fishNextId, interaction, characterId, {
+					flags: session.flags,
+					pendingCharacterFlags: session.pendingCharacterFlags,
+					pendingGlobalFlags: session.pendingGlobalFlags,
+					metadata: session.metadata,
+					ephemeral: session.ephemeral,
+					eventDepth: session.eventDepth + 1,
+				});
+			}
+
+			// End processing if cooking action launched its own UI
+			if (session.cookDone) {
+				await this.flushPendingFlags(session);
+				this.activeEvents.delete(session.sessionId);
+				if (session.characterId) this.activeCharacters.delete(session.characterId);
+				return;
+			}
+
 			// 3. Handle silent events - skip message/options and auto-proceed
 			if (eventBase.silent) {
 				// Priority: check outcome > event default
@@ -994,6 +1016,18 @@ class EventProcessor {
 		for (const action of narrateActions) {
 			await this.executeNarrateAction(action, session);
 		}
+
+		// Execute fish actions
+		const fishActions = allActions.filter(a => a.type === 'fish');
+		for (const action of fishActions) {
+			await this.executeFishAction(action, session);
+		}
+
+		// Execute cook actions
+		const cookActions = allActions.filter(a => a.type === 'cook');
+		for (const action of cookActions) {
+			await this.executeCookAction(action, session);
+		}
 	}
 
 	/**
@@ -1036,6 +1070,97 @@ class EventProcessor {
 		if (title) embed.setTitle(title);
 
 		await ch.send({ embeds: [embed] });
+	}
+
+	/**
+	 * Execute fish action - runs the fishing catch logic and adds result to session.messages.
+	 * For combat encounters, sets session.fishNextEvent to chain to the encounter event.
+	 */
+	async executeFishAction(action, session) {
+		if (!session.characterId) return;
+
+		const CATCH_TABLE = [
+			{ id: null, name: null, weight: 60 },
+			{ id: 'herring', name: 'Cá trích', weight: 18 },
+			{ id: 'mackerel', name: 'Cá thu', weight: 12 },
+			{ id: 'crab', name: 'Cua biển khổng lồ', type: 'combat', event: 'fish-encounter-crab', weight: 7 },
+			{ id: 'shark', name: 'Cá mập', type: 'combat', event: 'fish-encounter-shark', weight: 3 },
+		];
+		const TOTAL_WEIGHT = CATCH_TABLE.reduce((sum, e) => sum + e.weight, 0);
+
+		const CATCH_FLAVOUR = {
+			herring: [
+				'Một con cá trích nhỏ lên câu. Bình thường, nhưng là một ngày lương thiện.',
+				'Cá trích vùng vằy ở đầu dây. Có còn hơn không.',
+				'Con cá trích gần như tự phiến vào lưỡi câu.',
+			],
+			mackerel: [
+				'Một con cá thu. Chắc thịt, nặng tay. Không tệ.',
+				'Cá thu lên lưới. Bếp trưởng sẽ hài lòng.',
+				'Một con cá thu đẹp nhảy lên khỏi mặt nước. Một mẻ như ý.',
+			],
+		};
+		const FAIL_FLAVOUR = [
+			'Không có gì. biển giữ bí mật của mình hôm nay.',
+			'Có gì đó cắn câu — rồi biến mất. Dây câu lên trống rễng.',
+			'Chờ mãi. Nước không trả lời.',
+			'Có gì đó giật rồi trốn mất. Hôm nay không phải ngày của mình.',
+			'Lưỡi câu về trước. Có lẽ ngày mai.',
+		];
+		const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+		const STAMINA_COST = 5;
+		const character = await characterUtil.getCharacterBase(session.characterId);
+		if ((character?.currentStamina ?? 0) < STAMINA_COST) {
+			session.messages.push({ type: 'failure', text: `Bạn quá mệt để câu cá. (Cần ${STAMINA_COST} stamina)` });
+			return;
+		}
+		await characterUtil.modifyCharacterStat(session.characterId, 'currentStamina', -STAMINA_COST);
+
+		// Roll catch
+		let roll = Math.random() * TOTAL_WEIGHT;
+		let result = CATCH_TABLE[CATCH_TABLE.length - 1];
+		for (const entry of CATCH_TABLE) {
+			roll -= entry.weight;
+			if (roll < 0) { result = entry; break; }
+		}
+
+		// Combat encounter — chain to encounter event
+		if (result.type === 'combat') {
+			session.fishNextEvent = result.event;
+			return;
+		}
+
+		if (!result.id) {
+			session.messages.push({ type: 'info', text: `*${pick(FAIL_FLAVOUR)}*` });
+		}
+		else {
+			await characterUtil.addCharacterItem(session.characterId, result.id, 1);
+			session.messages.push({ type: 'success', text: `*${pick(CATCH_FLAVOUR[result.id])}*\n\nBạn nhận được: **${result.name}**` });
+		}
+	}
+
+	/**
+	 * Launch the cooking mini-game from a kitchen object interaction.
+	 * Calls cook.js startCooking which edits the interaction reply directly.
+	 * Sets session.cookDone to signal processEvent to skip displayEvent.
+	 */
+	async executeCookAction(action, session) {
+		if (!session.characterId) return;
+		const STAMINA_COST = 5;
+		const character = await characterUtil.getCharacterBase(session.characterId);
+		if ((character?.currentStamina ?? 0) < STAMINA_COST) {
+			session.messages.push({ type: 'failure', text: `Bạn quá mệt để nấu ăn. (Cần ${STAMINA_COST} stamina)` });
+			return;
+		}
+		const cookCommand = require('../commands/utility/cook.js');
+		const started = await cookCommand.startCooking(session.interaction, session.characterId);
+		if (started) {
+			session.cookDone = true;
+		}
+		else {
+			session.messages.push({ type: 'failure', text: 'Bạn không có nguyên liệu nào để nấu ăn cả.' });
+		}
 	}
 
 	/**

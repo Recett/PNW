@@ -164,7 +164,7 @@ async function performGalebyCycle() {
 	try {
 		const roll = Math.floor(Math.random() * 100) + 1;
 		const present = roll <= GALEBY_APPEAR_CHANCE;
-		await GlobalFlag.upsert({ flag_name: 'galeby_present', flag_value: present ? 1 : 0 });
+		await GlobalFlag.upsert({ flag: 'galeby_present', value: present ? 1 : 0 });
 		console.log(`[Galeby] Hour roll: ${present ? 'present' : 'absent'} (${roll}/100)`);
 	}
 	catch (error) {
@@ -395,6 +395,13 @@ async function performHealthCheck() {
 	let tracker = null;
 
 	try {
+		// Ensure a CronLog row exists for this meta-job (required by FK on cron_execution_logs)
+		await CronLog.upsert({
+			job_name: jobName,
+			status: 'running',
+			last_run: new Date(),
+		});
+
 		// Start lightweight monitoring (no console capture for monitoring job)
 		tracker = await monitor.startExecution(jobName, {
 			description: 'Health monitoring and alert checking for all cron jobs',

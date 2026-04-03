@@ -3,6 +3,18 @@
 
 objects:
 
+  - id: "obj-kitchen"
+    name: "Bếp"
+    type: "furniture"
+    status: "active"
+    start_event: "kitchen-interact"
+
+  - id: "obj-fishing-pole"
+    name: "Fishing Pole"
+    type: "gear"
+    status: "active"
+    start_event: "fishing-pole-interact"
+
   - id: "obj-small-cabinet"
     name: "Cái tủ nhỏ"
     type: "furniture"

@@ -92,27 +92,10 @@ async function isEntityVisible(entity, userId, eventUtil) {
 	return true;
 }
 
-// ─── Look ─────────────────────────────────────────────────────────────────────
-async function handleLook(interaction, userId) {
-	const channel = interaction.channel;
-	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
-	const currentLocation = await interaction.client.locationUtil.getLocationByChannel(channelId);
-	if (!currentLocation) {
-		return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
-	}
-
-	const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
-	if (!isAdmin) {
-		const character = await CharacterBase.findOne({ where: { id: userId } });
-		if (character && String(character.location_id) !== String(currentLocation.id)) {
-			return interaction.reply({ content: 'You are not at this location.', flags: MessageFlags.Ephemeral });
-		}
-	}
-
-	let description = `${currentLocation.description}`;
-	const locationUtil = interaction.client.locationUtil;
-	const { objects, pcs, npcs, enemies } = await locationUtil.getLocationContents(currentLocation.id);
-	const eventUtil = interaction.client.eventUtil;
+// ─── Look Embed Builder ───────────────────────────────────────────────────────
+async function buildLocationEmbed(location, userId, eventUtil, locationUtil) {
+	let description = `${location.description}`;
+	const { objects, pcs, npcs, enemies } = await locationUtil.getLocationContents(location.id);
 	const visibleObjects = (await Promise.all(objects.map(async obj => (await isEntityVisible(obj, userId, eventUtil)) ? obj : null))).filter(Boolean);
 	const visibleNpcs = (await Promise.all(npcs.map(async npc => (await isEntityVisible(npc, userId, eventUtil)) ? npc : null))).filter(Boolean);
 
@@ -140,7 +123,27 @@ async function handleLook(interaction, userId) {
 		description += `\n\n**Enemies:** ${enemies.map(enemy => enemy.name).join(', ')}`;
 	}
 
-	const embed = new EmbedBuilder().setTitle(currentLocation.name).setDescription(description);
+	return new EmbedBuilder().setTitle(location.name).setDescription(description);
+}
+
+// ─── Look ─────────────────────────────────────────────────────────────────────
+async function handleLook(interaction, userId) {
+	const channel = interaction.channel;
+	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
+	const currentLocation = await interaction.client.locationUtil.getLocationByChannel(channelId);
+	if (!currentLocation) {
+		return interaction.reply({ content: 'This channel is not mapped to any location.', flags: MessageFlags.Ephemeral });
+	}
+
+	const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+	if (!isAdmin) {
+		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if (character && String(character.location_id) !== String(currentLocation.id)) {
+			return interaction.reply({ content: 'You are not at this location.', flags: MessageFlags.Ephemeral });
+		}
+	}
+
+	const embed = await buildLocationEmbed(currentLocation, userId, interaction.client.eventUtil, interaction.client.locationUtil);
 	await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
@@ -216,7 +219,15 @@ async function handleMove(interaction, userId) {
 		});
 		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
 		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
-		await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
+		const embeds = [];
+		if (newLocation) {
+			try {
+				const lookEmbed = await buildLocationEmbed(newLocation, userId, interaction.client.eventUtil, interaction.client.locationUtil);
+				embeds.push(lookEmbed);
+			}
+			catch (err) { console.error('Error building look embed after move:', err); }
+		}
+		await i.reply({ content: replyContent, embeds, flags: MessageFlags.Ephemeral });
 
 		const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
 		if (isBilge) {

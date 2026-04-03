@@ -6,91 +6,8 @@ const locationUtility = require('@utility/locationUtility.js');
 const specialEventUtil = require('@utility/specialEventUtility.js');
 const eventUtility = require('@utility/eventUtility.js');
 
-module.exports = {
-	data: new SlashCommandBuilder()
-		.setName('cook')
-		.setDescription('Start cooking with ingredients and spices')
-		.setContexts(InteractionContextType.Guild),
+module.exports = {};
 
-	async execute(interaction) {
-		try {
-			const userId = interaction.user.id;
-
-			// Check if character exists
-			const character = await CharacterBase.findOne({
-				where: { id: userId }
-			});
-
-			if (!character) {
-				return interaction.reply({
-					content: 'You need to register a character first! Use `/register` to get started.',
-					flags: MessageFlags.Ephemeral
-				});
-			}
-
-			// Check unregistered flag
-			const unregisteredFlag = await characterUtil.getCharacterFlag(userId, 'unregistered');
-			if (unregisteredFlag) {
-				return interaction.reply({
-					content: 'Complete your character registration first!',
-					flags: MessageFlags.Ephemeral
-				});
-			}
-
-			// Check if location has kitchen tag
-			const location = await LocationBase.findByPk(character.location_id);
-
-			if (!location || !location.tag || !Array.isArray(location.tag) || !location.tag.includes('kitchen')) {
-				return interaction.reply({
-					content: 'You need to be in a kitchen to cook! Find a location with cooking facilities.',
-					flags: MessageFlags.Ephemeral
-				});
-			}
-
-			// Check if already has active cooking session
-			const existingSession = await specialEventUtil.getCurrentCookingSession(userId);
-			if (existingSession) {
-				return await showCookingInterface(interaction, userId, existingSession);
-			}
-
-			// Get base ingredients from inventory
-			const inventory = await CharacterItem.findAll({
-				where: { character_id: userId, amount: { [require('sequelize').Op.gt]: 0 } }
-			});
-
-			const baseIngredients = [];
-			for (const item of inventory) {
-				const itemDetails = await itemUtility.getItemWithDetails(item.item_id);
-				if (itemDetails && itemDetails.tag && Array.isArray(itemDetails.tag) && itemDetails.tag.includes('base_ingredient')) {
-					baseIngredients.push({
-						id: item.item_id,
-						name: itemDetails.name,
-						description: itemDetails.description,
-						amount: item.amount
-					});
-				}
-			}
-
-			if (baseIngredients.length === 0) {
-				return interaction.reply({
-					content: 'You don\'t have any base ingredients to cook with! Look for items that can be used as cooking bases.',
-					flags: MessageFlags.Ephemeral
-				});
-			}
-
-			// Show base ingredient selection
-			await showIngredientSelection(interaction, baseIngredients);
-
-		}
-		catch (error) {
-			console.error('Error in cook command:', error);
-			return interaction.reply({
-				content: 'An error occurred while trying to cook.',
-				flags: MessageFlags.Ephemeral
-			});
-		}
-	}
-};
 
 async function showIngredientSelection(interaction, ingredients) {
 	const embed = new EmbedBuilder()
@@ -118,7 +35,8 @@ async function showIngredientSelection(interaction, ingredients) {
 	const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 	const buttonRow = new ActionRowBuilder().addComponents(cancelButton);
 
-	await interaction.reply({
+	const method = interaction.replied || interaction.deferred ? 'editReply' : 'reply';
+	await interaction[method]({
 		embeds: [embed],
 		components: [selectRow, buttonRow],
 		flags: MessageFlags.Ephemeral
@@ -193,12 +111,21 @@ async function handleIngredientSelection(interaction) {
 			});
 		}
 
-		// Consume the ingredient immediately
+		// Stamina check before consuming the ingredient
+		const STAMINA_COST = 5;
 		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if ((character?.currentStamina ?? 0) < STAMINA_COST) {
+			return interaction.reply({
+				content: `Bạn quá mệt để nấu ăn. (Cần ${STAMINA_COST} stamina, hiện có ${character?.currentStamina ?? 0})`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+
+		// Consume the ingredient immediately
 		await characterUtil.removeCharacterItem(character.id, ingredientId, 1);
 
-		// Consume 5 stamina for starting to cook
-		await characterUtil.modifyCharacterStat(userId, 'stamina', -5, 'add');
+		// Consume stamina for starting to cook
+		await characterUtil.modifyCharacterStat(userId, 'currentStamina', -STAMINA_COST, 'add');
 
 		// Start cooking session with any initial traits from the ingredient
 		const initialTraits = ingredient.metadata?.initialTraits || [];
@@ -239,7 +166,7 @@ async function handleAdditiveAddition(interaction) {
 		}
 
 		// Consume 2 stamina for adding additive
-		await characterUtil.modifyCharacterStat(userId, 'stamina', -2, 'add');
+		await characterUtil.modifyCharacterStat(userId, 'currentStamina', -2, 'add');
 
 		await showCookingInterface(interaction, userId, result.session);
 
@@ -573,3 +500,45 @@ module.exports.handleCookingCancel = handleCookingCancel;
 module.exports.handleCookingCancelSelection = handleCookingCancelSelection;
 module.exports.handleEatDish = handleEatDish;
 module.exports.handleFeedMorale = handleFeedMorale;
+
+// Entry point called from kitchen object event action
+async function startCooking(interaction, userId) {
+	try {
+		// Resume existing session if one is active
+		const existingSession = await specialEventUtil.getCurrentCookingSession(userId);
+		if (existingSession) {
+			await showCookingInterface(interaction, userId, existingSession);
+			return true;
+		}
+
+		// Gather base ingredients from inventory
+		const inventory = await CharacterItem.findAll({
+			where: { character_id: userId, amount: { [require('sequelize').Op.gt]: 0 } },
+		});
+
+		const baseIngredients = [];
+		for (const item of inventory) {
+			const itemDetails = await itemUtility.getItemWithDetails(item.item_id);
+			if (itemDetails && itemDetails.tag && Array.isArray(itemDetails.tag) && itemDetails.tag.includes('base_ingredient')) {
+				baseIngredients.push({
+					id: item.item_id,
+					name: itemDetails.name,
+					description: itemDetails.description,
+					amount: item.amount,
+				});
+			}
+		}
+
+		if (baseIngredients.length === 0) {
+			return false; // Caller will show the "no ingredients" message
+		}
+
+		await showIngredientSelection(interaction, baseIngredients);
+		return true;
+	}
+	catch (error) {
+		console.error('Error starting cooking:', error);
+		return false;
+	}
+}
+module.exports.startCooking = startCooking;

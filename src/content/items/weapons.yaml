@@ -29,7 +29,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 3
-    tags:
+    tag:
       - starter_shortbow
     weapon:
       slot: twohand
@@ -61,7 +61,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 8
-    tags:
+    tag:
       - starter_longbow
     weapon:
       slot: twohand
@@ -93,7 +93,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 3
-    tags:
+    tag:
       - starter_dagger
     weapon:
       slot: mainhand
@@ -125,7 +125,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 4
-    tags:
+    tag:
       - starter_rapier
     weapon:
       slot: mainhand
@@ -157,7 +157,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 5
-    tags:
+    tag:
       - starter_shortsword
     weapon:
       slot: mainhand
@@ -189,7 +189,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 6
-    tags:
+    tag:
       - starter_spear
     weapon:
       slot: mainhand
@@ -221,7 +221,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 8
-    tags:
+    tag:
       - starter_mace
     weapon:
       slot: mainhand
@@ -253,7 +253,7 @@ weapons:
     item_type: weapon
     value: 10
     weight: 9
-    tags:
+    tag:
       - starter_axe
     weapon:
       slot: mainhand

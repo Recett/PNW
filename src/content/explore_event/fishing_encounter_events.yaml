@@ -1,42 +1,41 @@
 events:
 
   # -----------------------------------------------
-  # FISHING ENCOUNTERS — HMS DIVINE PROLOGUE
-  # Triggered by /fish when the catch roll lands on
-  # giant_crab (9%) or shark (4%).
+  # SỰ CỐ CÂU CÁ — HMS DIVINE (PROLOGUE)
+  # Kích hoạt khi thả câu và kết quả là cua hoặc cá mập.
   #
-  # Flow:
-  #   fish-encounter-crab  →  fight → fish-fight-crab
-  #                        →  release → fish-release-crab
-  #   fish-encounter-shark →  fight → fish-fight-shark
-  #                        →  cut line → fish-cut-shark
+  # Luồng:
+  #   fish-encounter-crab  →  chiến đấu → fish-fight-crab
+  #                        →  thả ra    → fish-release-crab
+  #   fish-encounter-shark →  chiến đấu → fish-fight-shark
+  #                        →  cắt dây   → fish-cut-shark
   #   on_victory: fish-crab-victory / fish-shark-victory
-  #   on_defeat:  fish-defeat (shared)
+  #   on_defeat:  fish-defeat (dùng chung)
   # -----------------------------------------------
 
-  # ── GIANT CRAB ─────────────────────────────────
+  # ── CUA BIỂN KHỔNG LỒ ──────────────────────────
 
   - id: fish-encounter-crab
-    name: "Giant Crab on the Hook"
+    name: "Cua Biển Khổng Lồ Cắn Câu"
     event_type: encounter
 
     message:
       text: |
-        Something fights the line — hard. You haul up a giant crab, claws snapping furiously.
-        It is now very much on the deck with you.
+        Có gì đó giật dây mạnh đến nỗi cần câu gần gãy. Bạn kéo lên — một con cua biển khổng lồ, càng kẹp loạn xạ.
+        Và giờ nó đang ở trên boong tàu cùng với bạn.
 
     options:
       - id: fish-crab-fight
-        text: "Fight it"
+        text: "Chiến đấu"
         next: fish-fight-crab
         display_order: 0
       - id: fish-crab-release
-        text: "Release it back"
+        text: "Thả nó xuống biển"
         next: fish-release-crab
         display_order: 1
 
   - id: fish-fight-crab
-    name: "Fight giant crab"
+    name: "Chiến đấu với cua biển"
     event_type: combat
 
     combat:
@@ -45,18 +44,18 @@ events:
       on_defeat: fish-defeat
 
   - id: fish-release-crab
-    name: "Release the crab"
+    name: "Thả cua xuống biển"
     event_type: encounter
 
     message:
-      text: "You nudge the crab back over the rail. It disappears into the waves, still furious, taking your hook with it."
+      text: "Bạn đẩy con cua qua lan can. Nó biến mất vào sóng biển, vẫn hung hăng — và mang theo lưỡi câu của bạn."
 
   - id: fish-crab-victory
-    name: "Crab defeated"
+    name: "Cua bị đánh bại"
     event_type: encounter
 
     message:
-      text: "You pin the crab and pry it free. Good eating. The cook will be pleased."
+      text: "Bạn ghim con cua xuống và gỡ nó ra. Thịt ngon đấy. Bếp trưởng sẽ hài lòng."
 
     actions:
       - type: item
@@ -65,29 +64,29 @@ events:
         operation: give
         silent: false
 
-  # ── SHARK ──────────────────────────────────────
+  # ── CÁ MẬP ─────────────────────────────────────
 
   - id: fish-encounter-shark
-    name: "Shark on the Hook"
+    name: "Cá Mập Cắn Câu"
     event_type: encounter
 
     message:
       text: |
-        The line goes taut so hard the rod nearly leaves your hands. Whatever is on the other end is enormous.
-        Then the shark breaks the surface.
+        Dây câu căng đến mức gần đứt — cần câu suýt bứt khỏi tay bạn. Thứ ở đầu kia dây thật khổng lồ.
+        Rồi con cá mập trồi lên mặt nước.
 
     options:
       - id: fish-shark-fight
-        text: "Hold on and fight"
+        text: "Giữ dây và chiến đấu"
         next: fish-fight-shark
         display_order: 0
       - id: fish-shark-cut
-        text: "Cut the line"
+        text: "Cắt dây câu"
         next: fish-cut-shark
         display_order: 1
 
   - id: fish-fight-shark
-    name: "Fight the shark"
+    name: "Chiến đấu với cá mập"
     event_type: combat
 
     combat:
@@ -96,18 +95,18 @@ events:
       on_defeat: fish-defeat
 
   - id: fish-cut-shark
-    name: "Cut the line"
+    name: "Cắt dây câu"
     event_type: encounter
 
     message:
-      text: "You draw your knife and sever the line. The shark takes your hook and twenty feet of rope with it. Probably the right call."
+      text: "Bạn rút dao và cắt đứt dây. Con cá mập kéo theo lưỡi câu và hai chục mét thừng. Có lẽ là quyết định đúng."
 
   - id: fish-shark-victory
-    name: "Shark defeated"
+    name: "Cá mập bị đánh bại"
     event_type: encounter
 
     message:
-      text: "It takes everything you have. The shark is still and heavy on the deck. The crew will be talking about this."
+      text: "Bạn dồn toàn lực. Con cá mập nằm im trên boong, nặng nề. Cả thủy thủ đoàn sẽ kể mãi chuyện này."
 
     actions:
       - type: item
@@ -116,11 +115,11 @@ events:
         operation: give
         silent: false
 
-  # ── SHARED DEFEAT ──────────────────────────────
+  # ── THẤT BẠI CHUNG ─────────────────────────────
 
   - id: fish-defeat
-    name: "Fishing defeat"
+    name: "Thua khi câu cá"
     event_type: encounter
 
     message:
-      text: "It was too much. You lose your grip and the creature goes over the side. You pull yourself up, bruised."
+      text: "Quá sức chịu đựng. Bạn buông tay và sinh vật trốn xuống biển. Bạn gượng đứng dậy, người đầy vết bầm."

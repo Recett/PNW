@@ -1,6 +1,74 @@
 events:
 
   # ─────────────────────────────────────────────
+  # BẾP (KITCHEN)
+  # ─────────────────────────────────────────────
+
+  - id: "kitchen-interact"
+    name: "Bếp"
+    event_type: "object"
+    is_active: true
+
+    message:
+      title: "Bếp"
+      text: "Một gian bếp nhỏ gọn với một cái bếp củi, một vài dụng cụ nấu ăn và một cái chậu rửa. Khá là hạn chế, nhưng trên tàu thì có vậy thôi. Cẩn thận củi lửa."
+      message_type: "normal"
+
+    options:
+      - id: "kt-cook"
+        text: "Nấu ăn"
+        next: "kitchen-cook"
+        display_order: 0
+      - id: "kt-leave"
+        text: "Bỏ đi"
+        display_order: 1
+
+  - id: "kitchen-cook"
+    name: "Nấu Ăn"
+    event_type: "object"
+    is_active: true
+
+    message:
+      title: "Bếp"
+
+    actions:
+      - type: cook
+
+  # ─────────────────────────────────────────────
+  # FISHING POLE
+  # ─────────────────────────────────────────────
+
+  - id: "fishing-pole-interact"
+    name: "Cần Câu"
+    event_type: "object"
+    is_active: true
+
+    message:
+      title: "Cần Câu"
+      text: "Một cây cần câu cũ kỹ tựa vào lan can thuyền, dây câu đã được móc mồi và buông thõng trên mặt nước."
+      message_type: "normal"
+
+    options:
+      - id: "fp-cast"
+        text: "Thả câu"
+        next: "fishing-pole-cast"
+        display_order: 0
+      - id: "fp-leave"
+        text: "Bỏ đi"
+        display_order: 1
+
+  - id: "fishing-pole-cast"
+    name: "Thả Câu"
+    event_type: "object"
+    is_active: true
+
+    message:
+      title: "Cần Câu"
+
+    actions:
+      - type: fish
+
+  # ─────────────────────────────────────────────
   # OBJECT INTERACTIONS
   # ─────────────────────────────────────────────
 

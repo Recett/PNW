@@ -4,85 +4,51 @@ const {
 	MessageFlags,
 	EmbedBuilder,
 	PermissionFlagsBits,
+	ApplicationCommandOptionType,
 } = require('discord.js');
 
-const PLAYER_COMMANDS = [
-	{
-		category: '👤 Character',
-		commands: [
-			'`/character stat` — View your stats and equipped items',
-			'`/character inventory` — Browse your inventory',
-			'`/character edit` — Edit your name, avatar, and description',
-			'`/character allocate` — Spend free stat points',
-			'`/character perk list` — View your perks',
-			'`/character perk activate` — Activate an available perk',
-			'`/character perk deactivate` — Deactivate an equipped perk',
-			'`/character delete` — Delete your character',
-		],
-	},
-	{
-		category: '🌍 World',
-		commands: [
-			'`/interact look` — Look around your current location',
-			'`/interact move` — Travel to another location',
-			'`/interact talk` — Talk with an NPC',
-			'`/interact examine` — Examine something in the area',
-		],
-	},
-	{
-		category: '⚔️ Activities',
-		commands: [
-			'`/fish` — Cast a line from the deck',
-			'`/hunt` — Hunt in the bilge for rats',
-			'`/raid status` — View the current raid status',
-			'`/raid queue` — View the monster queue',
-			'`/raid switch` — Switch the current monster with one from the queue',
-		],
-	},
-	{
-		category: '🔧 General',
-		commands: [
-			'`/register` — Create a new character',
-			'`/item <name>` — Look up item details',
-			'`/cook` — Cook food from ingredients',
-			'`/trade` — Trade items with another player',
-			'`/project` — View or contribute to town projects',
-			'`/ping` — Check if the bot is online',
-		],
-	},
+// Layout config — add a command name here when a new command is created.
+// Descriptions are pulled automatically from the SlashCommandBuilder definitions.
+const COMMAND_LAYOUT = [
+	// ── Player sections ─────────────────────────────────────────────────────
+	{ category: '👤 Character', admin: false, commands: ['character'] },
+	{ category: '🌍 World', admin: false, commands: ['interact'] },
+	{ category: '⚔️ Activities', admin: false, commands: ['hunt', 'raid'] },
+	{ category: '🔧 General', admin: false, commands: ['register', 'item', 'trade', 'project', 'ping'] },
+	// ── Admin sections ───────────────────────────────────────────────────────
+	{ category: '⚙️ Server Management', admin: true, commands: ['location', 'narrate', 'setting', 'cronjob', 'task', 'monitor', 'dbsync'] },
+	{ category: '⚔️ Game Management', admin: true, commands: ['raidmanage', 'playerlist', 'history'] },
+	{ category: '🧪 Testing', admin: true, commands: ['testnewchar', 'testcombat', 'testraid', 'diagnose-permissions'] },
 ];
 
-const ADMIN_COMMANDS = [
-	{
-		category: '⚙️ Server Management',
-		commands: [
-			'`/location` — Manage server locations',
-			'`/narrate` — Post a message as the bot',
-			'`/setting` — Configure server-wide settings',
-			'`/cronjob` — Manage scheduled tasks',
-			'`/task` — Manage scheduled tasks (list, info, run, validate)',
-			'`/monitor` — Monitor cron job health and logs',
-			'`/dbsync` — Sync database schema from model definitions',
-		],
-	},
-	{
-		category: '⚔️ Game Management',
-		commands: [
-			'`/raidmanage` — Manage active raids',
-			'`/playerlist` — List all registered players',
-			'`/history <user>` — View a character\'s registration history',
-		],
-	},
-	{
-		category: '🧪 Testing',
-		commands: [
-			'`/testnewchar` — Create a test character',
-			'`/testcombat` — Test the combat system',
-			'`/testraid` — Test a raid encounter',
-			'`/diagnose-permissions` — Debug Discord permissions',
-		],
-	},
-];
+/**
+ * Builds the display lines for a command by reading its SlashCommandBuilder JSON.
+ * Subcommands and subcommand groups are enumerated; plain commands produce one line.
+ */
+function buildCommandLines(name, data) {
+	const json = data.toJSON();
+	const subs = (json.options ?? []).filter(o =>
+		o.type === ApplicationCommandOptionType.Subcommand ||
+		o.type === ApplicationCommandOptionType.SubcommandGroup,
+	);
+
+	if (subs.length === 0) {
+		return [`\`/${name}\` — ${json.description}`];
+	}
+
+	const lines = [];
+	for (const sub of subs) {
+		if (sub.type === ApplicationCommandOptionType.SubcommandGroup) {
+			for (const inner of sub.options ?? []) {
+				lines.push(`\`/${name} ${sub.name} ${inner.name}\` — ${inner.description}`);
+			}
+		}
+		else {
+			lines.push(`\`/${name} ${sub.name}\` — ${sub.description}`);
+		}
+	}
+	return lines;
+}
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -104,15 +70,26 @@ module.exports = {
 				)
 				.setFooter({ text: isAdmin ? 'Admin commands are shown below.' : 'Admin commands are hidden.' });
 
-			for (const section of PLAYER_COMMANDS) {
-				embed.addFields({ name: section.category, value: section.commands.join('\n') });
-			}
+			let adminSeparatorAdded = false;
 
-			if (isAdmin) {
-				embed.addFields({ name: '\u200B', value: '— Admin Commands —' });
-				for (const section of ADMIN_COMMANDS) {
-					embed.addFields({ name: section.category, value: section.commands.join('\n') });
+			for (const section of COMMAND_LAYOUT) {
+				if (section.admin && !isAdmin) continue;
+
+				const lines = [];
+				for (const name of section.commands) {
+					const command = interaction.client.commands.get(name);
+					if (!command) continue;
+					lines.push(...buildCommandLines(name, command.data));
 				}
+
+				if (lines.length === 0) continue;
+
+				if (section.admin && !adminSeparatorAdded) {
+					embed.addFields({ name: '\u200B', value: '— Admin Commands —' });
+					adminSeparatorAdded = true;
+				}
+
+				embed.addFields({ name: section.category, value: lines.join('\n') });
 			}
 
 			await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });

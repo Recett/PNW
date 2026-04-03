@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits, InteractionContextType, EmbedBuilder, MessageFlags, ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const { LocationBase } = require('@root/dbObject.js');
+const { LocationBase, LocationContain } = require('@root/dbObject.js');
 const locationUtil = require('@utility/locationUtility.js');
+const contentStore = require('@root/contentStore.js');
+const gamecon = require('@root/Data/gamecon.json');
 
 // Helper to create a role
 async function createLocationRole(guild, name) {
@@ -76,6 +78,82 @@ module.exports = {
 				.setDescription('Make the current location visible in the move command'))
 		.addSubcommand(subcommand =>
 			subcommand
+				.setName('addnpc')
+				.setDescription('Add an NPC to a location')
+				.addStringOption(option =>
+					option
+						.setName('npc_id')
+						.setDescription('NPC ID from content store')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('location_id')
+						.setDescription('Location ID (defaults to current channel location)')
+						.setRequired(false))
+				.addStringOption(option =>
+					option
+						.setName('time')
+						.setDescription('Optional time restriction for the NPC')
+						.setRequired(false)
+						.addChoices(
+							{ name: 'Morning', value: 'morning' },
+							{ name: 'Afternoon', value: 'afternoon' },
+							{ name: 'Night', value: 'night' },
+						)))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('addobject')
+				.setDescription('Add an interactable object to a location')
+				.addStringOption(option =>
+					option
+						.setName('object_id')
+						.setDescription('Object ID from content store')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('location_id')
+						.setDescription('Location ID (defaults to current channel location)')
+						.setRequired(false))
+				.addStringOption(option =>
+					option
+						.setName('time')
+						.setDescription('Optional time restriction for the object')
+						.setRequired(false)
+						.addChoices(
+							{ name: 'Morning', value: 'morning' },
+							{ name: 'Afternoon', value: 'afternoon' },
+							{ name: 'Night', value: 'night' },
+						)))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('removenpc')
+				.setDescription('Remove an NPC from a location')
+				.addStringOption(option =>
+					option
+						.setName('npc_id')
+						.setDescription('NPC ID to remove')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('location_id')
+						.setDescription('Location ID (defaults to current channel location)')
+						.setRequired(false)))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('removeobject')
+				.setDescription('Remove an object from a location')
+				.addStringOption(option =>
+					option
+						.setName('object_id')
+						.setDescription('Object ID to remove')
+						.setRequired(true))
+				.addStringOption(option =>
+					option
+						.setName('location_id')
+						.setDescription('Location ID (defaults to current channel location)')
+						.setRequired(false)))
+		.addSubcommand(subcommand =>
+			subcommand
 				.setName('duplicate')
 				.setDescription('Duplicate a location with a different time of day')
 				.addStringOption(option =>
@@ -127,6 +205,155 @@ module.exports = {
 		else if (subcommand === 'unhide') {
 			return this.handleUnhide(interaction);
 		}
+		else if (subcommand === 'addnpc') {
+			return this.handleAddNpc(interaction);
+		}
+		else if (subcommand === 'addobject') {
+			return this.handleAddObject(interaction);
+		}
+		else if (subcommand === 'removenpc') {
+			return this.handleRemoveNpc(interaction);
+		}
+		else if (subcommand === 'removeobject') {
+			return this.handleRemoveObject(interaction);
+		}
+	},
+
+	/**
+	 * Resolve location: use provided location_id, or fall back to current channel's location.
+	 */
+	async _resolveLocation(interaction, locationIdInput) {
+		if (locationIdInput) {
+			const loc = await LocationBase.findByPk(locationIdInput);
+			if (!loc) {
+				const byName = await LocationBase.findOne({ where: { name: locationIdInput } });
+				return byName || null;
+			}
+			return loc;
+		}
+		return await locationUtil.getLocationByChannel(interaction.channel.id);
+	},
+
+	async handleAddNpc(interaction) {
+		const npcId = interaction.options.getString('npc_id', true).trim();
+		const locationIdInput = interaction.options.getString('location_id');
+		const time = interaction.options.getString('time');
+
+		const npc = contentStore.npcs.findByPk(npcId);
+		if (!npc) {
+			return interaction.reply({ content: `NPC \`${npcId}\` not found in content store.`, flags: MessageFlags.Ephemeral });
+		}
+
+		const location = await this._resolveLocation(interaction, locationIdInput);
+		if (!location) {
+			return interaction.reply({ content: 'No location found. Run this in a location channel or provide a location ID.', flags: MessageFlags.Ephemeral });
+		}
+
+		const existing = await LocationContain.findOne({
+			where: { location_id: String(location.id), object_id: npcId, type: gamecon.NPC },
+		});
+		if (existing) {
+			return interaction.reply({ content: `NPC \`${npcId}\` is already in **${location.name}**.`, flags: MessageFlags.Ephemeral });
+		}
+
+		await LocationContain.create({
+			location_id: String(location.id),
+			object_id: npcId,
+			type: gamecon.NPC,
+			time: time || null,
+		});
+
+		const embed = new EmbedBuilder()
+			.setTitle('NPC Added')
+			.setColor(0x00CC66)
+			.addFields(
+				{ name: 'NPC', value: `${npc.name} (\`${npcId}\`)`, inline: true },
+				{ name: 'Location', value: `${location.name} (ID: ${location.id})`, inline: true },
+				{ name: 'Time', value: time || 'All times', inline: true },
+			);
+
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+	},
+
+	async handleAddObject(interaction) {
+		const objectId = interaction.options.getString('object_id', true).trim();
+		const locationIdInput = interaction.options.getString('location_id');
+		const time = interaction.options.getString('time');
+
+		const obj = contentStore.objects.findByPk(objectId);
+		if (!obj) {
+			return interaction.reply({ content: `Object \`${objectId}\` not found in content store.`, flags: MessageFlags.Ephemeral });
+		}
+
+		const location = await this._resolveLocation(interaction, locationIdInput);
+		if (!location) {
+			return interaction.reply({ content: 'No location found. Run this in a location channel or provide a location ID.', flags: MessageFlags.Ephemeral });
+		}
+
+		const existing = await LocationContain.findOne({
+			where: { location_id: String(location.id), object_id: objectId, type: gamecon.OBJECT },
+		});
+		if (existing) {
+			return interaction.reply({ content: `Object \`${objectId}\` is already in **${location.name}**.`, flags: MessageFlags.Ephemeral });
+		}
+
+		await LocationContain.create({
+			location_id: String(location.id),
+			object_id: objectId,
+			type: gamecon.OBJECT,
+			time: time || null,
+		});
+
+		const embed = new EmbedBuilder()
+			.setTitle('Object Added')
+			.setColor(0x00CC66)
+			.addFields(
+				{ name: 'Object', value: `${obj.name || objectId} (\`${objectId}\`)`, inline: true },
+				{ name: 'Location', value: `${location.name} (ID: ${location.id})`, inline: true },
+				{ name: 'Time', value: time || 'All times', inline: true },
+			);
+
+		return interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+	},
+
+	async handleRemoveNpc(interaction) {
+		const npcId = interaction.options.getString('npc_id', true).trim();
+		const locationIdInput = interaction.options.getString('location_id');
+
+		const location = await this._resolveLocation(interaction, locationIdInput);
+		if (!location) {
+			return interaction.reply({ content: 'No location found. Run this in a location channel or provide a location ID.', flags: MessageFlags.Ephemeral });
+		}
+
+		const deleted = await LocationContain.destroy({
+			where: { location_id: String(location.id), object_id: npcId, type: gamecon.NPC },
+		});
+
+		if (deleted === 0) {
+			return interaction.reply({ content: `NPC \`${npcId}\` was not found in **${location.name}**.`, flags: MessageFlags.Ephemeral });
+		}
+
+		return interaction.reply({ content: `NPC \`${npcId}\` removed from **${location.name}**.`, flags: MessageFlags.Ephemeral });
+	},
+
+	async handleRemoveObject(interaction) {
+		const objectId = interaction.options.getString('object_id', true).trim();
+		const locationIdInput = interaction.options.getString('location_id');
+
+		const location = await this._resolveLocation(interaction, locationIdInput);
+		if (!location) {
+			return interaction.reply({ content: 'No location found. Run this in a location channel or provide a location ID.', flags: MessageFlags.Ephemeral });
+		}
+
+		const deleted = await LocationContain.destroy({
+			where: { location_id: String(location.id), object_id: objectId, type: gamecon.OBJECT },
+		});
+
+		if (deleted === 0) {
+			return interaction.reply({ content: `Object \`${objectId}\` was not found in **${location.name}**.`, flags: MessageFlags.Ephemeral });
+		}
+
+		return interaction.reply({ content: `Object \`${objectId}\` removed from **${location.name}**.`, flags: MessageFlags.Ephemeral });
 	},
 
 	async handleNew(interaction) {
