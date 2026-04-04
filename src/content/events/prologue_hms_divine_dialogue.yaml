@@ -936,7 +936,7 @@
       - name: stamina_check
         type: stat
         stat_data:
-          stat_name: stamina
+          stat_name: currentStamina
           stat_comparison: greater_equal
           stat_value: 10
         is_required: false
@@ -975,7 +975,7 @@
         source_name: hp
         silent: true
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-10"
         operation: add
         silent: true
