@@ -1,10 +1,12 @@
-const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink } = require('@root/dbObject.js');
+const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
 
 // In-memory store: channelId → Discord message ID of the last activity message
 const locationActivityMessages = new Map();
+// Per-channel Promise chain to serialize activity posts and avoid race conditions
+const locationActivityQueue = new Map();
 
 const ARRIVAL_PHRASES = [
 	// Normal (≤5)
@@ -511,25 +513,55 @@ async function postLocationActivity(client, locationId, characterName, activityT
 	const text = `*${template.replace('{name}', characterName).replace(/\{pronoun\}/g, pronoun).replace(/\{Pronoun\}/g, Pronoun)}*`;
 
 	const channelId = location.channel;
-	try {
-		const channel = await client.channels.fetch(channelId).catch(() => null);
-		if (!channel) return;
 
-		// Delete previous activity message
-		const prevMsgId = locationActivityMessages.get(channelId);
-		if (prevMsgId) {
-			const prevMsg = await channel.messages.fetch(prevMsgId).catch(() => null);
-			if (prevMsg) {
-				await prevMsg.delete().catch(() => null);
+	// Serialize per-channel to prevent race conditions when multiple players move simultaneously
+	const prev = locationActivityQueue.get(channelId) || Promise.resolve();
+	const next = prev.then(async () => {
+		try {
+			const channel = await client.channels.fetch(channelId).catch(() => null);
+			if (!channel) return;
+
+			// Delete previous activity message
+			const prevMsgId = locationActivityMessages.get(channelId);
+			if (prevMsgId) {
+				locationActivityMessages.delete(channelId);
+				const prevMsg = await channel.messages.fetch(prevMsgId).catch(() => null);
+				if (prevMsg) {
+					await prevMsg.delete().catch((err) => console.error('[LocationActivity] Failed to delete prev msg:', err.message));
+				}
 			}
-		}
 
-		// Post new activity message
-		const newMsg = await channel.send({ content: text });
-		locationActivityMessages.set(channelId, newMsg.id);
+			// Post new activity message
+			const newMsg = await channel.send({ content: text });
+			locationActivityMessages.set(channelId, newMsg.id);
+
+			// Persist full map to DB so deletions survive a restart
+			const snapshot = Object.fromEntries(locationActivityMessages);
+			SystemSetting.upsert({ key: '_location_activity_messages', value: snapshot }).catch(() => {});
+		}
+		catch (err) {
+			console.error('[LocationActivity] Error posting activity:', err);
+		}
+	});
+	locationActivityQueue.set(channelId, next);
+}
+
+/**
+ * Restore persisted activity message IDs from DB on startup.
+ * Called once by cronUtility so the bot can delete messages that existed before a restart.
+ * @param {Object} client - Discord client (unused here, reserved for future validation)
+ */
+async function loadLocationActivityMessages() {
+	try {
+		const row = await SystemSetting.findByPk('_location_activity_messages');
+		if (!row || !row.value) return;
+		for (const [channelId, messageId] of Object.entries(row.value)) {
+			locationActivityMessages.set(channelId, messageId);
+		}
+		console.log(`[LocationActivity] Restored ${Object.keys(row.value).length} activity message ID(s) from DB.`);
 	}
-	catch (err) {
-		console.error('[LocationActivity] Error posting activity:', err);
+	catch (e) {
+		console.error('[LocationActivity] Failed to restore persisted messages:', e);
 	}
 }
 
@@ -552,4 +584,5 @@ module.exports = {
 	transitionLocationRoles,
 	moveCharacterToLocation,
 	postLocationActivity,
+	loadLocationActivityMessages,
 };

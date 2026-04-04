@@ -641,6 +641,10 @@ async function startCronJob(client) {
 	// Run pending deletion cleanup immediately on startup to catch any stragglers from previous session
 	performPendingDeleteCleanup().catch(e => console.error('[PendingDeleteCleanup] Startup run failed:', e));
 
+	// Restore location activity message IDs so the bot can delete them even after a restart
+	const { loadLocationActivityMessages } = require('@utility/locationUtility.js');
+	loadLocationActivityMessages().catch(e => console.error('[LocationActivity] Startup restore failed:', e));
+
 }
 
 module.exports = {
