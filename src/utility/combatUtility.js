@@ -267,7 +267,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	const player = {
 		id: 'player',
 		name: playerBase.name || 'Player',
-		hp: playerBase.currentHp || playerBase.maxHp || 100,
+		hp: playerBase.currentHp ?? playerBase.maxHp ?? 100,
 		defense: playerCombatStats?.defense || 0,
 		evade: playerCombatStats?.evade || 0,
 		critResistance: playerCombatStats?.crit_resistance || 0,

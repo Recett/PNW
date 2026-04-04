@@ -5,12 +5,12 @@ events:
   # Player talks to York and selects which food item
   # to turn in. Each item grants gold + food stock.
   #
-  # Gold rates:
-  #   rat_meat  → 2g  +4 food stock
-  #   herring   → 4g  +6 food stock
-  #   mackerel  → 6g  +6 food stock
-  #   crab_meat → 9g  +8 food stock
-  #   shark_meat→ 10g +8 food stock
+  # Gold rates: dynamically read from each item's `value` field (contentStore).
+  #   rat_meat  → +4 food stock
+  #   herring   → +6 food stock
+  #   mackerel  → +6 food stock
+  #   crab_meat → +8 food stock
+  #   shark_meat→ +8 food stock
   #
   # Entry point: york-turnin-menu
   # -----------------------------------------------
@@ -72,17 +72,8 @@ events:
       text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you two coins."
 
     action:
-      - type: item
+      - type: sell
         item: rat_meat
-        quantity: "1"
-        operation: take
-        silent: true
-      - type: stat
-        stat_name: gold
-        value: "2"
-        operation: add
-        silent: false
-        custom_message: You receive 2 gold.
       - type: flag
         flag_name: global.food_stock
         flag_value: "4"
@@ -115,17 +106,8 @@ events:
       text: "\"Herring. Good.\" York marks it in his ledger and counts out four coins without looking up."
 
     action:
-      - type: item
+      - type: sell
         item: herring
-        quantity: "1"
-        operation: take
-        silent: true
-      - type: stat
-        stat_name: gold
-        value: "4"
-        operation: add
-        silent: false
-        custom_message: You receive 4 gold.
       - type: flag
         flag_name: global.food_stock
         flag_value: "6"
@@ -158,17 +140,8 @@ events:
       text: "York lifts the mackerel, squeezes it once. \"This'll do.\" Six coins land on the table."
 
     action:
-      - type: item
+      - type: sell
         item: mackerel
-        quantity: "1"
-        operation: take
-        silent: true
-      - type: stat
-        stat_name: gold
-        value: "6"
-        operation: add
-        silent: false
-        custom_message: You receive 6 gold.
       - type: flag
         flag_name: global.food_stock
         flag_value: "6"
@@ -201,17 +174,8 @@ events:
       text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. Nine coins."
 
     action:
-      - type: item
+      - type: sell
         item: crab_meat
-        quantity: "1"
-        operation: take
-        silent: true
-      - type: stat
-        stat_name: gold
-        value: "9"
-        operation: add
-        silent: false
-        custom_message: You receive 9 gold.
       - type: flag
         flag_name: global.food_stock
         flag_value: "8"
@@ -244,17 +208,8 @@ events:
       text: "York stares at the shark meat for a moment. Then at you. \"Ten coins. Don't make a habit of nearly dying.\""
 
     action:
-      - type: item
+      - type: sell
         item: shark_meat
-        quantity: "1"
-        operation: take
-        silent: true
-      - type: stat
-        stat_name: gold
-        value: "10"
-        operation: add
-        silent: false
-        custom_message: You receive 10 gold.
       - type: flag
         flag_name: global.food_stock
         flag_value: "8"

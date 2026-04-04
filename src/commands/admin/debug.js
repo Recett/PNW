@@ -1,0 +1,270 @@
+const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
+const { CharacterBase, GlobalFlag } = require('@root/dbObject.js');
+const characterUtil = require('@utility/characterUtility.js');
+const { EMOJI } = require('../../enums');
+
+module.exports = {
+	data: new SlashCommandBuilder()
+		.setName('debug')
+		.setDescription('[GM] Debug tools for managing players and world state.')
+		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
+		.setContexts(InteractionContextType.Guild)
+		.addSubcommand(sub =>
+			sub.setName('grant')
+				.setDescription('Grant or deduct HP, stamina, and/or gold from a player.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player.')
+						.setRequired(true))
+				.addIntegerOption(opt =>
+					opt.setName('hp')
+						.setDescription('HP amount (negative to deduct). Capped at max HP.')
+						.setMinValue(-99999)
+						.setMaxValue(99999))
+				.addIntegerOption(opt =>
+					opt.setName('stamina')
+						.setDescription('Stamina amount (negative to deduct). Capped at max stamina.')
+						.setMinValue(-99999)
+						.setMaxValue(99999))
+				.addIntegerOption(opt =>
+					opt.setName('gold')
+						.setDescription('Gold amount (negative to deduct). Minimum result is 0.')
+						.setMinValue(-9999999)
+						.setMaxValue(9999999)),
+		)
+		.addSubcommand(sub =>
+			sub.setName('item')
+				.setDescription('Give or take an item from a player.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player.')
+						.setRequired(true))
+				.addStringOption(opt =>
+					opt.setName('item_id')
+						.setDescription('The item ID (e.g. iron_sword).')
+						.setRequired(true))
+				.addIntegerOption(opt =>
+					opt.setName('quantity')
+						.setDescription('Quantity to give (negative to remove). Default: 1.')
+						.setMinValue(-9999)
+						.setMaxValue(9999)),
+		)
+		.addSubcommandGroup(group =>
+			group.setName('flag')
+				.setDescription('Read or modify flags.')
+				.addSubcommand(sub =>
+					sub.setName('get')
+						.setDescription('Read a flag. Omit user for global flag.')
+						.addStringOption(opt =>
+							opt.setName('name')
+								.setDescription('Flag name.')
+								.setRequired(true))
+						.addUserOption(opt =>
+							opt.setName('user')
+								.setDescription('Player (character flag). Omit for global flag.')),
+				)
+				.addSubcommand(sub =>
+					sub.setName('set')
+						.setDescription('Set a flag. Omit user for global flag. Value 0 deletes the flag.')
+						.addStringOption(opt =>
+							opt.setName('name')
+								.setDescription('Flag name.')
+								.setRequired(true))
+						.addIntegerOption(opt =>
+							opt.setName('value')
+								.setDescription('New integer value. Set to 0 to delete the flag.')
+								.setRequired(true))
+						.addUserOption(opt =>
+							opt.setName('user')
+								.setDescription('Player (character flag). Omit for global flag.')),
+				),
+		),
+
+	async execute(interaction) {
+		const sub = interaction.options.getSubcommand();
+		const group = interaction.options.getSubcommandGroup(false);
+
+		if (group === 'flag') {
+			if (sub === 'get') return handleFlagGet(interaction);
+			if (sub === 'set') return handleFlagSet(interaction);
+		}
+
+		if (sub === 'grant') return handleGrant(interaction);
+		if (sub === 'item') return handleItem(interaction);
+	},
+};
+
+// ─── Grant ────────────────────────────────────────────────────────────────────
+
+async function handleGrant(interaction) {
+	const targetUser = interaction.options.getUser('user');
+	const hpAmount = interaction.options.getInteger('hp');
+	const staminaAmount = interaction.options.getInteger('stamina');
+	const goldAmount = interaction.options.getInteger('gold');
+
+	if (hpAmount === null && staminaAmount === null && goldAmount === null) {
+		return interaction.reply({
+			content: `${EMOJI.WARNING} Provide at least one of \`hp\`, \`stamina\`, or \`gold\`.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.reply({
+			content: `${EMOJI.FAILURE} No character found for ${targetUser}.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+
+	const updates = {};
+	const lines = [];
+
+	if (hpAmount !== null) {
+		const before = character.currentHp ?? 0;
+		const maxHp = character.maxHp ?? 0;
+		const after = Math.max(0, Math.min(maxHp, before + hpAmount));
+		updates.currentHp = after;
+		lines.push(`HP: ${before} \u2192 ${after} / ${maxHp} (${hpAmount >= 0 ? '+' : ''}${hpAmount})`);
+	}
+
+	if (staminaAmount !== null) {
+		const before = character.currentStamina ?? 0;
+		const maxStamina = character.maxStamina ?? 0;
+		const after = Math.max(0, Math.min(maxStamina, before + staminaAmount));
+		updates.currentStamina = after;
+		lines.push(`Stamina: ${before} \u2192 ${after} / ${maxStamina} (${staminaAmount >= 0 ? '+' : ''}${staminaAmount})`);
+	}
+
+	if (goldAmount !== null) {
+		const before = character.gold ?? 0;
+		const after = Math.max(0, before + goldAmount);
+		updates.gold = after;
+		lines.push(`Gold: ${before} \u2192 ${after} (${goldAmount >= 0 ? '+' : ''}${goldAmount})`);
+	}
+
+	await CharacterBase.update(updates, { where: { id: targetUser.id } });
+
+	return interaction.reply({
+		content: `${EMOJI.SUCCESS} Updated **${character.name}** (${targetUser}):\n${lines.join('\n')}`,
+		flags: MessageFlags.Ephemeral,
+	});
+}
+
+// ─── Item ─────────────────────────────────────────────────────────────────────
+
+async function handleItem(interaction) {
+	const targetUser = interaction.options.getUser('user');
+	const itemId = interaction.options.getString('item_id');
+	const quantity = interaction.options.getInteger('quantity') ?? 1;
+
+	if (quantity === 0) {
+		return interaction.reply({
+			content: `${EMOJI.WARNING} Quantity cannot be 0. Use a positive number to give, negative to take.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.reply({
+			content: `${EMOJI.FAILURE} No character found for ${targetUser}.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+
+	if (quantity > 0) {
+		const result = await characterUtil.addCharacterItem(targetUser.id, itemId, quantity);
+		if (!result.success) {
+			return interaction.reply({
+				content: `${EMOJI.FAILURE} Failed to add item \`${itemId}\`.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		return interaction.reply({
+			content: `${EMOJI.SUCCESS} Gave **${quantity}x \`${itemId}\`** to **${character.name}** (total: ${result.newTotal}).`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+	else {
+		const result = await characterUtil.removeCharacterItem(targetUser.id, itemId, Math.abs(quantity));
+		if (!result.success) {
+			return interaction.reply({
+				content: `${EMOJI.FAILURE} **${character.name}** does not have item \`${itemId}\`.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		return interaction.reply({
+			content: `${EMOJI.SUCCESS} Removed **${result.quantityRemoved}x \`${itemId}\`** from **${character.name}**.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+}
+
+// ─── Flag Get ─────────────────────────────────────────────────────────────────
+
+async function handleFlagGet(interaction) {
+	const flagName = interaction.options.getString('name');
+	const targetUser = interaction.options.getUser('user');
+
+	if (targetUser) {
+		const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+		if (!character) {
+			return interaction.reply({
+				content: `${EMOJI.FAILURE} No character found for ${targetUser}.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		const value = await characterUtil.getCharacterFlag(targetUser.id, flagName);
+		return interaction.reply({
+			content: `Character flag \`${flagName}\` for **${character.name}**: \`${value ?? '(not set)'}\``,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+	else {
+		const flag = await GlobalFlag.findOne({ where: { flag: flagName } });
+		const value = flag ? flag.value : null;
+		return interaction.reply({
+			content: `Global flag \`${flagName}\`: \`${value ?? '(not set)'}\``,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+}
+
+// ─── Flag Set ─────────────────────────────────────────────────────────────────
+
+async function handleFlagSet(interaction) {
+	const flagName = interaction.options.getString('name');
+	const value = interaction.options.getInteger('value');
+	const targetUser = interaction.options.getUser('user');
+
+	if (targetUser) {
+		const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+		if (!character) {
+			return interaction.reply({
+				content: `${EMOJI.FAILURE} No character found for ${targetUser}.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		await characterUtil.updateCharacterFlag(targetUser.id, flagName, value);
+		const action = value === 0 ? 'Deleted' : 'Set';
+		return interaction.reply({
+			content: `${EMOJI.SUCCESS} ${action} character flag \`${flagName}\` for **${character.name}** to \`${value}\`.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+	else {
+		if (value === 0) {
+			await GlobalFlag.destroy({ where: { flag: flagName } });
+			return interaction.reply({
+				content: `${EMOJI.SUCCESS} Deleted global flag \`${flagName}\`.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		await GlobalFlag.upsert({ flag: flagName, value: value });
+		return interaction.reply({
+			content: `${EMOJI.SUCCESS} Set global flag \`${flagName}\` to \`${value}\`.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+}

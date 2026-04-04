@@ -1043,6 +1043,12 @@ class EventProcessor {
 		for (const action of cookActions) {
 			await this.executeCookAction(action, session);
 		}
+
+		// Execute sell actions (take item + give gold = item value)
+		const sellActions = allActions.filter(a => a.type === 'sell');
+		for (const action of sellActions) {
+			await this.executeSellAction(action, session);
+		}
 	}
 
 	/**
@@ -1085,6 +1091,33 @@ class EventProcessor {
 		if (title) embed.setTitle(title);
 
 		await ch.send({ embeds: [embed] });
+	}
+
+	/**
+	 * Execute sell action - removes 1 of the specified item and gives gold equal to the item's value.
+	 * YAML fields: item (item id), silent (bool), custom_message (optional)
+	 */
+	async executeSellAction(action, session) {
+		if (!session.characterId) return;
+
+		const { item, silent, custom_message } = action;
+		if (!item) return;
+
+		const itemData = contentStore.items.findByPk(String(item));
+		if (!itemData) {
+			console.error(`[Sell] Unknown item id: ${item}`);
+			return;
+		}
+
+		const goldAmount = itemData.value ?? 0;
+
+		await characterUtil.removeCharacterItem(session.characterId, item, 1);
+		await characterUtil.modifyCharacterStat(session.characterId, 'gold', goldAmount);
+
+		if (!silent) {
+			const msg = custom_message || `You receive ${goldAmount} gold.`;
+			session.messages.push({ type: 'success', text: msg });
+		}
 	}
 
 	/**

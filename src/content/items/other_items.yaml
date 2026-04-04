@@ -65,7 +65,7 @@ other_items:
     name: Crab Meat
     description: Firm, faintly sweet meat from a giant crab. It put up a fight.
     item_type: material
-    value: 9
+    value: 12
     tag:
       - cooking_ingredient
       - base_ingredient
@@ -81,7 +81,7 @@ other_items:
     name: Shark Meat
     description: Tough and stringy. Impressive to have caught at all.
     item_type: material
-    value: 10
+    value: 20
     tag:
       - cooking_ingredient
       - base_ingredient
