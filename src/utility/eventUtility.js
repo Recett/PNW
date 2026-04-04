@@ -1667,7 +1667,8 @@ class EventProcessor {
 				itemId: s.item?.id || s.item,
 				name: s.item?.name || 'Unknown Item',
 				description: s.item?.description || '',
-				price: s.item?.value || 0,
+				itemType: s.item?.item_type || '',
+				price: s.price ?? s.item?.value ?? 0,
 				amount: s.remaining,
 				maxStock: s.amount,
 			}));
@@ -2482,8 +2483,14 @@ class EventProcessor {
 
 					// Check if this is a shop interaction
 					if (selectedValue.startsWith('shop_buy_') || selectedValue.startsWith('shop_learn_')) {
-						// Show quantity modal
-						await this.showShopQuantityModal(componentInteraction, session, selectedValue);
+						if (selectedValue.startsWith('shop_buy_')) {
+							// Show item preview before quantity modal
+							await this.showShopItemPreview(componentInteraction, session, selectedValue);
+						}
+						else {
+							// Perk: show quantity modal directly
+							await this.showShopQuantityModal(componentInteraction, session, selectedValue);
+						}
 						return; // Don't proceed to next event
 					}
 
@@ -2660,6 +2667,24 @@ class EventProcessor {
 					collector.stop();
 				}
 				else if (componentInteraction.isButton()) {
+					// Handle item preview confirm — show quantity modal
+					if (componentInteraction.customId === 'shop_preview_confirm') {
+						await this.showShopQuantityModal(componentInteraction, session, session.shopPreviewValue);
+						return;
+					}
+					// Handle item preview back — restore shop display
+					if (componentInteraction.customId === 'shop_preview_back') {
+						const snapshot = session.shopMessageSnapshot;
+						const shopComponents = this.buildShopComponents(session);
+						await componentInteraction.update({
+							content: snapshot?.content || '',
+							embeds: snapshot?.embeds || [],
+							components: shopComponents,
+						});
+						session.shopPreviewValue = null;
+						session.shopMessageSnapshot = null;
+						return;
+					}
 					// Check for Leave Shop button
 					if (componentInteraction.customId === 'shop_leave') {
 						collector.stop();
@@ -2927,6 +2952,62 @@ class EventProcessor {
 				ephemeral: true,
 			});
 		}
+	}
+
+	/**
+	 * Show item preview embed with Confirm/Back buttons before quantity modal
+	 */
+	async showShopItemPreview(componentInteraction, session, selectedValue) {
+		const itemId = parseInt(selectedValue.replace('shop_buy_', ''));
+		const shopItem = session.shopData.items.find(i => i.itemId === itemId || i.itemId === String(itemId));
+
+		if (!shopItem) {
+			await componentInteraction.reply({
+				content: `${EMOJI.FAILURE} Item not found in shop.`,
+				ephemeral: true,
+			});
+			return;
+		}
+
+		// Store for confirm button
+		session.shopPreviewValue = selectedValue;
+
+		// Snapshot original message to restore on Back
+		const origMsg = componentInteraction.message;
+		session.shopMessageSnapshot = {
+			content: origMsg.content,
+			embeds: origMsg.embeds,
+		};
+
+		// Use itemUtility for consistent item display
+		const itemWithDetails = await itemUtility.getItemWithDetails(String(itemId));
+		const embed = itemUtility.buildItemEmbed(itemWithDetails);
+
+		// Append price and stock as extra fields
+		embed.fields = embed.fields || [];
+		embed.fields.push({ name: 'Price', value: `${shopItem.price} ${EMOJI.GOLD}`, inline: true });
+		if (shopItem.amount !== null) {
+			embed.fields.push({ name: 'In Stock', value: String(shopItem.amount), inline: true });
+		}
+
+		const confirmButton = new Discord.ButtonBuilder()
+			.setCustomId('shop_preview_confirm')
+			.setLabel('Buy')
+			.setStyle(Discord.ButtonStyle.Success)
+			.setEmoji(EMOJI.SHOP);
+
+		const backButton = new Discord.ButtonBuilder()
+			.setCustomId('shop_preview_back')
+			.setLabel('Back')
+			.setStyle(Discord.ButtonStyle.Secondary);
+
+		const row = new Discord.ActionRowBuilder().addComponents(confirmButton, backButton);
+
+		await componentInteraction.update({
+			content: '',
+			embeds: [embed],
+			components: [row],
+		});
 	}
 
 	/**

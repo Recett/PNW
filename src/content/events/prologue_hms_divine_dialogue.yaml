@@ -135,7 +135,7 @@
     message:
       npc_speaker: quartermaster-york
       message_type: dialogue
-      text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một sềEquân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
+      text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một số quân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
 
     action:
       - type: shop

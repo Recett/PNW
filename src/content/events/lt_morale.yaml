@@ -149,9 +149,7 @@ events:
     message:
       title: "Trung úy Morale"
       text: |
-        Morale dừng lại ở cửa hầm dẫn xuống bilge. Cô nhìn vào khoảng tối bên dưới một lúc lâu, tai khẽ động theo tiếng tàu.
-
-        Sau đó cô quay người và rời đi.
+        Morale nhìn bạn khi bạn lại gần. Ánh nhìn dừng lại lâu hơn thường lệ, rồi cô quay đầu đi, tai khẽ động như đang lắng nghe điều gì đó không còn ở đó.
       avatar: "lt_morale.png"
       message_type: "npc_flavor"
 

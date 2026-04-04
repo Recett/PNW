@@ -67,7 +67,7 @@ armor:
     name: Leather Cap
     description: Mũ da cứng được đội bởi những người lữ hành và lính canh.
     item_type: armor
-    value: 10
+    value: 40
     weight: 3
     armor:
       slot: head

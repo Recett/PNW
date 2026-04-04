@@ -41,7 +41,7 @@ enemies:
   - id: shark
     name: Shark
     unknown_name: Shark
-    level: 4
+    level: 3
     enemy_type: beast
     status: active
     stat:
