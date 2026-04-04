@@ -1,4 +1,4 @@
-events:
+﻿events:
 
   # ============================================================
   # YORK WAYLAN
@@ -28,7 +28,7 @@ events:
     next: york-hub
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
         Người đàn ông sau chiếc bàn ngẩng đầu lên khỏi cuốn sổ cái trông như chứa nhiều mục hơn mức có thể Ông không có vẻ ngạc nhiên khi thấy ${2p}.
@@ -52,7 +52,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: "York đang ngồi sau bàn làm việc. Một cuốn sổ cái đang mở Hai cuốn khác đang chờ"
 
@@ -133,7 +133,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một sềEquân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
 
@@ -148,7 +148,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: "\"Còn việc gì không?\""
 
@@ -225,7 +225,7 @@ events:
     next: york-continue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
         "Tạm ổn. Đó là câu trả lời tốt nhất ${npc_1p} thường nói được, và thực lòng đó cũng là mức ${npc_1p} đang nhắm đến. Nếu ${2p} muốn câu trả lời thú vị hơn, hãy hỏi ${npc_1p} điều gì cụ thể"
@@ -236,7 +236,7 @@ events:
     next: york-continue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
         "Tất cả những gì giữ cho con tàu vận hành mà không phải là việc lái nó. Lương thực, kiểm kê trang thiết bị, hồ sơ thủy thủ, xác minh hàng hóa, tiếp tế, giải quyết khiếu nại —Đô đốc lo việc biển. ${npc_1p} lo tất cả những gì biển không quan tâm nhưng người ta thì có."
@@ -249,7 +249,7 @@ events:
     next: york-continue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
         "Tạm đủ. May có cá vớt thêm —nhưng kho dự trữ vẫn đang cạn nhanh hơn ${npc_1p} muốn, chuyến vượt biển dài nào cũng vậy. Chuột là thứ ${npc_1p} không muốn tính đến. ${npc_1p} đã ghi lại số lượng hiện tại. ${npc_1p} thích con số đó nhiều hơn."
@@ -272,7 +272,7 @@ events:
     next: york-continue
 
     message:
-      npc_speaker: york-waylan
+      npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
         "Điều xảy ra là: chúng ta tự lập chỗ đứng. Đó là lệnh của Vương miện —cũng là định nghĩa của ${npc_1p} về thành công, nói thực tế mà. Mọi thứ sau đó là câu hỏi về những quyết định tập thể—định cư ở đâu, tổ chức ra sao, ưu tiên cái gì. Những quyết định đó sẽ có hậu quả mà ${npc_1p} có thể dự đoán nhưng không thể quyết định."
@@ -310,7 +310,7 @@ events:
     next: vorne-hub
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: |
         Thuyền trưởng không ngẩng đầu lên khỏi những tấm hải đồ cho đến khi ông sẵn sàng. Khi ngẩng lên, ông ghi nhận ${2p} nhanh, đủ, rồi xếp lại.
@@ -338,7 +338,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: "Thuyền trưởng đứng ở bánh lái."
 
@@ -385,7 +385,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: "\"Gì nữa?\""
 
@@ -433,7 +433,7 @@ events:
     next: vorne-continue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: |
         "HMS Divine là một con tàu tốt. Đủ già để đã chứng minh bản thân, chưa đủ già để trở thành rủi ro. ${npc_1p} đã chỉ huy tàu tệ hơn trong hoàn cảnh tốt hơn, và tàu tốt hơn trong hoàn cảnh tệ hơn. Con tàu này sẽ đưa chúng ta đến nơi."
@@ -443,7 +443,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: |
         "Nửa đầu không có gì đáng ngại. Biển Antica —tên cũ của vùng này —vềcơ bản là biển bình thường. Gió đoán được, dòng chảy ổn định."
@@ -471,7 +471,7 @@ events:
     next: vorne-continue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: |
         "Bên trong đó, dòng chảy và gió trở nên vô lý. La bàn thông thường chết hoàn toàn. Giữ một hướng thẳng cũng không được —dòng nước và gió sẽ buộc tàu xoay theo những góc không thể đoán trước."
@@ -490,7 +490,7 @@ events:
     next: vorne-continue
 
     message:
-      npc_speaker: aldric-vorne
+      npc_speaker: captain-vorne
       message_type: dialogue
       text: |
         "Bảy năm. Đủ lâu để thủy thủ đoàn biết ${npc_1p} trông đợi gì và ${npc_1p} biết họ có khả năng làm gì. Đó là tất cả những gì của việc chỉ huy, nếu rút gọn đến cùng —biết điều gì có thể yêu cầu, và của ai."
@@ -707,7 +707,7 @@ events:
     next: hensbane-hub
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         Người đàn ông đứng gần mạn tàu, quan sát thủy thủ làm việc trên boong.
@@ -731,7 +731,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: "Hensbane quay sang khi ${2p} đến gần."
 
@@ -762,8 +762,8 @@ events:
         display_order: 4
 
       - id: training
-        text: "${1p} muốn luyện tập."
-        next: hensbane-training
+        text: "${1p} muốn luyện tập. [Tốn 10 stamina]"
+        next: hensbane-training-gate
         display_order: 5
 
       - id: bilge-key
@@ -793,7 +793,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: "\"Còn muốn hỏi gì nữa không?\""
 
@@ -824,8 +824,8 @@ events:
         display_order: 4
 
       - id: training
-        text: "${1p} muốn luyện tập."
-        next: hensbane-training
+        text: "${1p} muốn luyện tập. [Tốn 10 stamina]"
+        next: hensbane-training-gate
         display_order: 5
         hidden_check:
           - type: flag
@@ -863,7 +863,7 @@ events:
     next: hensbane-continue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Nếu ${2p} cần hỏi chuyện hoặc luyện tập thì ${npc_1p} luôn có thời gian. Công việc của ${npc_1p} trên tàu này chủ yếu là giữ cho mọi người sẵn sàng khi có chuyện xảy ra, nên nói chuyện với những người muốn học cũng nằm trong phần việc đó."
@@ -874,7 +874,7 @@ events:
     next: hensbane-continue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Lawrence Hensbane, đội trưởng Claw Company. ${npc_1p} làm lính đánh thuê gần như cả đời trưởng thành của mình, bắt đầu từ những hợp đồng hộ tống nhỏ ở tuyến thương mại phía bắc rồi dần chuyển sang những nhiệm vụ lớn hơn. Sau vài năm, ${npc_1p} được giao quyền chỉ huy đơn vị và từ đó đến giờ vẫn giữ vị trí này."
@@ -887,7 +887,7 @@ events:
     next: hensbane-continue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Claw Company là một đơn vị lính đánh thuê quy mô nhỏ hoạt động chủ yếu ở những khu vực mà quân đội chính quy không muốn triển khai lực lượng lâu dài. Chúng tôi nhận các hợp đồng bảo vệ đoàn hàng, hộ tống thương nhân, giữ an ninh cho đoàn thám hiểm hoặc xử lý những mối đe dọa nhỏ trước khi chúng trở thành vấn đề lớn."
@@ -902,7 +902,7 @@ events:
     next: hensbane-continue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Chuyến đi này là một hợp đồng lớn và ổn định, đó là lý do chính. Một đoàn thám hiểm quy mô như vậy cần lực lượng an ninh riêng, và phía tổ chức muốn có người huấn luyện chiến đấu cho những người không quen với nguy hiểm. Claw Company phù hợp với yêu cầu đó, nên chúng tôi nhận việc."
@@ -917,7 +917,7 @@ events:
     next: hensbane-continue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Chiến đấu thực ra không phức tạp như nhiều người nghĩ. Phần lớn vấn đề không nằm ở kỹ thuật mà nằm ở cách người ta phản ứng khi đối mặt nguy hiểm. Người giữ được bình tĩnh thường sống lâu hơn người chỉ biết đánh mạnh."
@@ -926,13 +926,40 @@ events:
 
         "Nếu ${2p} muốn học, ${npc_1p} sẽ dạy theo cách thực tế nhất có thể không có động tác thừa và không có lý thuyết không cần thiết."
 
+  - id: hensbane-training-gate
+    name: "Hensbane —Training Gate"
+    event_type: dialogue
+    silent: true
+    next: hensbane-too-tired
+
+    check:
+      - name: stamina_check
+        type: stat
+        stat_data:
+          stat_name: stamina
+          stat_comparison: greater_equal
+          stat_value: 10
+        is_required: false
+        silent: true
+        on_success: hensbane-training
+
+  - id: hensbane-too-tired
+    name: "Hensbane —Quá Mệt"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: law-hensbane
+      message_type: dialogue
+      text: "Hensbane nhìn ${2p} một lượt rồi lắc đầu. \"${2p} trông mệt. Luyện lúc này sẽ chỉ học sai cách, không ích gì. Nghỉ ngơi đã, khi nào khỏe thì quay lại.\""
+
   - id: hensbane-training
     name: "Hensbane —Luyện Tập"
     event_type: dialogue
     next: hensbane-training-dispatch
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Được, chúng ta có thể bắt đầu ngay. ${npc_1p} sẽ kiểm tra phản xạ và cách ${2p} giữ thăng bằng trước, sau đó mới đến kỹ thuật cơ bản. Buổi đầu chỉ để xem ${2p} đang ở mức nào, nên không cần lo lắng về kết quả."
@@ -940,6 +967,18 @@ events:
         "Chỉ cần giữ bình tĩnh và làm theo hướng dẫn. Mục tiêu của buổi tập là hiểu cách cơ thể phản ứng khi bị ép, không phải thắng thua."
 
         "Chuẩn bị xong thì bắt đầu."
+
+    action:
+      - type: variable
+        variable_name: pre_spar_hp
+        source_type: stat
+        source_name: hp
+        silent: true
+      - type: stat
+        stat_name: stamina
+        value: "-10"
+        operation: add
+        silent: true
 
   - id: hensbane-training-dispatch
     name: "Hensbane —Training Dispatch"
@@ -1065,6 +1104,11 @@ events:
         flag_operation: add
         flag_type: character
         silent: true
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
+        silent: true
 
   - id: hensbane-win-r2
     name: "Hensbane —Win Rank 2"
@@ -1078,6 +1122,11 @@ events:
         flag_value: 1
         flag_operation: add
         flag_type: character
+        silent: true
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
         silent: true
 
   - id: hensbane-win-r3
@@ -1093,6 +1142,11 @@ events:
         flag_operation: add
         flag_type: character
         silent: true
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
+        silent: true
 
   - id: hensbane-win-r4
     name: "Hensbane —Win Rank 4"
@@ -1106,6 +1160,11 @@ events:
         flag_value: 1
         flag_operation: add
         flag_type: character
+        silent: true
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
         silent: true
 
   - id: hensbane-win-r5
@@ -1121,6 +1180,11 @@ events:
         flag_operation: add
         flag_type: character
         silent: true
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
+        silent: true
 
   - id: hensbane-sparring-win
     name: "Hensbane —Sparring Thắng"
@@ -1128,7 +1192,7 @@ events:
     next: hensbane-end
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Kết quả như vậy là tốt. ${2p} giữ được nhịp di chuyển và không hoảng khi bị ép, điều đó cho thấy phản xạ cơ bản đã ổn. Với nền tảng này, nếu luyện thêm vài buổi thì ${2p} có thể xử lý những tình huống đơn giản mà không gặp quá nhiều khó khăn."
@@ -1142,8 +1206,15 @@ events:
     event_type: dialogue
     next: hensbane-end
 
+    action:
+      - type: stat
+        stat_name: hp
+        value: "${pre_spar_hp}"
+        operation: set
+        silent: true
+
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Không vấn đề gì. Phản xạ ban đầu của ${2p} còn chậm và cách giữ trọng tâm chưa ổn, nên khi bị ép thì rất khó lấy lại thế chủ động. Đây là lỗi phổ biến với người chưa quen luyện tập, và hoàn toàn có thể sửa được."
@@ -1157,7 +1228,7 @@ events:
     event_type: dialogue
 
     message:
-      npc_speaker: lawrence-hensbane
+      npc_speaker: law-hensbane
       message_type: dialogue
       text: |
         "Hôm nay vậy là đủ. Tập quá nhiều trong một lần thường không giúp tiến bộ nhanh hơn, chỉ khiến cơ thể mệt và phản xạ chậm đi."

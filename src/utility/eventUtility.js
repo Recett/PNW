@@ -231,8 +231,18 @@ class EventProcessor {
 				else if (combatResult.result === 'defeat' && combat.on_defeat) {
 					nextEventId = combat.on_defeat;
 				}
-				else if (combatResult.result === 'flee' && combat.flee_event_id) {
-					nextEventId = combat.flee_event_id;
+				else if (combatResult.result === 'flee') {
+					// Use explicit flee route if defined, otherwise treat as defeat
+					if (combat.flee_event_id) {
+						nextEventId = combat.flee_event_id;
+					}
+					else {
+						// No flee route defined — inconclusive fight counts as a loss
+						combatResult.result = 'defeat';
+						if (combat.on_defeat) {
+							nextEventId = combat.on_defeat;
+						}
+					}
 				}
 
 				// Execute actions based on combat result
@@ -417,6 +427,7 @@ class EventProcessor {
 				message,
 				combatLog: combatResult.combatLog,
 				battleReport: combatResult.battleReport,
+				battleReportPages: combatResult.battleReportPages,
 			};
 		}
 		catch (error) {
@@ -1916,6 +1927,19 @@ class EventProcessor {
 			resultText += `${icons[session.combatResult.result] || EMOJI.FAILURE} ${session.combatResult.message}\n\n`;
 		}
 
+		// Pre-fetch character for author display and text processing
+		let character = null;
+		if (session.characterId) {
+			character = await characterUtil.getCharacterBase(session.characterId);
+		}
+
+		// Show interacting PC as embed author in public (non-ephemeral) events
+		if (character && !session.ephemeral) {
+			const charName = character.fullname || character.name || session.interaction?.user?.username;
+			const userAvatar = session.interaction?.user?.displayAvatarURL?.() ?? undefined;
+			if (charName) embed.setAuthor({ name: charName, iconURL: userAvatar });
+		}
+
 		// Add event message content
 		if (eventMessage) {
 			// Handle NPC speaker - NPC name becomes title, NPC avatar becomes message avatar
@@ -1942,11 +1966,9 @@ class EventProcessor {
 
 			// Process text with pronouns and player name (includes NPC-relational pronouns)
 			let text = eventMessage.text || '';
-			if (text && session.characterId) {
-				const character = await characterUtil.getCharacterBase(session.characterId);
-				if (character) {
-					text = processTextTemplate(text, character.age, character.gender, character, npc);
-				}
+			if (text && character) {
+				const npcForTemplate = session.npc || npc;
+				text = processTextTemplate(text, character.age, character.gender, character, npcForTemplate);
 			}
 
 			embed.setDescription(resultText + text);
@@ -2138,22 +2160,24 @@ class EventProcessor {
 	 * Send combat log as a separate message
 	 */
 	async sendCombatLog(interaction, combatResult, ephemeral = true) {
-		const embed = new Discord.EmbedBuilder()
+		const color = combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00;
+		const pages = combatResult.battleReportPages || [combatResult.battleReport || 'No combat details available.'];
+
+		// Send the first page by editing the deferred reply
+		const firstEmbed = new Discord.EmbedBuilder()
 			.setTitle(`${EMOJI.SWORD} Combat Log`)
-			.setColor(combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00);
+			.setColor(color)
+			.setDescription(pages[0]);
+		await interaction.editReply({ embeds: [firstEmbed] });
 
-		// Add battle report to description
-		let description = combatResult.battleReport || 'No combat details available.';
-		
-		// Discord has 4096 char limit for embed description
-		if (description.length > 4000) {
-			description = description.substring(0, 3997) + '...';
+		// Send remaining pages as follow-up messages
+		for (let i = 1; i < pages.length; i++) {
+			const pageEmbed = new Discord.EmbedBuilder()
+				.setTitle(`${EMOJI.SWORD} Combat Log (${i + 1}/${pages.length})`)
+				.setColor(color)
+				.setDescription(pages[i]);
+			await interaction.followUp({ embeds: [pageEmbed], ephemeral });
 		}
-		
-		embed.setDescription(description);
-
-		// Send combat log by editing the deferred reply
-		await interaction.editReply({ embeds: [embed] });
 	}
 
 	/**

@@ -87,7 +87,7 @@ npcs:
     age: 44
     description: |
 
-    start_event: "talk-vorne"
+    start_event: "vorne-approach"
     movement_pattern: "stationary"
     player_to_npc: "thuyền trưởng"
     # No pronoun overrides — defaults are correct for his register.
@@ -101,7 +101,7 @@ npcs:
     age: 38
     description: |
 
-    start_event: "talk-york"
+    start_event: "york-approach"
     movement_pattern: "stationary"
     player_to_npc: "York"
     # No pronoun overrides — defaults are correct.

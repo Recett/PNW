@@ -16,7 +16,7 @@ events:
 
     option:
       - id: "kt-cook"
-        text: "Nấu ăn"
+        text: "Nấu ăn [Tốn 5 stamina]"
         next: "kitchen-cook"
         display_order: 0
       - id: "kt-leave"
@@ -50,7 +50,7 @@ events:
 
     option:
       - id: "fp-cast"
-        text: "Thả câu"
+        text: "Thả câu [Tốn 5 stamina]"
         next: "fishing-pole-cast"
         display_order: 0
       - id: "fp-leave"

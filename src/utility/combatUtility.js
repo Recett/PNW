@@ -4,8 +4,8 @@ const characterUtility = require('./characterUtility');
 const itemUtility = require('./itemUtility');
 const { getCharacterSetting } = require('./characterSettingUtility');
 
-// Discord message character limit
-const DISCORD_MESSAGE_LIMIT = 2000;
+// Discord embed description character limit
+const DISCORD_MESSAGE_LIMIT = 4000;
 
 /**
  * Calculate total attack stat for a character (including STR and weapon)
@@ -58,7 +58,7 @@ function calculateDamage(attacker, tracker, target, ignoreDefense = false, critM
 }
 
 async function runInitTracker(actors, options = {}) {
-	const maxTicks = options.maxTicks || 100;
+	const maxTicks = options.maxTicks || 400;
 	const combatLog = [];
 
 	// Track initiative and HP for each attack
@@ -343,7 +343,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	const { combatLog, actors } = await runInitTracker(
 		[player, enemy],
 		{
-			maxTicks: 100,
+			maxTicks: 400,
 			handleBeforeAttackSkills,
 			handleAfterAttackSkills,
 		},
@@ -967,15 +967,24 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	}
 
 	// Build outcome section
-	let outcomeSection = '🏆 **BATTLE OUTCOME** 🏆\n';
 	const survivors = Object.values(actors).filter(a => a.hp > 0);
 	const defeated = Object.values(actors).filter(a => a.hp <= 0);
+	const isDraw = survivors.length === Object.values(actors).length;
 
-	if (survivors.length > 0) {
-		outcomeSection += `**Victorious:** ${survivors.map(a => `${a.name} (${a.hp} HP)`).join(', ')}\n`;
+	let outcomeSection;
+	if (isDraw) {
+		outcomeSection = '\u23F1\uFE0F **BATTLE OUTCOME** \u23F1\uFE0F\n';
+		outcomeSection += `**Inconclusive** — time ran out.\n`;
+		outcomeSection += survivors.map(a => `${a.name}: ${a.hp} HP remaining`).join(', ') + '\n';
 	}
-	if (defeated.length > 0) {
-		outcomeSection += `**Defeated:** ${defeated.map(a => a.name).join(', ')}\n`;
+	else {
+		outcomeSection = '\uD83C\uDFC6 **BATTLE OUTCOME** \uD83C\uDFC6\n';
+		if (survivors.length > 0) {
+			outcomeSection += `**Victorious:** ${survivors.map(a => `${a.name} (${a.hp} HP)`).join(', ')}\n`;
+		}
+		if (defeated.length > 0) {
+			outcomeSection += `**Defeated:** ${defeated.map(a => a.name).join(', ')}\n`;
+		}
 	}
 
 	// Build rewards section

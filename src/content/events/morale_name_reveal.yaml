@@ -1,4 +1,4 @@
-events:
+﻿events:
 
   # ─────────────────────────────────────────────
   # MORALE APPROACH — DISPATCHER
@@ -109,7 +109,7 @@ events:
     event_type: "npc"
     is_active: true
     message:
-      npc_speaker: "aldric-vorne"
+      npc_speaker: captain-vorne
       text: |
         "${npc_1p} không rõ chuyện đó. Chìa khóa và kho bãi — đó là việc của York."
     action:
@@ -142,7 +142,7 @@ events:
     name: "York — Bilge Key Message"
     is_active: true
     message:
-      npc_speaker: "york-waylan"
+      npc_speaker: quartermaster-york
       text: |
         "Chìa khóa hầm tàu? Trung úy Morale quản lý khu vực đó, nên chắc cô ấy đang giữ. Cô ấy không được khỏe chuyến này — theo ${npc_1p} thì nên nghỉ bệnh, nhưng cô ấy không chịu nghe. Có lẽ cô ấy đang nghỉ trong phòng. ${npc_1p} mong là vậy."
     action:
@@ -189,7 +189,7 @@ events:
         silent: true
         on_success: null
     message:
-      npc_speaker: "york-waylan"
+      npc_speaker: quartermaster-york
       text: |
         "${2p} tìm được cô ấy rồi à. Tốt. Cô ấy sẽ không tự nói ra đâu, nhưng cô ấy đang trong giai đoạn khó khăn — cô ấy đang mang thai, trên hết mọi thứ. ${npc_1p} định nhờ ai đó chuẩn bị gì đó tươm tất cho cô ấy, nhưng đó không phải việc của ${npc_1p}. Nếu ${2p} có lòng và tìm được nguyên liệu phù hợp, ${npc_1p} nghĩ cô ấy sẽ biết ơn."
     action:
@@ -212,7 +212,7 @@ events:
     event_type: "npc"
     is_active: true
     message:
-      npc_speaker: "lawrence-hensbane"
+      npc_speaker: law-hensbane
       text: |
         "Chuyện đó không phải việc ${npc_1p} theo dõi. Hỏi York đi — kho bãi là lãnh địa của ông ấy."
 
@@ -232,7 +232,7 @@ events:
     event_type: "npc"
     is_active: true
     message:
-      npc_speaker: "galeby"
+      npc_speaker: john-galeby
       text: |
         "${npc_1p} chẳng rõ chuyện đó. Hỏi người quản lý trên tàu thì chắc hơn."
 
