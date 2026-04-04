@@ -60,6 +60,13 @@
     description: "Triggered on /explore bilge before key is obtained."
     event_type: "exploration"
     is_active: true
+    action:
+      - type: flag
+        flag_name: "char.bilge_door_encountered"
+        flag_value: "1"
+        flag_operation: set
+        flag_type: character
+        silent: true
     message:
       text: |
         Cánh cửa đóng chặt. Một ổ khóa sắt nặng — ai đó đã quyết định giữ nó khép lại.
@@ -77,13 +84,6 @@
   - id: "bilge-door-locked-options"
     name: "The Bilge Door — Options"
     is_active: true
-    action:
-      - type: flag
-        flag_name: "char.bilge_door_encountered"
-        flag_value: "1"
-        flag_operation: set
-        flag_type: character
-        silent: true
     option:
       - id: "look-for-another-way"
         text: "Tìm lối vào khác"
