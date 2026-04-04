@@ -47,10 +47,10 @@ let calculateCombatStat = async (characterId) => {
 	let agi = character.agi || 0;
 	let str = character.str || 0;
 
-	// Calculate currentWeight by summing weights of all items in inventory
+	// Calculate currentWeight by summing weights of all equipped items
 	const { CharacterItem } = getDbModels();
 	const allItems = await CharacterItem.findAll({
-		where: { character_id: characterId },
+		where: { character_id: characterId, equipped: true },
 	});
 	let currentWeight = 0;
 	for (const inv of allItems) {
@@ -451,9 +451,9 @@ let equipCharacterItem = async (characterId, itemId, type) => {
 
 let updateCharacterWeight = async (characterId) => {
 	const { CharacterItem, CharacterCombatStat } = getDbModels();
-	// Sum weights of all items in inventory
+	// Sum weights of all equipped items
 	const items = await CharacterItem.findAll({
-		where: { character_id: characterId },
+		where: { character_id: characterId, equipped: true },
 	});
 	let total = 0;
 	for (const inv of items) {

@@ -42,7 +42,7 @@ function buildItemEmbed(item, inventoryEntry = null) {
 			{ name: 'Scaling', value: String(item.weapon.scaling || 0), inline: true },
 			{ name: 'Hit Modifier', value: `${(item.weapon.hit_mod || 0) * 100}%`, inline: true },
 			{ name: 'Cooldown', value: String(item.weapon.cooldown || 0), inline: true },
-			{ name: 'Weight', value: String(item.weapon.weight || 0), inline: true },
+			{ name: 'Weight', value: String(item.weight || 0), inline: true },
 		);
 		if (item.weapon.special) {
 			embed.fields.push(
@@ -61,7 +61,7 @@ function buildItemEmbed(item, inventoryEntry = null) {
 			{ name: 'Defense', value: String(item.armor.defense || 0), inline: true },
 			{ name: 'Crit Resistance', value: String(item.armor.crit_resistance || 0), inline: true },
 			{ name: 'Evade', value: String(item.armor.evade || 0), inline: true },
-			{ name: 'Weight', value: String(item.armor.weight || 0), inline: true },
+			{ name: 'Weight', value: String(item.weight || 0), inline: true },
 		);
 	}
 
