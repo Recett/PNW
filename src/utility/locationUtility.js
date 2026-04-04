@@ -510,7 +510,7 @@ async function postLocationActivity(client, locationId, characterName, activityT
 
 	const phrases = activityType === 'arrive' ? ARRIVAL_PHRASES : DEPARTURE_PHRASES;
 	const template = phrases[Math.floor(Math.random() * phrases.length)];
-	const text = `*${template.replace('{name}', characterName).replace(/\{pronoun\}/g, pronoun).replace(/\{Pronoun\}/g, Pronoun)}*`;
+	const text = `*${template.replace(/\{name\}/g, characterName).replace(/\{pronoun\}/g, pronoun).replace(/\{Pronoun\}/g, Pronoun)}*`;
 
 	const channelId = location.channel;
 

@@ -2528,8 +2528,18 @@ class EventProcessor {
 							await this.showShopItemPreview(componentInteraction, session, selectedValue);
 						}
 						else {
-							// Perk: show quantity modal directly
+							// Perk: show quantity modal directly and await submission
 							await this.showShopQuantityModal(componentInteraction, session, selectedValue);
+							try {
+								const modalSubmit = await componentInteraction.awaitModalSubmit({
+									filter: i => i.customId === `shop_modal_${selectedValue}` && i.user.id === componentInteraction.user.id,
+									time: 60_000,
+								});
+								await this.handleShopModalSubmit(modalSubmit, session);
+							}
+							catch (e) {
+								// User cancelled or timed out — no action needed
+							}
 						}
 						return; // Don't proceed to next event
 					}
@@ -2708,9 +2718,20 @@ class EventProcessor {
 					collector.stop();
 				}
 				else if (componentInteraction.isButton()) {
-					// Handle item preview confirm — show quantity modal
+					// Handle item preview confirm — show quantity modal and await submission
 					if (componentInteraction.customId === 'shop_preview_confirm') {
-						await this.showShopQuantityModal(componentInteraction, session, session.shopPreviewValue);
+						const previewValue = session.shopPreviewValue;
+						await this.showShopQuantityModal(componentInteraction, session, previewValue);
+						try {
+							const modalSubmit = await componentInteraction.awaitModalSubmit({
+								filter: i => i.customId === `shop_modal_${previewValue}` && i.user.id === componentInteraction.user.id,
+								time: 60_000,
+							});
+							await this.handleShopModalSubmit(modalSubmit, session);
+						}
+						catch (e) {
+							// User cancelled or timed out — no action needed
+						}
 						return;
 					}
 					// Handle item preview back — restore shop display
@@ -2867,8 +2888,8 @@ class EventProcessor {
 
 			if (selectedValue.startsWith('shop_buy_')) {
 				// Item purchase
-				const itemId = parseInt(selectedValue.replace('shop_buy_', ''));
-				const shopItem = session.shopData.items.find(i => i.itemId === itemId || i.itemId === String(itemId));
+				const itemId = selectedValue.replace('shop_buy_', '');
+				const shopItem = session.shopData.items.find(i => String(i.itemId) === itemId);
 
 				if (!shopItem) {
 					await componentInteraction.reply({
@@ -3000,8 +3021,8 @@ class EventProcessor {
 	 * Show item preview embed with Confirm/Back buttons before quantity modal
 	 */
 	async showShopItemPreview(componentInteraction, session, selectedValue) {
-		const itemId = parseInt(selectedValue.replace('shop_buy_', ''));
-		const shopItem = session.shopData.items.find(i => i.itemId === itemId || i.itemId === String(itemId));
+		const itemId = selectedValue.replace('shop_buy_', '');
+		const shopItem = session.shopData.items.find(i => String(i.itemId) === itemId);
 
 		if (!shopItem) {
 			await componentInteraction.reply({
@@ -3057,12 +3078,12 @@ class EventProcessor {
 	 */	
 	async showShopQuantityModal(componentInteraction, session, selectedValue) {
 		const isItem = selectedValue.startsWith('shop_buy_');
-		const id = parseInt(selectedValue.replace(isItem ? 'shop_buy_' : 'shop_learn_', ''));
+		const id = isItem ? selectedValue.replace('shop_buy_', '') : parseInt(selectedValue.replace('shop_learn_', ''));
 
 		// Get item/perk name for modal title
 		let itemName = 'Item';
 		if (isItem && session.shopData?.items) {
-			const item = session.shopData.items.find(i => i.itemId === id || i.itemId === String(id));
+			const item = session.shopData.items.find(i => String(i.itemId) === id);
 			if (item) itemName = item.name;
 		}
 		else if (!isItem && session.shopData?.perks) {
@@ -3120,8 +3141,8 @@ class EventProcessor {
 
 			if (originalValue.startsWith('shop_buy_')) {
 				// Item purchase with quantity
-				const itemId = parseInt(originalValue.replace('shop_buy_', ''));
-				const shopItem = session.shopData.items.find(i => i.itemId === itemId || i.itemId === String(itemId));
+				const itemId = originalValue.replace('shop_buy_', '');
+				const shopItem = session.shopData.items.find(i => String(i.itemId) === itemId);
 
 				if (!shopItem) {
 					await componentInteraction.reply({
@@ -3166,7 +3187,7 @@ class EventProcessor {
 				}
 
 				await componentInteraction.reply({
-					content: `${EMOJI.SUCCESS} Purchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold - totalCost})`,	
+					content: `${EMOJI.SUCCESS} Purchased ${quantity}x **${shopItem.name}** for ${totalCost} gold! (Remaining gold: ${character.gold})`,
 					ephemeral: true,
 				});
 			}
