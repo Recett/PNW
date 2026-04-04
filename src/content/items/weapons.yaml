@@ -383,3 +383,20 @@ weapons:
       scaling: 0.3
       hit_mod: 0.7
       cooldown: 85
+
+  - id: claw-company-greatsword
+    name: "Claw Company Greatsword"
+    description: "Một chiếc trường kiếm hai tay mang phù hiệu Claw Company khắc trên lưỡi thép — đơn giản, không trang trí, nhưng được rèn kỹ hơn bất kỳ vũ khí dân quân nào. Ít người nhận được thứ này."
+    item_type: weapon
+    value: 0
+    weight: 12
+    tag:
+      - unique
+      - greatsword
+    weapon:
+      slot: twohand
+      subtype: sword
+      base_damage: 14
+      scaling: 1.0
+      hit_mod: 0.73
+      cooldown: 160

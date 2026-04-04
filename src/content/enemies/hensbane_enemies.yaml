@@ -36,15 +36,15 @@ enemies:
       - id: sword
         name: Sword
         base_damage: 9
-        accuracy: 7
+        accuracy: 9
         critical_chance: 4
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 8
-        accuracy: 9
+        base_damage: 7
+        accuracy: 7
         critical_chance: 4
-        cooldown: 75
+        cooldown: 60
       - id: spear
         name: Spear
         base_damage: 9
@@ -91,14 +91,14 @@ enemies:
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 8
+        base_damage: 7
         accuracy: 7
         critical_chance: 4
-        cooldown: 75
+        cooldown: 60
       - id: spear
         name: Spear
         base_damage: 10
-        accuracy: 11
+        accuracy: 12
         critical_chance: 4
         cooldown: 110
       - id: axe
@@ -141,14 +141,14 @@ enemies:
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 9
-        accuracy: 7
+        base_damage: 8
+        accuracy: 8
         critical_chance: 4
-        cooldown: 75
+        cooldown: 60
       - id: spear
         name: Spear
         base_damage: 11
-        accuracy: 12
+        accuracy: 13
         critical_chance: 4
         cooldown: 110
       - id: axe
@@ -176,7 +176,7 @@ enemies:
     tag:
       - pick_one
     stat:
-      health: 100
+      health: 105
       defense: 2
       defense_percent: 0
       crit_resistance: 0
@@ -186,25 +186,25 @@ enemies:
       - id: sword
         name: Sword
         base_damage: 10
-        accuracy: 10
+        accuracy: 11
         critical_chance: 4
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 9
-        accuracy: 7
+        base_damage: 8
+        accuracy: 9
         critical_chance: 4
-        cooldown: 75
+        cooldown: 60
       - id: spear
         name: Spear
         base_damage: 11
-        accuracy: 12
+        accuracy: 13
         critical_chance: 4
         cooldown: 110
       - id: axe
         name: Axe
-        base_damage: 14
-        accuracy: 8
+        base_damage: 13
+        accuracy: 10
         critical_chance: 4
         cooldown: 130
       - id: mace
@@ -226,7 +226,7 @@ enemies:
     tag:
       - pick_one
     stat:
-      health: 110
+      health: 120
       defense: 2
       defense_percent: 0
       crit_resistance: 0
@@ -235,26 +235,26 @@ enemies:
     attack:
       - id: sword
         name: Sword
-        base_damage: 11
-        accuracy: 10
+        base_damage: 12
+        accuracy: 11
         critical_chance: 5
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 9
-        accuracy: 8
+        base_damage: 8
+        accuracy: 10
         critical_chance: 5
-        cooldown: 75
+        cooldown: 60
       - id: spear
         name: Spear
         base_damage: 11
-        accuracy: 12
+        accuracy: 13
         critical_chance: 5
         cooldown: 110
       - id: axe
         name: Axe
         base_damage: 14
-        accuracy: 9
+        accuracy: 10
         critical_chance: 5
         cooldown: 130
       - id: mace

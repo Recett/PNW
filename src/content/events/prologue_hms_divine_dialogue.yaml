@@ -972,7 +972,7 @@
       - type: variable
         variable_name: pre_spar_hp
         source_type: stat
-        source_name: hp
+        source_name: currentHp
         silent: true
       - type: stat
         stat_name: currentStamina
@@ -1105,7 +1105,7 @@
         flag_type: character
         silent: true
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true
@@ -1124,7 +1124,7 @@
         flag_type: character
         silent: true
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true
@@ -1143,7 +1143,7 @@
         flag_type: character
         silent: true
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true
@@ -1162,7 +1162,7 @@
         flag_type: character
         silent: true
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true
@@ -1171,7 +1171,7 @@
     name: "Hensbane —Win Rank 5"
     event_type: dialogue
     silent: true
-    next: hensbane-sparring-win
+    next: hensbane-announce-check-r5
 
     action:
       - type: flag
@@ -1181,10 +1181,59 @@
         flag_type: character
         silent: true
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true
+
+  - id: hensbane-announce-check-r5
+    name: "Hensbane —First Win Check Rank 5"
+    event_type: dialogue
+    silent: true
+    next: hensbane-announce-r5
+
+    check:
+      - name: r5-already-announced
+        type: flag
+        flag_data:
+          flag_name: "global.hensbane_r5_first"
+          flag_value: 1
+          flag_comparison: equal
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: hensbane-sparring-win
+
+  - id: hensbane-announce-r5
+    name: "Hensbane —First Win Announce Rank 5"
+    event_type: dialogue
+    next: hensbane-sparring-win
+
+    message:
+      npc_speaker: law-hensbane
+      message_type: dialogue
+      text: |
+        "Khá lắm! Đã lâu rồi chưa có ai đánh được như vậy. Đây, cái này cho cậu."
+
+    action:
+      - type: flag
+        flag_name: global.hensbane_r5_first
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: item
+        item: claw-company-greatsword
+        quantity: "1"
+        operation: give
+        silent: false
+      - type: narrate
+        channel: storyboard
+        title: "Rank 5 — Người Đầu Tiên"
+        text: |
+          Không thể tin nổi! Sau một trận đấu tập khốc liệt không thua gì một trận chiến thực sự, **${player_name}** vừa trở thành người đầu tiên vượt qua được Hensbane nghiêm túc!
+
+          Liệu đây có phải là khởi đầu của một huyền thoại Tân Thế Giới? Chỉ thời gian mới trả lời được, nhưng chắc chắn một điều: mọi người trên tàu sẽ không bao giờ quên được cái tên **${player_name}** sau chiến thắng này!
 
   - id: hensbane-sparring-win
     name: "Hensbane —Sparring Thắng"
@@ -1208,7 +1257,7 @@
 
     action:
       - type: stat
-        stat_name: hp
+        stat_name: currentHp
         value: "${pre_spar_hp}"
         operation: set
         silent: true

@@ -106,13 +106,14 @@ async function buildLocationEmbed(location, userId, eventUtil, locationUtil) {
 		description += `\n\n**Characters:** ${pcs.map(pc => pc.id ? `<@${pc.id}>` : pc.name).join(', ')}`;
 	}
 	if (visibleNpcs.length > 0) {
-		const npcKnownFlags = visibleNpcs.map(npc => `${npc.id}_known`);
+		const npcKnownFlags = visibleNpcs.map(npc => `char.${npc.id}_known`);
+		const npcKnownFlagsGlobal = visibleNpcs.map(npc => `global.${npc.id}_known`);
 		const [charFlags, globalFlags] = await Promise.all([
 			CharacterFlag.findAll({ where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } } }),
-			GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlags.map(f => `global.${f}`) } } }),
+			GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlagsGlobal } } }),
 		]);
 		const flagMap = {};
-		charFlags.forEach(f => { flagMap[f.flag] = f.value; });
+		charFlags.forEach(f => { flagMap[f.flag.replace('char.', '')] = f.value; });
 		globalFlags.forEach(f => { flagMap[f.flag.replace('global.', '')] = f.value; });
 		description += `\n\n**NPCs:** ${visibleNpcs.map(npc => {
 			const knownFlag = flagMap[`${npc.id}_known`];
@@ -271,13 +272,14 @@ async function handleTalk(interaction, userId) {
 	const npcs = (await Promise.all(allNpcs.map(async npc => (await isEntityVisible(npc, userId, interaction.client.eventUtil)) ? npc : null))).filter(Boolean);
 	if (!npcs || npcs.length === 0) return interaction.reply({ content: 'There are no NPCs to talk to here.', flags: MessageFlags.Ephemeral });
 
-	const npcKnownFlags = npcs.map(npc => `${npc.id}_known`);
+	const npcKnownFlags = npcs.map(npc => `char.${npc.id}_known`);
+	const npcKnownFlagsGlobal = npcs.map(npc => `global.${npc.id}_known`);
 	const [charFlags, globalFlags] = await Promise.all([
 		CharacterFlag.findAll({ where: { character_id: userId, flag: { [Op.in]: npcKnownFlags } } }),
-		GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlags.map(f => `global.${f}`) } } }),
+		GlobalFlag.findAll({ where: { flag: { [Op.in]: npcKnownFlagsGlobal } } }),
 	]);
 	const flagMap = {};
-	charFlags.forEach(f => { flagMap[f.flag] = f.value; });
+	charFlags.forEach(f => { flagMap[f.flag.replace('char.', '')] = f.value; });
 	globalFlags.forEach(f => { flagMap[f.flag.replace('global.', '')] = f.value; });
 
 	const select = new StringSelectMenuBuilder()

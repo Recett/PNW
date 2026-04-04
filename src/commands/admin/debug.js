@@ -204,10 +204,11 @@ async function handleItem(interaction) {
 // ─── Flag Get ─────────────────────────────────────────────────────────────────
 
 async function handleFlagGet(interaction) {
-	const flagName = interaction.options.getString('name');
+	const rawName = interaction.options.getString('name');
 	const targetUser = interaction.options.getUser('user');
 
 	if (targetUser) {
+		const flagName = rawName.startsWith('char.') ? rawName : `char.${rawName}`;
 		const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
 		if (!character) {
 			return interaction.reply({
@@ -222,6 +223,7 @@ async function handleFlagGet(interaction) {
 		});
 	}
 	else {
+		const flagName = rawName.startsWith('global.') ? rawName : `global.${rawName}`;
 		const flag = await GlobalFlag.findOne({ where: { flag: flagName } });
 		const value = flag ? flag.value : null;
 		return interaction.reply({
@@ -234,11 +236,12 @@ async function handleFlagGet(interaction) {
 // ─── Flag Set ─────────────────────────────────────────────────────────────────
 
 async function handleFlagSet(interaction) {
-	const flagName = interaction.options.getString('name');
+	const rawName = interaction.options.getString('name');
 	const value = interaction.options.getInteger('value');
 	const targetUser = interaction.options.getUser('user');
 
 	if (targetUser) {
+		const flagName = rawName.startsWith('char.') ? rawName : `char.${rawName}`;
 		const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
 		if (!character) {
 			return interaction.reply({
@@ -254,6 +257,7 @@ async function handleFlagSet(interaction) {
 		});
 	}
 	else {
+		const flagName = rawName.startsWith('global.') ? rawName : `global.${rawName}`;
 		if (value === 0) {
 			await GlobalFlag.destroy({ where: { flag: flagName } });
 			return interaction.reply({

@@ -157,7 +157,7 @@ class EventProcessor {
 			// Keyed by flagName → { op: 'upsert'|'delete', value }
 			pendingCharacterFlags: sessionData.pendingCharacterFlags || new Map(),
 			pendingGlobalFlags: sessionData.pendingGlobalFlags || new Map(),
-			variables: {}, // Session variables for action-to-action data passing
+			variables: sessionData.variables || {}, // Session variables for action-to-action data passing
 			metadata: sessionData.metadata || {},
 			ephemeral: sessionData.ephemeral !== false,
 			messages: [], // Collect messages to display
@@ -254,6 +254,7 @@ class EventProcessor {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
 						pendingGlobalFlags: session.pendingGlobalFlags,
+						variables: session.variables,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						combatLogSent: true, // Tell next event that combat log is already displayed
@@ -315,6 +316,7 @@ class EventProcessor {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
 						pendingGlobalFlags: session.pendingGlobalFlags,
+						variables: session.variables,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						combatLogSent: session.combatLogSent, // Preserve combat log state through silent chain
@@ -335,7 +337,9 @@ class EventProcessor {
 			const options = await this.getVisibleOptions(eventId, session);
 
 			// 6. Display to Discord
-			const needsCollector = await this.displayEvent(session, messageData, options, eventBase, nextEventId);
+			// For non-silent events, checkOutcomeEventId (from a check's on_success/on_failure) takes
+			// priority over the event's default next — same routing logic as silent events.
+			const needsCollector = await this.displayEvent(session, messageData, options, eventBase, checkOutcomeEventId || nextEventId);
 
 			// Store session for option handling only if a collector was set up
 			if (needsCollector) {
@@ -524,27 +528,33 @@ class EventProcessor {
 		const comparison = flag_comparison || FLAG_COMPARISON.EQUAL;
 		let success = false;
 
+		// Normalize both values to numbers for comparison — YAML may store flag_value as
+		// a quoted string (e.g., "1") while currentValue is always an integer from the DB.
+		const toNum = (v) => (typeof v === 'string' ? Number(v) : v);
+		const cmp = toNum(currentValue);
+		const exp = toNum(flag_value);
+
 		switch (comparison) {
 		case FLAG_COMPARISON.GREATER_THAN:
-			success = currentValue > flag_value;
+			success = cmp > exp;
 			break;
 		case FLAG_COMPARISON.LESS_THAN:
-			success = currentValue < flag_value;
+			success = cmp < exp;
 			break;
 		case FLAG_COMPARISON.EQUAL:
-			success = currentValue === flag_value;
+			success = cmp === exp;
 			break;
 		case FLAG_COMPARISON.GREATER_EQUAL:
-			success = currentValue >= flag_value;
+			success = cmp >= exp;
 			break;
 		case FLAG_COMPARISON.LESS_EQUAL:
-			success = currentValue <= flag_value;
+			success = cmp <= exp;
 			break;
 		case FLAG_COMPARISON.NOT_EQUAL:
-			success = currentValue !== flag_value;
+			success = cmp !== exp;
 			break;
 		default:
-			success = currentValue === flag_value;
+			success = cmp === exp;
 		}
 
 		return {
@@ -1084,11 +1094,14 @@ class EventProcessor {
 			return;
 		}
 
+		const processedText = await this.processText(text, session);
+		const processedTitle = title ? await this.processText(title, session) : null;
+
 		const embed = new EmbedBuilder()
-			.setDescription(text)
+			.setDescription(processedText)
 			.setColor(action.color ?? 0x2f3136);
 
-		if (title) embed.setTitle(title);
+		if (processedTitle) embed.setTitle(processedTitle);
 
 		await ch.send({ embeds: [embed] });
 	}
@@ -2433,6 +2446,7 @@ class EventProcessor {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
 						pendingGlobalFlags: session.pendingGlobalFlags,
+						variables: session.variables,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,
@@ -2604,6 +2618,7 @@ class EventProcessor {
 										flags: session.flags,
 										pendingCharacterFlags: session.pendingCharacterFlags,
 										pendingGlobalFlags: session.pendingGlobalFlags,
+										variables: session.variables,
 										eventDepth: session.eventDepth + 1,
 									});
 									return; // Event processing continues via processEvent
@@ -2761,6 +2776,7 @@ class EventProcessor {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
 						pendingGlobalFlags: session.pendingGlobalFlags,
+						variables: session.variables,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
 						eventDepth: session.eventDepth + 1,

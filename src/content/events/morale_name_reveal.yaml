@@ -50,6 +50,13 @@
         Không hẳn là chào. Chỉ là ghi nhận bạn đang ở đó.
 
         Cô ấy chớp mắt chậm một cái rồi lại cuộn tròn, nhưng đuôi khẽ quét nhẹ lên sàn, như thể đã để ý đến sự hiện diện của bạn.
+    option:
+      - id: "pet-her"
+        text: "Vuốt đầu cô ấy"
+        next: "morale-stay"
+      - id: "leave-her-to-it"
+        text: "Để cô ấy nghỉ"
+        next: null
 
   # ─────────────────────────────────────────────
   # BILGE DOOR
