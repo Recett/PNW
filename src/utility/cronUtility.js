@@ -97,17 +97,17 @@ async function performHourlyJob() {
 		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
 		const staminaResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
-			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
+			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
 			WHERE maxStamina IS NOT NULL 
 				AND currentStamina IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 		`);
 		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
 
-		// Increase every character's currentHp by 5% of maxHp, up to maxHp (only in town locations)
+		// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
 		const hpResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
-			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.05 + 0.999) AS INTEGER))
+			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
@@ -490,18 +490,18 @@ async function startCronJob(client) {
 				last_run: runTime,
 			});
 
-			// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
+			// Increase every character's currentStamina by 10% of maxStamina, up to maxStamina (only in town locations)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
-			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
+			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
 			WHERE maxStamina IS NOT NULL 
 				AND currentStamina IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 		`);
-			// Increase every character's currentHp by 5% of maxHp, up to maxHp (only in town locations)
+			// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
-			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.05 + 0.999) AS INTEGER))
+			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');

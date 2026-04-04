@@ -401,7 +401,7 @@
         display_order: 1
 
       - id: how-long
-        text: "${npc_2p} đã chỉhuy con tàu này bao lâu rồi?"
+        text: "${npc_2p} đã chỉ huy con tàu này bao lâu rồi?"
         next: vorne-how-long
         display_order: 2
 

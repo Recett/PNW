@@ -317,6 +317,8 @@ class EventProcessor {
 						pendingGlobalFlags: session.pendingGlobalFlags,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
+						combatLogSent: session.combatLogSent, // Preserve combat log state through silent chain
+						logSessionId: session.logSessionId,
 						eventDepth: session.eventDepth + 1,
 					});
 				}
