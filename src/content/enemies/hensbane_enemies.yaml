@@ -127,7 +127,7 @@ enemies:
       - pick_one
     stat:
       health: 95
-      defense: 1
+      defense: 2
       defense_percent: 0
       crit_resistance: 0
       evade: 10
@@ -177,7 +177,7 @@ enemies:
       - pick_one
     stat:
       health: 105
-      defense: 2
+      defense: 3
       defense_percent: 0
       crit_resistance: 0
       evade: 11
@@ -199,7 +199,7 @@ enemies:
         name: Spear
         base_damage: 11
         accuracy: 13
-        critical_chance: 4
+        critical_chance: 10
         cooldown: 110
       - id: axe
         name: Axe
@@ -227,7 +227,7 @@ enemies:
       - pick_one
     stat:
       health: 120
-      defense: 2
+      defense: 4
       defense_percent: 0
       crit_resistance: 0
       evade: 12
@@ -235,21 +235,21 @@ enemies:
     attack:
       - id: sword
         name: Sword
-        base_damage: 12
+        base_damage: 13
         accuracy: 11
         critical_chance: 5
         cooldown: 100
       - id: dagger
         name: Dagger
-        base_damage: 8
+        base_damage: 9
         accuracy: 10
         critical_chance: 5
         cooldown: 60
       - id: spear
         name: Spear
         base_damage: 11
-        accuracy: 13
-        critical_chance: 5
+        accuracy: 14
+        critical_chance: 20
         cooldown: 110
       - id: axe
         name: Axe

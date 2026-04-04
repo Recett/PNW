@@ -23,15 +23,15 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 0
-      evade: 11
-      speed: 10
+      evade: 16
+      speed: 16
     attack:
       - id: bite
         name: Bite
-        base_damage: 6
-        accuracy: 9
-        critical_chance: 2
-        cooldown: 80
+        base_damage: 7
+        accuracy: 12
+        critical_chance: 10
+        cooldown: 90
     reward:
       exp: 30
       item:
@@ -50,13 +50,13 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 0
-      evade: 9
-      speed: 9
+      evade: 13
+      speed: 13
     attack:
       - id: bite
         name: Bite
-        base_damage: 8
-        accuracy: 8
+        base_damage: 10
+        accuracy: 10
         critical_chance: 3
         cooldown: 90
     reward:
@@ -83,12 +83,12 @@ enemies:
       defense: 1
       defense_percent: 0
       crit_resistance: 0
-      evade: 8
-      speed: 10
+      evade: 10
+      speed: 12
     attack:
       - id: bite
         name: Bite
-        base_damage: 10
+        base_damage: 14
         accuracy: 10
         critical_chance: 5
         cooldown: 90
@@ -120,9 +120,9 @@ enemies:
     attack:
       - id: bite
         name: Bite
-        base_damage: 18
-        accuracy: 8
-        critical_chance: 10
+        base_damage: 20
+        accuracy: 12
+        critical_chance: 20
         cooldown: 90
     regen_per_day: 20
     reward:
