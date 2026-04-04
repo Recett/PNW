@@ -75,7 +75,7 @@ let calculateCombatStat = async (characterId) => {
 	if (currentWeight > maxWeight && maxWeight > 0) {
 		// P = (W - C)² / (W / 1.5) where W = currentWeight, C = maxWeight
 		const penalty = Math.pow(currentWeight - maxWeight, 2) * 1.5 / currentWeight;
-		agi = Math.max(0, agi - penalty);
+		agi = Math.max(0, Math.floor(agi - penalty));
 	}
 
 	// Apply food buffs from CharacterStatus (source: 'food'), pruning expired rows lazily
