@@ -161,7 +161,7 @@ await characterUtil.addCharacterItem(characterId, itemId, quantity);
 - `location_bases` - Location definitions (id, name, description, channel, role, tag, metadata)
 - `location_links` - Navigation connections between locations (location_id, linked_location_id) 
   **CRITICAL:** Use `linked_location_id` field, NOT `link_id` (which doesn't exist)
-- `location_clusters` - Grouped locations that share visibility (cluster_id, location_id)
+- `location_clusters` - Grouped locations that can freely travel to each other (bidirectional zone travel) (cluster_id, location_id)
 - `location_contains` - What's at each location (location_id, type, entity_id, entity_name)
 - `location_enemies` - Enemy spawns (location_id, enemy_id, spawn_rate, max_count)
 - `location_events` - Location-triggered events (location_id, event_id, trigger_type)
@@ -311,7 +311,7 @@ const report = combatUtil.writeBattleReport(combatLog, actors);
 **Core Concepts:**
 - `location_base` - Locations with name, channel, role
 - `location_link` - Connections between locations (for `/move` command)
-- `location_cluster` - Groups of linked locations
+- `location_cluster` - Groups of locations that can travel to each other bidirectionally (zone travel)
 - `location_contain` - Tracks what's at each location (PCs, NPCs, enemies, objects)
 
 **Key Functions:**

@@ -1588,7 +1588,25 @@ class EventProcessor {
 		}
 
 		if (!location_id || location_id === 'adjacent_random') return;
+
+		// Capture old location before moving (for departure notification)
+		const characterBefore = await characterUtil.getCharacterBase(session.characterId);
+		const oldLocationId = characterBefore?.location_id;
+
 		await locationUtil.moveCharacterToLocation(session.characterId, location_id);
+
+		// Post move activity messages
+		const client = session.interaction?.client;
+		if (client) {
+			const characterName = characterBefore?.name || `<@${session.characterId}>`;
+			try {
+				if (oldLocationId) {
+					await locationUtil.postLocationActivity(client, oldLocationId, `*${characterName} has left.*`);
+				}
+				await locationUtil.postLocationActivity(client, location_id, `*${characterName} has arrived.*`);
+			}
+			catch (actErr) { console.error('[LocationActivity] Error in executeMoveAction:', actErr); }
+		}
 
 		// Add message if not silent
 		if (!silent) {

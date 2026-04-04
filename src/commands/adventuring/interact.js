@@ -176,17 +176,18 @@ async function handleMove(interaction, userId) {
 	const channel = interaction.channel;
 	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const locationUtil = interaction.client.locationUtil;
-	let currentLocation = await locationUtil.getLocationByChannel(channelId);
-	if (!currentLocation && character.location_id) {
-		currentLocation = await LocationBase.findByPk(character.location_id);
-	}
+	const currentLocation = await locationUtil.getLocationByChannel(channelId);
 	if (!currentLocation) return await interaction.editReply({ content: 'Unable to determine your current location.' });
+
+	if (String(character.location_id) !== String(currentLocation.id)) {
+		return await interaction.editReply({ content: 'You are not at this location.' });
+	}
 
 	const linkedRecords = await LocationLink.findAll({ where: { location_id: currentLocation.id } });
 	const linkedIds = linkedRecords.map(r => String(r.linked_location_id));
 
-	let clusterIds = [];
 	const clusterEntry = await LocationCluster.findOne({ where: { location_id: currentLocation.id } });
+	let clusterIds = [];
 	if (clusterEntry) {
 		const clusterLocs = await LocationCluster.findAll({ where: { cluster_id: clusterEntry.cluster_id } });
 		clusterIds = clusterLocs.map(l => String(l.location_id)).filter(id => id != character.location_id);
@@ -218,27 +219,45 @@ async function handleMove(interaction, userId) {
 			newLocationId: selectedId,
 			delayMs: 5000,
 		});
-		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
-		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
-		const embeds = [];
-		if (newLocation) {
+
+		// Post move activity to old and new location channels
+		const characterName = character.name || `<@${userId}>`;
+		try {
+			const locationUtil = interaction.client.locationUtil;
+			if (currentLocation) {
+				await locationUtil.postLocationActivity(interaction.client, currentLocation.id, `*${characterName} has left.*`);
+			}
+			if (newLocation) {
+				await locationUtil.postLocationActivity(interaction.client, newLocation.id, `*${characterName} has arrived.*`);
+			}
+		}
+		catch (actErr) { console.error('Error posting location activity:', actErr); }
+
+		// Send look embed to the destination channel (not the original)
+		if (newLocation?.channel) {
 			try {
 				const lookEmbed = await buildLocationEmbed(newLocation, userId, interaction.client.eventUtil, interaction.client.locationUtil);
-				embeds.push(lookEmbed);
+				const destChannel = await interaction.client.channels.fetch(newLocation.channel).catch(() => null);
+				if (destChannel) {
+					await destChannel.send({ embeds: [lookEmbed] });
+				}
 			}
 			catch (err) { console.error('Error building look embed after move:', err); }
 		}
-		await i.reply({ content: replyContent, embeds, flags: MessageFlags.Ephemeral });
+
+		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
+		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
+		await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
 
 		const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
 		if (isBilge) {
-			const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
-			if (!hasKey) {
-				await interaction.client.eventUtil.processEvent('bilge-door-locked', i, userId, { ephemeral: false });
-			}
-			else {
-				const [flag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
-				if (!flag.value) {
+			const [flag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
+			if (!flag.value) {
+				const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+				if (!hasKey) {
+					await interaction.client.eventUtil.processEvent('bilge-door-locked', i, userId, { ephemeral: false });
+				}
+				else {
 					await flag.update({ value: 1 });
 					await characterUtil.removeCharacterItem(userId, 'bilge-key');
 				}

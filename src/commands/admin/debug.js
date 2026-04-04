@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
-const { CharacterBase, GlobalFlag } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, GlobalFlag } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const { EMOJI } = require('../../enums');
 
@@ -49,6 +49,14 @@ module.exports = {
 						.setMinValue(-9999)
 						.setMaxValue(9999)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('finditem')
+				.setDescription('Find all players who hold a given item.')
+				.addStringOption(opt =>
+					opt.setName('item_id')
+						.setDescription('The item ID to search for (e.g. bilge-key).')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -91,6 +99,7 @@ module.exports = {
 
 		if (sub === 'grant') return handleGrant(interaction);
 		if (sub === 'item') return handleItem(interaction);
+		if (sub === 'finditem') return handleFindItem(interaction);
 	},
 };
 
@@ -199,6 +208,36 @@ async function handleItem(interaction) {
 			flags: MessageFlags.Ephemeral,
 		});
 	}
+}
+
+// ─── Find Item ───────────────────────────────────────────────────────────────
+
+async function handleFindItem(interaction) {
+	const itemId = interaction.options.getString('item_id');
+
+	const rows = await CharacterItem.findAll({ where: { item_id: itemId } });
+
+	if (rows.length === 0) {
+		return interaction.reply({
+			content: `No players are holding item \`${itemId}\`.`,
+			flags: MessageFlags.Ephemeral,
+		});
+	}
+
+	const characterIds = rows.map(r => r.character_id);
+	const characters = await CharacterBase.findAll({ where: { id: characterIds } });
+	const nameMap = Object.fromEntries(characters.map(c => [c.id, c.name]));
+
+	const lines = rows.map(r => {
+		const name = nameMap[r.character_id] ?? `(unknown: ${r.character_id})`;
+		const equippedTag = r.equipped ? ' [equipped]' : '';
+		return `**${name}** — ${r.amount}x${equippedTag}`;
+	});
+
+	return interaction.reply({
+		content: `Players holding \`${itemId}\` (${rows.length}):\n${lines.join('\n')}`,
+		flags: MessageFlags.Ephemeral,
+	});
 }
 
 // ─── Flag Get ─────────────────────────────────────────────────────────────────

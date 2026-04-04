@@ -3,6 +3,9 @@ const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
 
+// In-memory store: channelId → Discord message ID of the last activity message
+const locationActivityMessages = new Map();
+
 /**
  * Get current time of day based on server hour
  * Morning: 6-14 (6am to 2pm) = 8 hours
@@ -428,6 +431,40 @@ async function moveCharacterToLocation(characterId, newLocationId, guild = null)
 	return true;
 }
 
+/**
+ * Post a move activity message to a location's channel, deleting the previous one.
+ * @param {Object} client - Discord client
+ * @param {string|number} locationId - Location ID
+ * @param {string} text - Message text to post (supports Discord markdown)
+ */
+async function postLocationActivity(client, locationId, text) {
+	if (!client || !locationId) return;
+	const location = await LocationBase.findByPk(locationId);
+	if (!location || !location.channel) return;
+
+	const channelId = location.channel;
+	try {
+		const channel = await client.channels.fetch(channelId).catch(() => null);
+		if (!channel) return;
+
+		// Delete previous activity message
+		const prevMsgId = locationActivityMessages.get(channelId);
+		if (prevMsgId) {
+			const prevMsg = await channel.messages.fetch(prevMsgId).catch(() => null);
+			if (prevMsg) {
+				await prevMsg.delete().catch(() => null);
+			}
+		}
+
+		// Post new activity message
+		const newMsg = await channel.send({ content: text });
+		locationActivityMessages.set(channelId, newMsg.id);
+	}
+	catch (err) {
+		console.error('[LocationActivity] Error posting activity:', err);
+	}
+}
+
 module.exports = {
 	getCurrentTimeOfDay,
 	getLocationBase,
@@ -446,4 +483,5 @@ module.exports = {
 	updateLocationRoles,
 	transitionLocationRoles,
 	moveCharacterToLocation,
+	postLocationActivity,
 };

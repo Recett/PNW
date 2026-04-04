@@ -92,3 +92,14 @@ other_items:
       tradeable: true
       initialTrait:
         - Stringy
+
+  - id: bilge-key
+    name: Bilge Key
+    description: A heavy iron key. It unlocks the bilge hatch.
+    item_type: quest_item
+    value: 0
+    tag:
+      - key
+    metadata:
+      stackable: false
+      tradeable: false

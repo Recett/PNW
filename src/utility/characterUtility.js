@@ -820,14 +820,14 @@ let checkAndApplyLevelUp = async (characterId) => {
 
 	const newLevel = currentLevel + levelsGained;
 	const freeStatPointsGained = levelsGained * 2;
-	const currentFreePoints = character.freeStatPoints || 0;
+	const currentFreePoints = character.free_point || 0;
 
 	// Update level, deduct XP, and add free stat points
 	await CharacterBase.update(
 		{
 			level: newLevel,
 			xp: currentXp,
-			freeStatPoints: currentFreePoints + freeStatPointsGained,
+			free_point: currentFreePoints + freeStatPointsGained,
 		},
 		{ where: { id: characterId } },
 	);

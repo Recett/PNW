@@ -296,8 +296,13 @@ async function handleLocationExitButton(interaction) {
 		// Move character
 		await locationUtil.moveCharacterToLocation(character.id, targetLocationId, interaction.guild);
 
+		// Post move activity messages
+		const characterName = character.name || `<@${character.id}>`;
+		await locationUtil.postLocationActivity(interaction.client, locationId, `*${characterName} has left.*`).catch(() => {});
+		await locationUtil.postLocationActivity(interaction.client, targetLocationId, `*${characterName} has arrived.*`).catch(() => {});
+
 		await interaction.reply({
-			content: `🚪 You have left the locked location and moved to **${targetLocation.name}**.`,
+			content: `\uD83D\uDEAA You have left the locked location and moved to **${targetLocation.name}**.`,
 			flags: MessageFlags.Ephemeral,
 		});
 	}

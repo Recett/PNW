@@ -132,6 +132,7 @@
     description: "Triggered by player asking York about the bilge key."
     event_type: "npc"
     is_active: true
+    silent: true
     check:
       - name: "name-not-yet-revealed"
         type: "flag"
