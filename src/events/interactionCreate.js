@@ -298,8 +298,9 @@ async function handleLocationExitButton(interaction) {
 
 		// Post move activity messages
 		const characterName = character.name || `<@${character.id}>`;
-		await locationUtil.postLocationActivity(interaction.client, locationId, `*${characterName} has left.*`).catch(() => {});
-		await locationUtil.postLocationActivity(interaction.client, targetLocationId, `*${characterName} has arrived.*`).catch(() => {});
+		const characterGender = character?.gender;
+		await locationUtil.postLocationActivity(interaction.client, locationId, characterName, 'depart', characterGender).catch(() => null);
+		await locationUtil.postLocationActivity(interaction.client, targetLocationId, characterName, 'arrive', characterGender).catch(() => null);
 
 		await interaction.reply({
 			content: `\uD83D\uDEAA You have left the locked location and moved to **${targetLocation.name}**.`,

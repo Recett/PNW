@@ -1599,11 +1599,12 @@ class EventProcessor {
 		const client = session.interaction?.client;
 		if (client) {
 			const characterName = characterBefore?.name || `<@${session.characterId}>`;
+			const characterGender = characterBefore?.gender;
 			try {
 				if (oldLocationId) {
-					await locationUtil.postLocationActivity(client, oldLocationId, `*${characterName} has left.*`);
+					await locationUtil.postLocationActivity(client, oldLocationId, characterName, 'depart', characterGender);
 				}
-				await locationUtil.postLocationActivity(client, location_id, `*${characterName} has arrived.*`);
+				await locationUtil.postLocationActivity(client, location_id, characterName, 'arrive', characterGender);
 			}
 			catch (actErr) { console.error('[LocationActivity] Error in executeMoveAction:', actErr); }
 		}

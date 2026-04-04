@@ -11,7 +11,7 @@ module.exports = {
 		.setContexts(InteractionContextType.Guild)
 		.addSubcommand(sub =>
 			sub.setName('grant')
-				.setDescription('Grant or deduct HP, stamina, and/or gold from a player.')
+				.setDescription('Grant or deduct HP, stamina, gold, XP, and/or free stat points from a player.')
 				.addUserOption(opt =>
 					opt.setName('user')
 						.setDescription('Target player.')
@@ -30,7 +30,17 @@ module.exports = {
 					opt.setName('gold')
 						.setDescription('Gold amount (negative to deduct). Minimum result is 0.')
 						.setMinValue(-9999999)
-						.setMaxValue(9999999)),
+						.setMaxValue(9999999))
+				.addIntegerOption(opt =>
+					opt.setName('xp')
+						.setDescription('XP amount (negative to deduct). Triggers level-up if threshold met.')
+						.setMinValue(-9999999)
+						.setMaxValue(9999999))
+				.addIntegerOption(opt =>
+					opt.setName('free_point')
+						.setDescription('Free stat points to grant (negative to deduct). Minimum result is 0.')
+						.setMinValue(-999)
+						.setMaxValue(999)),
 		)
 		.addSubcommand(sub =>
 			sub.setName('item')
@@ -110,10 +120,12 @@ async function handleGrant(interaction) {
 	const hpAmount = interaction.options.getInteger('hp');
 	const staminaAmount = interaction.options.getInteger('stamina');
 	const goldAmount = interaction.options.getInteger('gold');
+	const xpAmount = interaction.options.getInteger('xp');
+	const freePointAmount = interaction.options.getInteger('free_point');
 
-	if (hpAmount === null && staminaAmount === null && goldAmount === null) {
+	if (hpAmount === null && staminaAmount === null && goldAmount === null && xpAmount === null && freePointAmount === null) {
 		return interaction.reply({
-			content: `${EMOJI.WARNING} Provide at least one of \`hp\`, \`stamina\`, or \`gold\`.`,
+			content: `${EMOJI.WARNING} Provide at least one of \`hp\`, \`stamina\`, \`gold\`, \`xp\`, or \`free_point\`.`,
 			flags: MessageFlags.Ephemeral,
 		});
 	}
@@ -152,7 +164,25 @@ async function handleGrant(interaction) {
 		lines.push(`Gold: ${before} \u2192 ${after} (${goldAmount >= 0 ? '+' : ''}${goldAmount})`);
 	}
 
+	if (freePointAmount !== null) {
+		const before = character.free_point ?? 0;
+		const after = Math.max(0, before + freePointAmount);
+		updates.free_point = after;
+		lines.push(`Free Points: ${before} \u2192 ${after} (${freePointAmount >= 0 ? '+' : ''}${freePointAmount})`);
+	}
+
 	await CharacterBase.update(updates, { where: { id: targetUser.id } });
+
+	if (xpAmount !== null) {
+		const xpResult = await characterUtil.addCharacterExperience(targetUser.id, xpAmount);
+		const freshChar = await CharacterBase.findOne({ where: { id: targetUser.id } });
+		const beforeXp = (character.xp ?? 0);
+		const afterXp = freshChar.xp ?? 0;
+		lines.push(`XP: ${beforeXp} \u2192 ${afterXp} (${xpAmount >= 0 ? '+' : ''}${xpAmount})`);
+		if (xpResult.leveledUp) {
+			lines.push(`Level: ${xpResult.oldLevel} \u2192 ${xpResult.newLevel} (+${xpResult.freeStatPointsGained} free points)`);
+		}
+	}
 
 	return interaction.reply({
 		content: `${EMOJI.SUCCESS} Updated **${character.name}** (${targetUser}):\n${lines.join('\n')}`,

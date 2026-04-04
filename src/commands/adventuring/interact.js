@@ -222,28 +222,17 @@ async function handleMove(interaction, userId) {
 
 		// Post move activity to old and new location channels
 		const characterName = character.name || `<@${userId}>`;
+		const characterGender = character?.gender;
 		try {
 			const locationUtil = interaction.client.locationUtil;
 			if (currentLocation) {
-				await locationUtil.postLocationActivity(interaction.client, currentLocation.id, `*${characterName} has left.*`);
+				await locationUtil.postLocationActivity(interaction.client, currentLocation.id, characterName, 'depart', characterGender);
 			}
 			if (newLocation) {
-				await locationUtil.postLocationActivity(interaction.client, newLocation.id, `*${characterName} has arrived.*`);
+				await locationUtil.postLocationActivity(interaction.client, newLocation.id, characterName, 'arrive', characterGender);
 			}
 		}
 		catch (actErr) { console.error('Error posting location activity:', actErr); }
-
-		// Send look embed to the destination channel (not the original)
-		if (newLocation?.channel) {
-			try {
-				const lookEmbed = await buildLocationEmbed(newLocation, userId, interaction.client.eventUtil, interaction.client.locationUtil);
-				const destChannel = await interaction.client.channels.fetch(newLocation.channel).catch(() => null);
-				if (destChannel) {
-					await destChannel.send({ embeds: [lookEmbed] });
-				}
-			}
-			catch (err) { console.error('Error building look embed after move:', err); }
-		}
 
 		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
 		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;

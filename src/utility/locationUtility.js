@@ -6,6 +6,62 @@ const gamecon = require('@root/Data/gamecon.json');
 // In-memory store: channelId → Discord message ID of the last activity message
 const locationActivityMessages = new Map();
 
+const ARRIVAL_PHRASES = [
+	// Normal (≤5)
+	'{name} đã đến.',
+	'{name} xuất hiện.',
+	'{name} bước vào.',
+	'{name} ghé qua.',
+	'{name} đến rồi.',
+	// Grandiose
+	'Những vì sao đã thẳng hàng! {name} đã hiện diện giữa chúng ta.',
+	'{name} đã đến nơi đây.',
+	'Có vẻ như giang hồ đã đúng — {name} đã đến nơi đây.',
+	'Với bước chân như sấm, khí thế như bão, {name} vĩ đại đã có mặt!',
+	'Dù chỉ là một nhà thám hiểm đi ngang qua! Hãy nhớ lấy tên {pronoun} — {name}.',
+	'Lịch sử sẽ ghi nhớ khoảnh khắc này: {name} đã bước vào.',
+	'Đất trời rung chuyển. {name} đã đến.',
+	'{name} — cái tên mà gió thì thầm từ lâu — cuối cùng đã xuất hiện.',
+	'Kèn vang lên! {name} đã đến!',
+	'Hãy ghi vào sử sách: ngày hôm nay, {name} đã ghé qua.',
+	'Ai đó gọi tên {name} trong giấc mơ, và đây — {pronoun} đã xuất hiện.',
+	'Không cần đa lễ. {name} cùng như người nhà thôi.',
+	'Người ta kháo nhau mãi về {name} — và đây {pronoun} rồi.',
+	'Mặt trời mọc ở phương Đông, và {name} xuất hiện ở đây.',
+	'Hàng ngàn kẻ đã hỏi, hàng ngàn kẻ đã chờ. {name} đã đến.',
+	'Đây là khoảnh khắc mà nhiều người đã mong đợi. {name}.',
+	'Chứng nhân đi! {name} xuất hiện!',
+	'Trống rỗng không còn nữa. {name} lấp đầy khoảng trống đó.',
+	'{name} đã đến, giờ {pronoun} chỉ cần nhìn và chinh phục.',
+];
+
+const DEPARTURE_PHRASES = [
+	// Normal (≤5)
+	'{name} đã rời đi.',
+	'{name} đi rồi.',
+	'{name} bước ra.',
+	'{name} vừa đi khỏi.',
+	'{name} đổi gió.',
+	// Grandiose
+	'Trời đất thở dài. {name} đã rời khỏi nơi này.',
+	'{name} đã cất bước. Gió bỗng lặng hơn.',
+	'Không ai có thể giữ {name} lại mãi. {Pronoun} đã đi.',
+	'Nơi này bỗng nhỏ hơn kể từ khi {name} rời đi.',
+	'Không một lời từ biệt. Chỉ có sự vắng mặt của {name} nói lên tất cả.',
+	'{name} đã hoàn thành sứ mệnh của mình ở đây và ra đi.',
+	'Và thế là {name} đi. Nhanh thật.',
+	'{name} đã rời đi theo cách mà chỉ {name} mới làm được.',
+	'Đừng làm giây phút biệt ly trở nên khó khăn - {name} đã đi rồi.',
+	'Nhiều người đến, nhiều người đi. Lần này là {name}.',
+	'{name} bước đi mà không ngoái đầu lại. Ngầu thật.',
+	'{name} đã rời đi để chinh phục những nơi khác.',
+	'Gió thổi, {name} theo gió mà đi.',
+	'{name} sẽ trở lại vào lúc chúng ta cần nhất.',
+	'Mặc dù thời gian {name} lưu lại không lâu, {pronoun} đã để lại dấu ấn khó phai.',
+	'Như một nhẫn giả {name} đã biến mất không hình không bóng.',
+	'Nín thở và chờ đợi! {name} sẽ quay lại...À mà đừng.',
+];
+
 /**
  * Get current time of day based on server hour
  * Morning: 6-14 (6am to 2pm) = 8 hours
@@ -435,12 +491,24 @@ async function moveCharacterToLocation(characterId, newLocationId, guild = null)
  * Post a move activity message to a location's channel, deleting the previous one.
  * @param {Object} client - Discord client
  * @param {string|number} locationId - Location ID
- * @param {string} text - Message text to post (supports Discord markdown)
+ * @param {string} characterName - Display name of the character
+ * @param {'arrive'|'depart'} activityType - Whether the character arrived or departed
+ * @param {string} [gender] - Character gender ('nam'/'male' or 'nữ'/'female')
  */
-async function postLocationActivity(client, locationId, text) {
+async function postLocationActivity(client, locationId, characterName, activityType, gender) {
 	if (!client || !locationId) return;
 	const location = await LocationBase.findByPk(locationId);
 	if (!location || !location.channel) return;
+
+	const g = (gender || '').toLowerCase();
+	let pronoun = 'họ';
+	if (g === 'nam' || g === 'male' || g === 'm') pronoun = 'anh ta';
+	else if (g === 'nữ' || g === 'nu' || g === 'female' || g === 'f') pronoun = 'cô ấy';
+	const Pronoun = pronoun.charAt(0).toUpperCase() + pronoun.slice(1);
+
+	const phrases = activityType === 'arrive' ? ARRIVAL_PHRASES : DEPARTURE_PHRASES;
+	const template = phrases[Math.floor(Math.random() * phrases.length)];
+	const text = `*${template.replace('{name}', characterName).replace(/\{pronoun\}/g, pronoun).replace(/\{Pronoun\}/g, Pronoun)}*`;
 
 	const channelId = location.channel;
 	try {
