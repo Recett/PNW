@@ -216,7 +216,7 @@ async function getCurrentCookingSession(characterId) {
 		const sessionFlag = await CharacterFlag.findOne({
 			where: {
 				character_id: characterId,
-				flag_name: 'active_cooking_session'
+				flag: 'active_cooking_session'
 			}
 		});
 
@@ -224,7 +224,7 @@ async function getCurrentCookingSession(characterId) {
 			return null;
 		}
 
-		return JSON.parse(sessionFlag.flag_value);
+		return JSON.parse(sessionFlag.value);
 	}
 	catch (error) {
 		console.error(`Error getting cooking session for ${characterId}:`, error);
@@ -332,7 +332,7 @@ async function finishCookingSession(characterId, options = {}) {
 		await CharacterFlag.destroy({
 			where: {
 				character_id: characterId,
-				flag_name: 'active_cooking_session'
+				flag: 'active_cooking_session'
 			}
 		});
 

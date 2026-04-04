@@ -23,6 +23,7 @@ other_items:
     item_type: material
     value: 2
     tag:
+      - base_ingredient
       - cooking_ingredient
       - raw_meat
     metadata:

@@ -392,6 +392,13 @@ class EventProcessor {
 				if (hpFlag) {
 					enemyStartHp = parseInt(hpFlag.value) || null;
 				}
+				// Regen HP before each fight
+				if (enemyStartHp != null && enemyBase?.regen_per_fight) {
+					const maxHp = enemyBase?.stat?.health || enemyStartHp;
+					enemyStartHp = Math.min(maxHp, enemyStartHp + enemyBase.regen_per_fight);
+					await GlobalFlag.upsert({ flag: `global.${enemyId}_hp`, value: String(enemyStartHp) });
+					console.log(`[Combat] Pre-fight regen for ${enemyId}: +${enemyBase.regen_per_fight} HP -> ${enemyStartHp}`);
+				}
 			}
 
 			const combatOptions = enemyStartHp != null ? { enemyStartHp } : {};

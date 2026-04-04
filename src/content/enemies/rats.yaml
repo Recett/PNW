@@ -93,6 +93,7 @@ enemies:
         critical_chance: 5
         cooldown: 90
     regen_per_day: 20
+    regen_per_fight: 20
     reward:
       gold: 0
       exp: 200
@@ -125,6 +126,7 @@ enemies:
         critical_chance: 20
         cooldown: 90
     regen_per_day: 20
+    regen_per_fight: 20
     reward:
       gold: 0
       exp: 200

@@ -277,7 +277,7 @@ async function handleCookingCancel(interaction) {
 		await require('@root/dbObject.js').CharacterFlag.destroy({
 			where: {
 				character_id: userId,
-				flag_name: 'active_cooking_session'
+				flag: 'active_cooking_session'
 			}
 		});
 
