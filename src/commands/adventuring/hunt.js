@@ -17,12 +17,12 @@ function pickEncounterEvent(ratCount, depth, ratKingSlain) {
 	const roll = Math.random() * total;
 	let cursor = 0;
 	cursor += kingTickets;
-	if (kingTickets > 0 && roll < cursor) return 'bilge-encounter-rat-king';
+	if (kingTickets > 0 && roll < cursor) return ratCount > 0 ? 'bilge-encounter-rat-king-undead' : 'bilge-encounter-rat-king-undead-enraged';
 	cursor += miasmaTickets;
 	if (roll < cursor) return 'bilge-encounter-miasma';
 	cursor += ghoulTickets;
 	if (ghoulTickets > 0 && roll < cursor) return 'bilge-encounter-rat-ghoul';
-	return Math.random() < 0.5 ? 'bilge-encounter-rat' : 'bilge-encounter-rat-adult';
+	return Math.random() < 0.5 ? 'bilge-encounter-rat' : 'bilge-encounter-rat-adult-undead';
 }
 
 module.exports = {
@@ -84,17 +84,24 @@ module.exports = {
 			await character.update({ currentStamina: character.currentStamina - STAMINA_COST });
 
 			const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-			const ratCount = ratCountRecord ? parseInt(ratCountRecord.value) || 0 : 50;
+			if (!ratCountRecord) {
+				return await interaction.reply({
+					content: 'The bilge has not been initialized yet. Return after midnight.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+			const ratCount = parseInt(ratCountRecord.value) || 0;
 			const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
 			const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
 
 			const depth = character.depth || 0;
+			const eventUtil = interaction.client.eventUtil;
 			const eventId = pickEncounterEvent(ratCount, depth, ratKingSlain);
 
 			if (!eventId) {
 				if (ratKingSlain) {
 					return await interaction.reply({
-						content: 'The Undead Rat King has been slain. The bilge is silent. There is nothing left to hunt.',
+						content: 'The bilge has been cleared. There is nothing left to hunt.',
 						flags: MessageFlags.Ephemeral,
 					});
 				}
@@ -107,7 +114,6 @@ module.exports = {
 			const newDepth = depth + 1;
 			await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
 
-			const eventUtil = interaction.client.eventUtil;
 			await eventUtil.processEvent(eventId, interaction, userId, { ephemeral: false });
 		}
 		catch (error) {

@@ -193,6 +193,29 @@ enemies:
     reward:
       exp: 60
 
+  - id: rat_adult_undead
+    name: Undead Adult Rat
+    unknown_name: Undead Adult Rat
+    level: 3
+    enemy_type: undead
+    status: active
+    stat:
+      health: 100
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 13
+      speed: 13
+    attack:
+      - id: bite
+        name: Bite
+        base_damage: 22
+        accuracy: 10
+        critical_chance: 5
+        cooldown: 90
+    reward:
+      exp: 80
+
   - id: rat_king_undead
     name: Undead Rat King
     unknown_name: Undead Rat King

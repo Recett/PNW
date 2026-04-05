@@ -657,7 +657,7 @@ async function startCronJob(client) {
 		console.log('Daily task processor cron job started.');
 	}
 
-	if (!bilgeBootstrapJob.running) {
+	if (false && !bilgeBootstrapJob.running) {
 		await CronLog.upsert({
 			job_name: 'bilge_bootstrap',
 			status: 'stopped',
