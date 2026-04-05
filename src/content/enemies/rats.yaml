@@ -177,7 +177,7 @@ enemies:
     enemy_type: undead
     status: active
     stat:
-      health: 60
+      health: 40
       defense: 0
       defense_percent: 0
       crit_resistance: 5
@@ -200,12 +200,12 @@ enemies:
     enemy_type: undead
     status: active
     stat:
-      health: 100
+      health: 80
       defense: 0
       defense_percent: 0
       crit_resistance: 5
-      evade: 13
-      speed: 13
+      evade: 14
+      speed: 14
     attack:
       - id: bite
         name: Bite
@@ -219,7 +219,7 @@ enemies:
   - id: rat_king_undead
     name: Undead Rat King
     unknown_name: Undead Rat King
-    level: 8
+    level: 6
     enemy_type: undead
     status: active
     tag:
@@ -230,8 +230,8 @@ enemies:
       defense: 3
       defense_percent: 0
       crit_resistance: 10
-      evade: 14
-      speed: 14
+      evade: 15
+      speed: 15
     attack:
       - id: bite
         name: Bite
