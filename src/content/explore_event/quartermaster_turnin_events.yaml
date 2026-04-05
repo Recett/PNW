@@ -6,11 +6,11 @@ events:
   # to turn in. Each item grants gold + food stock.
   #
   # Gold rates: dynamically read from each item's `value` field (contentStore).
-  #   rat_meat  → +4 food stock
-  #   herring   → +6 food stock
-  #   mackerel  → +6 food stock
-  #   crab_meat → +8 food stock
-  #   shark_meat→ +8 food stock
+  #   rat_meat  → +4 food stock per unit
+  #   herring   → +6 food stock per unit
+  #   mackerel  → +6 food stock per unit
+  #   crab_meat → +8 food stock per unit
+  #   shark_meat→ +8 food stock per unit
   #
   # Entry point: york-turnin-menu
   # -----------------------------------------------
@@ -25,28 +25,95 @@ events:
     option:
       - id: york-turnin-rat
         text: "Hand over rat meat"
-        next: york-turnin-check-rat
+        next: york-turnin-qty-rat
         display_order: 0
       - id: york-turnin-herring
         text: "Hand over herring"
-        next: york-turnin-check-herring
+        next: york-turnin-qty-herring
         display_order: 1
       - id: york-turnin-mackerel
         text: "Hand over mackerel"
-        next: york-turnin-check-mackerel
+        next: york-turnin-qty-mackerel
         display_order: 2
       - id: york-turnin-crab
         text: "Hand over crab meat"
-        next: york-turnin-check-crab
+        next: york-turnin-qty-crab
         display_order: 3
       - id: york-turnin-shark
         text: "Hand over shark meat"
-        next: york-turnin-check-shark
+        next: york-turnin-qty-shark
         display_order: 4
       - id: york-turnin-leave
         text: "Nothing right now"
         next: york-turnin-farewell
         display_order: 5
+
+  # ── QUANTITY PROMPTS ───────────────────────────
+
+  - id: york-turnin-qty-rat
+    name: "York — Quantity (Rat Meat)"
+    event_type: encounter
+    next: york-turnin-check-rat
+    action:
+      - type: variable
+        variable_name: qty
+        source_type: input
+        is_numeric: true
+        input_label: "How many rat meat?"
+        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        silent: true
+
+  - id: york-turnin-qty-herring
+    name: "York — Quantity (Herring)"
+    event_type: encounter
+    next: york-turnin-check-herring
+    action:
+      - type: variable
+        variable_name: qty
+        source_type: input
+        is_numeric: true
+        input_label: "How many herring?"
+        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        silent: true
+
+  - id: york-turnin-qty-mackerel
+    name: "York — Quantity (Mackerel)"
+    event_type: encounter
+    next: york-turnin-check-mackerel
+    action:
+      - type: variable
+        variable_name: qty
+        source_type: input
+        is_numeric: true
+        input_label: "How many mackerel?"
+        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        silent: true
+
+  - id: york-turnin-qty-crab
+    name: "York — Quantity (Crab Meat)"
+    event_type: encounter
+    next: york-turnin-check-crab
+    action:
+      - type: variable
+        variable_name: qty
+        source_type: input
+        is_numeric: true
+        input_label: "How many crab meat?"
+        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        silent: true
+
+  - id: york-turnin-qty-shark
+    name: "York — Quantity (Shark Meat)"
+    event_type: encounter
+    next: york-turnin-check-shark
+    action:
+      - type: variable
+        variable_name: qty
+        source_type: input
+        is_numeric: true
+        input_label: "How many shark meat?"
+        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        silent: true
 
   # ── RAT MEAT ───────────────────────────────────
 
@@ -59,7 +126,7 @@ events:
         type: item
         item_data:
           - item_id: rat_meat
-            required_quantity: 1
+            required_quantity: "${qty}"
         silent: true
         on_success: york-turnin-take-rat
         on_failure: york-turnin-no-item
@@ -69,18 +136,19 @@ events:
     event_type: encounter
 
     message:
-      text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you two coins."
+      text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you the coins."
 
     action:
       - type: sell
         item: rat_meat
+        quantity: "${qty}"
       - type: flag
         flag_name: global.food_stock
-        flag_value: "4"
+        flag_value: "${qty} * 4"
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: Food stock +4.
+        custom_message: "Food stock +${qty * 4}."
 
   # ── HERRING ────────────────────────────────────
 
@@ -93,7 +161,7 @@ events:
         type: item
         item_data:
           - item_id: herring
-            required_quantity: 1
+            required_quantity: "${qty}"
         silent: true
         on_success: york-turnin-take-herring
         on_failure: york-turnin-no-item
@@ -103,18 +171,19 @@ events:
     event_type: encounter
 
     message:
-      text: "\"Herring. Good.\" York marks it in his ledger and counts out four coins without looking up."
+      text: "\"Herring. Good.\" York marks it in his ledger and counts out the coins without looking up."
 
     action:
       - type: sell
         item: herring
+        quantity: "${qty}"
       - type: flag
         flag_name: global.food_stock
-        flag_value: "6"
+        flag_value: "${qty} * 6"
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: Food stock +6.
+        custom_message: "Food stock +${qty * 6}."
 
   # ── MACKEREL ───────────────────────────────────
 
@@ -127,7 +196,7 @@ events:
         type: item
         item_data:
           - item_id: mackerel
-            required_quantity: 1
+            required_quantity: "${qty}"
         silent: true
         on_success: york-turnin-take-mackerel
         on_failure: york-turnin-no-item
@@ -137,18 +206,19 @@ events:
     event_type: encounter
 
     message:
-      text: "York lifts the mackerel, squeezes it once. \"This'll do.\" Six coins land on the table."
+      text: "York lifts the mackerel, squeezes it once. \"This'll do.\" The coins land on the table."
 
     action:
       - type: sell
         item: mackerel
+        quantity: "${qty}"
       - type: flag
         flag_name: global.food_stock
-        flag_value: "6"
+        flag_value: "${qty} * 6"
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: Food stock +6.
+        custom_message: "Food stock +${qty * 6}."
 
   # ── CRAB MEAT ──────────────────────────────────
 
@@ -161,7 +231,7 @@ events:
         type: item
         item_data:
           - item_id: crab_meat
-            required_quantity: 1
+            required_quantity: "${qty}"
         silent: true
         on_success: york-turnin-take-crab
         on_failure: york-turnin-no-item
@@ -171,18 +241,19 @@ events:
     event_type: encounter
 
     message:
-      text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. Nine coins."
+      text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. The coins follow."
 
     action:
       - type: sell
         item: crab_meat
+        quantity: "${qty}"
       - type: flag
         flag_name: global.food_stock
-        flag_value: "8"
+        flag_value: "${qty} * 8"
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: Food stock +8.
+        custom_message: "Food stock +${qty * 8}."
 
   # ── SHARK MEAT ─────────────────────────────────
 
@@ -195,7 +266,7 @@ events:
         type: item
         item_data:
           - item_id: shark_meat
-            required_quantity: 1
+            required_quantity: "${qty}"
         silent: true
         on_success: york-turnin-take-shark
         on_failure: york-turnin-no-item
@@ -205,18 +276,19 @@ events:
     event_type: encounter
 
     message:
-      text: "York stares at the shark meat for a moment. Then at you. \"Ten coins. Don't make a habit of nearly dying.\""
+      text: "York stares at the shark meat for a moment. Then at you. \"Don't make a habit of nearly dying.\" The coins are generous."
 
     action:
       - type: sell
         item: shark_meat
+        quantity: "${qty}"
       - type: flag
         flag_name: global.food_stock
-        flag_value: "8"
+        flag_value: "${qty} * 8"
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: Food stock +8.
+        custom_message: "Food stock +${qty * 8}."
 
   # ── SHARED OUTCOMES ────────────────────────────
 
@@ -225,7 +297,7 @@ events:
     event_type: encounter
 
     message:
-      text: "York checks your pack and shakes his head. \"You don't have any of that.\""
+      text: "York checks your pack and shakes his head. \"You don't have that many.\""
 
   - id: york-turnin-farewell
     name: "York — Farewell"

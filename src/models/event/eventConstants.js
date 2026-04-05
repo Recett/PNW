@@ -97,6 +97,7 @@ const STAT_OPERATION = {
 	SET: 'set',
 	ADD: 'add',
 	SUBTRACT: 'subtract',
+	PERCENTAGE: 'percentage', // sets stat to X% of its current value
 };
 
 // Stat comparison types for stat checks

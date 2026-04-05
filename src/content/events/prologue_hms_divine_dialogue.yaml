@@ -770,6 +770,13 @@
         text: "${1p} muốn luyện tập. [Tốn 10 stamina]"
         next: hensbane-training-gate
         display_order: 5
+        hidden_check:
+          - type: flag
+            flag_data:
+              flag_name: char.hensbane_rank
+              flag_value: 5
+              flag_comparison: greater_equal
+              is_global_flag: false
 
       - id: bilge-key
         text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
@@ -993,6 +1000,18 @@
     next: hensbane-combat-r1
 
     check:
+      - name: rank_max
+        type: flag
+        flag_data:
+          flag_name: char.hensbane_rank
+          flag_value: 5
+          flag_comparison: greater_equal
+          is_global_flag: false
+        is_required: false
+        silent: true
+        on_success: hensbane-max-rank
+        execution_order: 0
+
       - name: rank_4
         type: flag
         flag_data:
@@ -1003,7 +1022,7 @@
         is_required: false
         silent: true
         on_success: hensbane-combat-r5
-        execution_order: 0
+        execution_order: 1
 
       - name: rank_3
         type: flag
@@ -1015,7 +1034,7 @@
         is_required: false
         silent: true
         on_success: hensbane-combat-r4
-        execution_order: 1
+        execution_order: 2
 
       - name: rank_2
         type: flag
@@ -1027,7 +1046,7 @@
         is_required: false
         silent: true
         on_success: hensbane-combat-r3
-        execution_order: 2
+        execution_order: 3
 
       - name: rank_1
         type: flag
@@ -1039,7 +1058,7 @@
         is_required: false
         silent: true
         on_success: hensbane-combat-r2
-        execution_order: 3
+        execution_order: 4
 
   - id: hensbane-combat-r1
     name: "Hensbane —Sparring Rank 1"
@@ -1276,6 +1295,19 @@
         "Quan trọng là ${2p} đã hiểu cảm giác khi bịáp lực trực tiếp, và đó là bước đầu cần thiết. Sau vài buổi luyện, cơ thể sẽ tự điều chỉnh nhanh hơn."
 
         "Muốn thử lại thì cứ quay lại vào lúc khác, ${npc_1p} sẽ tiếp tục hướng dẫn."
+
+  - id: hensbane-max-rank
+    name: "Hensbane —Max Rank"
+    event_type: dialogue
+    next: hensbane-continue
+
+    message:
+      npc_speaker: law-hensbane
+      message_type: dialogue
+      text: |
+        "${npc_1p} lắc đầu nhẹ. \"${2p} đã qua hết những gì ${npc_1p} có thể dạy trên tàu này. Luyện thêm với ${npc_1p} lúc này sẽ không giúp ${2p} tiến bộ thêm được bao nhiêu.\""
+
+        "\"Phần còn lại là thực chiến và kinh nghiệm thực tế. Muốn giỏi hơn thì phải ra ngoài gặp tình huống thật.\""
 
   - id: hensbane-end
     name: "Hensbane —Kết Thúc Buổi Tập"

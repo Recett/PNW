@@ -526,7 +526,15 @@ let getCharacterCombatStat = async (characterId) => {
  */
 let getCharacterAttackStat = async (characterId) => {
 	const { CharacterAttackStat } = getDbModels();
-	return await CharacterAttackStat.findOne({ where: { character_id: characterId } });
+	const allStats = await CharacterAttackStat.findAll({ where: { character_id: characterId } });
+	if (!allStats || allStats.length === 0) return null;
+	// Prefer the primary (non-shield) weapon attack stat for display purposes
+	for (const stat of allStats) {
+		if (!stat.item_id) return stat; // unarmed
+		const item = await itemUtility.getItemWithDetails(stat.item_id);
+		if (item?.weapon?.subtype !== 'shield') return stat;
+	}
+	return allStats[0];
 };
 
 /**

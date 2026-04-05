@@ -69,6 +69,29 @@ enemies:
           chance: 0.5
           quantity: 2
 
+  - id: rat_ghoul
+    name: Rat Ghoul
+    unknown_name: Rat Ghoul
+    level: 4
+    enemy_type: undead
+    status: active
+    stat:
+      health: 160
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 10
+      evade: 14
+      speed: 14
+    attack:
+      - id: rend
+        name: Rend
+        base_damage: 22
+        accuracy: 12
+        critical_chance: 15
+        cooldown: 90
+    reward:
+      exp: 120
+
   - id: rat_king
     name: Rat King
     unknown_name: Rat King
@@ -133,4 +156,68 @@ enemies:
     drop:
       - id: ratsbane
         chance: 1.0
-        quantity: 1    
+        quantity: 1
+
+  # -----------------------------------------------
+  # UNDEAD RATS — twice as strong as their living counterparts
+  # Shambling and slow, but far tougher and hit harder.
+  # Stat equivalents (undead):
+  #   Undead Rat:       2x HP, 2x dmg, defense+2, half evade/speed
+  #   Undead Rat King:  2x HP, 2x dmg, defense+2, reduced evade/speed
+  #
+  # vs starter armor (def=1): undead_rat=~116% player HP
+  # vs leather armor (def=4): undead_rat=~58% player HP
+  # Player needs ~4 hits to kill undead rat
+  # -----------------------------------------------
+
+  - id: rat_undead
+    name: Undead Rat
+    unknown_name: Undead Rat
+    level: 2
+    enemy_type: undead
+    status: active
+    stat:
+      health: 60
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 16
+      speed: 16
+    attack:
+      - id: bite
+        name: Bite
+        base_damage: 16
+        accuracy: 12
+        critical_chance: 10
+        cooldown: 90
+    reward:
+      exp: 60
+
+  - id: rat_king_undead
+    name: Undead Rat King
+    unknown_name: Undead Rat King
+    level: 8
+    enemy_type: undead
+    status: active
+    tag:
+      - persistent_hp
+      - unique_per_voyage
+    stat:
+      health: 1000
+      defense: 3
+      defense_percent: 0
+      crit_resistance: 10
+      evade: 14
+      speed: 14
+    attack:
+      - id: bite
+        name: Bite
+        base_damage: 30
+        accuracy: 14
+        critical_chance: 10
+        cooldown: 90
+    regen_per_day: 200
+    regen_per_fight: 40
+    reward:
+      gold: 0
+      exp: 400

@@ -1,4 +1,4 @@
-const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting } = require('@root/dbObject.js');
+const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting, CharacterStatus } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 const gamecon = require('@root/Data/gamecon.json');
@@ -432,11 +432,12 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
  * @param {Object} guild - Discord guild object (optional for role updates)
  */
 async function moveCharacterToLocation(characterId, newLocationId, guild = null) {
-	// Reset bilge depth if moving to a non-bilge location
+	// Reset bilge depth and miasma stacks if moving to a non-bilge location
 	const destLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
 	const isBilge = destLoc && Array.isArray(destLoc.tag) && destLoc.tag.includes('bilge');
 	if (!isBilge) {
 		await CharacterBase.update({ depth: 0 }, { where: { id: characterId } });
+		await CharacterStatus.destroy({ where: { character_id: characterId, source: 'bilge' } });
 	}
 
 	// Update character's location in CharacterBase

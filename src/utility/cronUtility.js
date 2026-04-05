@@ -5,6 +5,7 @@ const { CronLog, NpcPurchase, GlobalFlag } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const taskUtility = require('./taskUtility');
 const { getCronMonitor } = require('./cronMonitor');
+const { eventProcessor } = require('./eventUtility');
 
 let _discordClient = null;
 
@@ -26,6 +27,11 @@ const weeklyStockResetJob = new CronJob('0 0 * * 0', async () => {
 // This job runs every day at 01:00 — processes daily tasks (offset from midnight job)
 const dailyTaskJob = new CronJob('0 1 * * *', async () => {
 	await performDailyTasks();
+});
+
+// This job runs every day at 03:00 — initializes bilge ecosystem flags if missing
+const bilgeBootstrapJob = new CronJob('0 3 * * *', async () => {
+	await performBilgeEcosystemBootstrap();
 });
 
 // This job runs every 30 minutes — health monitoring and alerting
@@ -104,13 +110,33 @@ async function performHourlyJob() {
 		`);
 		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
 
+		// Wake up knocked-out players whose 12-hour recovery has expired: set HP to 1
+		const nowSeconds = Math.floor(Date.now() / 1000);
+		await CharacterBase.sequelize.query(`
+			UPDATE character_bases
+			SET currentHp = 1
+			WHERE id IN (
+				SELECT character_id FROM character_flags
+				WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${nowSeconds}
+			) AND currentHp <= 0;
+		`);
+		await CharacterBase.sequelize.query(`
+			DELETE FROM character_flags
+			WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${nowSeconds};
+		`);
+
 		// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
+		// Excludes knocked-out characters (those with an active knocked_out flag)
 		const hpResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
+				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town')
+				AND id NOT IN (
+					SELECT character_id FROM character_flags
+					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${nowSeconds}
+				);
 		`);
 		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
 
@@ -241,76 +267,53 @@ async function performWeeklyStockReset() {
 }
 
 async function performBilgeEcosystemDailyCycle() {
-	const DEFAULTS = { rat_adults: 20, rat_babies: 8, food_stock: 300 };
-	const MAX_ADULTS = 100;
-	const BASE_FOOD_DRAIN = 10;
+	const RAT_COUNT = 50;
+	const KING_MAX_HP = 400; // matches rat_king_undead stat.health
+	const KING_HP_REGEN = 200;
 
-	// Helper to read a global flag as integer
-	async function readFlag(name) {
-		const record = await GlobalFlag.findOne({ where: { flag: name } });
-		return record ? parseInt(record.value) || 0 : null;
+	// Reset the undead rat pool every midnight
+	await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: String(RAT_COUNT) });
+
+	// Rat King does NOT respawn once slain — only regenerate HP if still alive
+	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
+	if (!isSlain) {
+		const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_hp' } });
+		const currentHp = hpRecord ? parseInt(hpRecord.value) || KING_MAX_HP : KING_MAX_HP;
+		const newHp = Math.min(KING_MAX_HP, currentHp + KING_HP_REGEN);
+		await GlobalFlag.upsert({ flag: 'global.undead_rat_king_hp', value: String(newHp) });
+		console.log(`[BilgeEcosystem] Undead Rat King HP regen: ${currentHp} -> ${newHp} (max ${KING_MAX_HP})`);
 	}
 
-	// Helper to write a global flag
-	async function writeFlag(name, value) {
-		await GlobalFlag.upsert({ flag: name, value: String(value) });
+	console.log(`[BilgeEcosystem] Daily reset — undead_rat_count: ${RAT_COUNT}, king slain: ${isSlain}`);
+}
+
+async function performBilgeEcosystemBootstrap() {
+	const KING_MAX_HP = 400;
+
+	// Initialize undead_rat_count if it has never been set
+	const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
+	if (!ratCountRecord) {
+		await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: '50' });
+		console.log('[BilgeBootstrap] Initialized global.undead_rat_count = 50');
 	}
 
-	// --- Initialize flags if not yet seeded ---
-	for (const [key, defaultVal] of Object.entries(DEFAULTS)) {
-		const existing = await readFlag(`global.${key}`);
-		if (existing === null) {
-			await writeFlag(`global.${key}`, defaultVal);
-			console.log(`[BilgeEcosystem] Initialized global.${key} = ${defaultVal}`);
+	// Initialize rat_king HP if it has never been set and king is not slain
+	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
+	if (!isSlain) {
+		const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_hp' } });
+		if (!hpRecord) {
+			await GlobalFlag.upsert({ flag: 'global.undead_rat_king_hp', value: String(KING_MAX_HP) });
+			console.log(`[BilgeBootstrap] Initialized global.undead_rat_king_hp = ${KING_MAX_HP}`);
 		}
 	}
 
-	let adults = await readFlag('global.rat_adults');
-	let babies = await readFlag('global.rat_babies');
-	let food = await readFlag('global.food_stock');
-
-	console.log(`[BilgeEcosystem] Before cycle — adults: ${adults}, babies: ${babies}, food: ${food}`);
-
-	// --- START OF DAY SEQUENCE ---
-	// 1. Food drain for current day
-	const ratDrain = (adults * 2) + (babies * 1);
-	const totalDrain = ratDrain + BASE_FOOD_DRAIN;
-	food = Math.max(0, food - totalDrain);
-
-	// 2. Births (logistic growth, clamped to [10, 20]; peaks at ~50 adults)
-	const births = Math.max(10, Math.min(20, Math.floor(adults * 0.8 * (1 - adults / MAX_ADULTS))));
-
-	// 3. Previous babies are promoted to adults (capped at MAX_ADULTS)
-	adults = Math.min(MAX_ADULTS, adults + babies);
-
-	// 4. New babies added to pool
-	babies = births;
-
-	// Ensure non-negative
-	adults = Math.max(0, adults);
-	babies = Math.max(0, babies);
-
-	console.log(`[BilgeEcosystem] After cycle — adults: ${adults}, babies: ${babies}, food: ${food} (drained: ${totalDrain}, births: ${births})`);
-
-	await writeFlag('global.rat_adults', adults);
-	await writeFlag('global.rat_babies', babies);
-	await writeFlag('global.food_stock', food);
-
-	// --- Rat King HP regen ---
-	// Only applies if the Rat King has been wounded but not slain
-	const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_slain' } });
-	const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
-	if (!ratKingSlain) {
-		const hpFlagRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_hp' } });
-		if (hpFlagRecord) {
-			// Determine max HP from content store (use rat_king base, fallback 200)
-			const ratKingBase = contentStore.enemies.findByPk('rat_king');
-			const maxHp = ratKingBase?.stat?.health || 200;
-			const REGEN = ratKingBase?.regen_per_day || 20;
-			const currentHp = parseInt(hpFlagRecord.value) || 0;
-			const newHp = Math.min(maxHp, currentHp + REGEN);
-			await writeFlag('global.rat_king_hp', newHp);
-			console.log(`[BilgeEcosystem] Rat King HP regenerated: ${currentHp} -> ${newHp} (max ${maxHp})`);
+	if (_discordClient) {
+		const eventData = contentStore.events.findByPk('bilge-ecosystem-bootstrap');
+		const narrateAction = eventData?.action?.find(a => a.type === 'narrate');
+		if (narrateAction) {
+			await eventProcessor.executeNarrateAction(narrateAction, { client: _discordClient, variables: {} });
 		}
 	}
 }
@@ -498,13 +501,33 @@ async function startCronJob(client) {
 				AND currentStamina IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
 		`);
+			// Wake up knocked-out players whose recovery has expired: set HP to 1
+			const catchUpNow = Math.floor(runTime instanceof Date ? runTime.getTime() / 1000 : Date.now() / 1000);
+			await CharacterBase.sequelize.query(`
+			UPDATE character_bases
+			SET currentHp = 1
+			WHERE id IN (
+				SELECT character_id FROM character_flags
+				WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${catchUpNow}
+			) AND currentHp <= 0;
+		`);
+			await CharacterBase.sequelize.query(`
+			DELETE FROM character_flags
+			WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${catchUpNow};
+		`);
+
 			// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
+			// Excludes knocked-out characters (those with an active knocked_out flag)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
+				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town')
+				AND id NOT IN (
+					SELECT character_id FROM character_flags
+					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${catchUpNow}
+				);
 		`);
 
 			// Increment execution count for catch-up runs
@@ -634,6 +657,19 @@ async function startCronJob(client) {
 		console.log('Daily task processor cron job started.');
 	}
 
+	if (!bilgeBootstrapJob.running) {
+		await CronLog.upsert({
+			job_name: 'bilge_bootstrap',
+			status: 'stopped',
+			schedule: '0 3 * * *',
+			description: 'Bilge ecosystem flag initialization — sets missing flags to defaults (runs at 03:00)',
+			is_enabled: true,
+		});
+
+		bilgeBootstrapJob.start();
+		console.log('Bilge bootstrap cron job started.');
+	}
+
 	// Start health monitoring job
 	healthMonitorJob.start();
 	console.log('Health monitor cron job started (runs every 30 minutes).');
@@ -652,6 +688,7 @@ module.exports = {
 	hourlyJob,
 	weeklyStockResetJob,
 	dailyTaskJob,
+	bilgeBootstrapJob,
 	healthMonitorJob,
 	startCronJob,
 	performHealthCheck,

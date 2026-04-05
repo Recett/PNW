@@ -4,6 +4,16 @@ const characterUtility = require('./characterUtility');
 const itemUtility = require('./itemUtility');
 const { getCharacterSetting } = require('./characterSettingUtility');
 
+// Named ambient combat effects. Referenced by name in YAML: combat.ambient_effect
+const AMBIENT_EFFECTS = {
+	bilge_gas: {
+		interval: 50,        // fires every N ticks
+		stat: 'con',         // stat used for the save roll
+		difficulty: 5,       // d1000 target = statValue * difficulty * 10
+		label: 'Bilge Miasma',
+	},
+};
+
 // Discord embed description character limit
 const DISCORD_MESSAGE_LIMIT = 4000;
 
@@ -66,9 +76,7 @@ async function runInitTracker(actors, options = {}) {
 	const actorMap = {};
 	for (const actor of actors) {
 		actorMap[actor.id] = { ...actor };
-		console.log(`=== DEBUG: Actor ${actor.name || actor.id} has ${actor.attacks.length} attacks ===`);
 		for (const attack of actor.attacks) {
-			console.log(`Adding attack tracker: ${attack.name || attack.id} (speed: ${attack.speed}, cooldown: ${attack.cooldown})`);
 			attackTrackers.push({
 				actorId: actor.id,
 				actorName: actor.name || actor.id,
@@ -77,16 +85,18 @@ async function runInitTracker(actors, options = {}) {
 				speed: attack.speed,
 				cooldown: attack.cooldown,
 				// Add small random starting initiative to stagger attacks
-				initiative: Math.floor(Math.random() * (attack.speed || 10)),
+				// initBonus (e.g. longbow: 8×Dex) is added on top for a head-start
+				initiative: Math.floor(Math.random() * (attack.speed || 10)) + (attack.initBonus || 0),
 				attack: attack.attack,
 				accuracy: attack.accuracy,
 				crit: attack.crit,
 				isShield: attack.isShield || false,
 				isGreatshield: attack.isGreatshield || false,
+				// firstStrikeReady: the very first attack from a bonus-initiative weapon is called "First Strike"
+				firstStrikeReady: (attack.initBonus || 0) > 0,
 			});
 		}
 	}
-	console.log(`=== DEBUG: Total attack trackers created: ${attackTrackers.length} ===`);
 
 	for (let tick = 1; tick <= maxTicks; tick++) {
 		for (const tracker of attackTrackers) {
@@ -193,13 +203,20 @@ async function runInitTracker(actors, options = {}) {
 					await options.handleAfterAttackSkills(attacker, target, tracker, { hit: hitResult, crit, critResisted, damage });
 				}
 
+				// Resolve attack display name — first attack from a bonus-initiative weapon is "First Strike"
+				let attackDisplayName = tracker.attackName;
+				if (tracker.firstStrikeReady) {
+					attackDisplayName = 'First Strike';
+					tracker.firstStrikeReady = false;
+				}
+
 				combatLog.push({
 					tick,
 					attacker: tracker.actorName,
 					attackerId: tracker.actorId,
 					target: target.name || target.id,
 					targetId: target.id,
-					attack: tracker.attackName,
+					attack: attackDisplayName,
 					attackValue: tracker.attack || 0,
 					targetDefense: target.defense || 0,
 					hitRate,
@@ -220,6 +237,48 @@ async function runInitTracker(actors, options = {}) {
 				if (target.hp <= 0) break;
 			}
 		}
+		// === Ambient effect tick ===
+		if (options.ambientEffect && tick % options.ambientEffect.interval === 0) {
+			const effect = options.ambientEffect;
+			const playerActor = actorMap[actors[0].id === 'player' ? actors[0].id : actors[1].id];
+			if (playerActor && playerActor.id === 'player') {
+				const conVal = playerActor.con || 0;
+				const dcTarget = Math.min(1000, Math.floor(conVal * effect.difficulty * 10));
+				const roll = Math.floor(Math.random() * 1000) + 1;
+				const passed = roll <= dcTarget;
+
+				if (!passed) {
+					const stacks = playerActor.miasmaStacks || 0;
+					const damage = stacks * Math.floor((playerActor.maxHp || 100) / 100);
+					if (damage > 0) {
+						playerActor.hp = Math.max(0, playerActor.hp - damage);
+					}
+					playerActor.miasmaStacks = stacks + 1;
+					combatLog.push({
+						tick,
+						type: 'ambient',
+						label: effect.label,
+						checkPassed: false,
+						damage,
+						stacks,
+						targetHp: playerActor.hp,
+					});
+					if (playerActor.hp <= 0) break;
+				}
+				else {
+					combatLog.push({
+						tick,
+						type: 'ambient',
+						label: effect.label,
+						checkPassed: true,
+						damage: 0,
+						stacks: playerActor.miasmaStacks || 0,
+						targetHp: playerActor.hp,
+					});
+				}
+			}
+		}
+
 		// End combat if all but one actor is dead
 		const alive = Object.values(actorMap).filter(a => a.hp > 0);
 		if (alive.length <= 1) break;
@@ -273,23 +332,32 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		critResistance: playerCombatStats?.crit_resistance || 0,
 		shieldStrength: 0,
 		shieldIsGreatshield: false,
+		con: playerBase.con || 0,
+		maxHp: playerBase.maxHp || 100,
+		miasmaStacks: 0,     // populated below from DB flag if ambient effect is active
 		attacks: await Promise.all(playerAttacks.map(async (atk) => {
 			// Get weapon name and type info from ItemLib if item_id exists
 			let attackName = 'Attack';
 			let isShield = false;
 			let isGreatshield = false;
+			let isLongbow = false;
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
 					attackName = itemDetails.name;
+					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
 					// Check if weapon is a shield type
-					if (itemDetails.weapon && itemDetails.weapon.subtype && itemDetails.weapon.subtype.toLowerCase() === 'shield') {
+					if (subtype === 'shield') {
 						isShield = true;
 						// Check for greatshield tag in item tags
 						if (itemDetails.tag) {
 							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
 							isGreatshield = tags.some(t => t && t.toLowerCase().includes('greatshield'));
 						}
+					}
+					// Check if weapon is a longbow
+					else if (subtype === 'longbow') {
+						isLongbow = true;
 					}
 				}
 			}
@@ -309,6 +377,8 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				crit: atk.critical || 0,
 				isShield: isShield,
 				isGreatshield: isGreatshield,
+				// Longbow: 8× Dex added to starting initiative (fires First Strike before normal rhythm)
+				initBonus: isLongbow ? 8 * (playerBase.dex || 0) : 0,
 			};
 		})),
 	};
@@ -336,6 +406,15 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		}),
 	};
 
+	// Load miasma stacks from DB if this combat has a bilge ambient effect
+	const ambientEffectName = options.ambientEffect || null;
+	const ambientEffect = ambientEffectName ? (AMBIENT_EFFECTS[ambientEffectName] || null) : null;
+	if (ambientEffect) {
+		const { CharacterStatus } = require('@root/dbObject.js');
+		const miasmaRow = await CharacterStatus.findOne({ where: { character_id: playerId, source: 'bilge' } });
+		player.miasmaStacks = miasmaRow ? (miasmaRow.potency || 0) : 0;
+	}
+
 	// === Call skill triggers: Combat Begin ===
 	await handleCombatBeginSkills([player, enemy]);
 
@@ -344,6 +423,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		[player, enemy],
 		{
 			maxTicks: 400,
+			ambientEffect,
 			handleBeforeAttackSkills,
 			handleAfterAttackSkills,
 		},
@@ -351,6 +431,30 @@ async function mainCombat(playerId, enemyId, options = {}) {
 
 	// === Call skill triggers: Combat End ===
 	await handleCombatEndSkills(Object.values(actors));
+
+	// Save miasma stacks back to DB if they changed during combat
+	if (ambientEffect && actors.player) {
+		const newStacks = actors.player.miasmaStacks || 0;
+		if (newStacks !== player.miasmaStacks) {
+			const { CharacterStatus } = require('@root/dbObject.js');
+			if (newStacks === 0) {
+				await CharacterStatus.destroy({ where: { character_id: playerId, source: 'bilge' } });
+			}
+			else {
+				const [miasmaStatus, created] = await CharacterStatus.findOrCreate({
+					where: { character_id: playerId, source: 'bilge' },
+					defaults: {
+						category: 'debuff',
+						scope: 'persistent',
+						potency: newStacks,
+					},
+				});
+				if (!created) {
+					await miasmaStatus.update({ potency: newStacks });
+				}
+			}
+		}
+	}
 
 	// === Handle combat end rewards (gold, exp, items, weapon skill XP) ===
 	const lootResults = await handleCombatEnd(playerId, enemyId, actors, combatLog, player.attacks);
@@ -361,6 +465,12 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	// Update player's HP in the database
 	if (actors.player) {
 		await characterUtility.setCharacterStat(playerId, 'currentHp', actors.player.hp);
+
+		// If player was knocked out, set a 12-hour recovery flag
+		if (actors.player.hp <= 0) {
+			const recoveryTime = Math.floor(Date.now() / 1000) + 12 * 3600;
+			await characterUtility.updateCharacterFlag(playerId, 'knocked_out', recoveryTime);
+		}
 	}
 
 	// Generate battle report with appropriate format
@@ -828,6 +938,15 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	let currentGroup = null;
 
 	for (const log of combatLog) {
+		// Ambient entries are never grouped — flush current group and insert standalone
+		if (log.type === 'ambient') {
+			if (currentGroup) {
+				groupedLogs.push(currentGroup);
+				currentGroup = null;
+			}
+			groupedLogs.push({ type: 'ambient', log });
+			continue;
+		}
 		if (currentGroup &&
 			currentGroup.attacker === log.attacker &&
 			currentGroup.target === log.target &&
@@ -877,6 +996,28 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	let lastAttacker = null;
 
 	for (const group of groupedLogs) {
+		// Render ambient environment entries
+		if (group.type === 'ambient') {
+			const { log } = group;
+			if (log.checkPassed) {
+				actionLines.push('');
+				actionLines.push('*There is something foul in the air...*');
+			}
+			else {
+				const newStacks = log.stacks + 1;
+				actionLines.push('');
+				actionLines.push('*You feels hard to breathe.*');
+				if (log.damage > 0) {
+					actionLines.push(`└─ ${log.label}: -${log.damage} HP | Stacks: ${log.stacks} → ${newStacks} | HP: ${log.targetHp}`);
+				}
+				else {
+					actionLines.push(`└─ ${log.label}: Stacks: ${log.stacks} → ${newStacks} | HP: ${log.targetHp}`);
+				}
+			}
+			lastAttacker = null;
+			continue;
+		}
+
 		// Add empty line between different attackers' turns
 		if (lastAttacker !== null && lastAttacker !== group.attacker) {
 			actionLines.push('');
@@ -1040,7 +1181,6 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 
 	// If report fits in one message, return it
 	if (fullReport.length <= DISCORD_MESSAGE_LIMIT) {
-		console.log(fullReport);
 		return fullReport;
 	}
 
@@ -1119,7 +1259,6 @@ function paginateBattleReport(header, actionLines, footer) {
 		pages.push(footer + pageIndicator(currentPageNum, pageCount));
 	}
 
-	console.log(`Battle report paginated into ${pages.length} pages`);
 	return { pages };
 }
 
@@ -1138,7 +1277,6 @@ function truncateBattleReport(header, actionLines, footer) {
 	if (actionLines.length <= showFirstLines + showLastLines) {
 		// Not enough lines to truncate, just return full
 		const report = header + actionLines.join('\n') + '\n\n' + footer;
-		console.log(report);
 		return report;
 	}
 
@@ -1165,7 +1303,6 @@ function truncateBattleReport(header, actionLines, footer) {
 		report += footer;
 	}
 
-	console.log(report);
 	return report;
 }
 

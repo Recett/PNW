@@ -402,6 +402,9 @@ class EventProcessor {
 			}
 
 			const combatOptions = enemyStartHp != null ? { enemyStartHp } : {};
+			if (combat.ambient_effect) {
+				combatOptions.ambientEffect = combat.ambient_effect;
+			}
 			const combatResult = await combatUtil.mainCombat(session.characterId, enemyId, combatOptions);
 
 			// Persist enemy HP if enemy survived the encounter
@@ -1102,7 +1105,7 @@ class EventProcessor {
 			return;
 		}
 
-		const client = session.interaction?.client;
+		const client = session.client ?? session.interaction?.client;
 		if (!client) {
 			console.error('[Narrate] No client available in session for narrate action');
 			return;
@@ -1127,13 +1130,13 @@ class EventProcessor {
 	}
 
 	/**
-	 * Execute sell action - removes 1 of the specified item and gives gold equal to the item's value.
-	 * YAML fields: item (item id), silent (bool), custom_message (optional)
+	 * Execute sell action - removes items and gives gold equal to item's value * quantity.
+	 * YAML fields: item (item id), quantity (default 1, supports ${variable} expressions), silent (bool), custom_message (optional)
 	 */
 	async executeSellAction(action, session) {
 		if (!session.characterId) return;
 
-		const { item, silent, custom_message } = action;
+		const { item, quantity, silent, custom_message } = action;
 		if (!item) return;
 
 		const itemData = contentStore.items.findByPk(String(item));
@@ -1142,9 +1145,10 @@ class EventProcessor {
 			return;
 		}
 
-		const goldAmount = itemData.value ?? 0;
+		const resolvedQuantity = Math.max(1, parseInt(this.resolveExpression(quantity ?? 1, session)) || 1);
+		const goldAmount = (itemData.value ?? 0) * resolvedQuantity;
 
-		await characterUtil.removeCharacterItem(session.characterId, item, 1);
+		await characterUtil.removeCharacterItem(session.characterId, item, resolvedQuantity);
 		await characterUtil.modifyCharacterStat(session.characterId, 'gold', goldAmount);
 
 		if (!silent) {
@@ -1556,12 +1560,13 @@ class EventProcessor {
 			result = await characterUtil.modifyCharacterStat(session.characterId, stat_name, -resolvedValue);
 			newStatValue = await characterUtil.getCharacterStat(session.characterId, stat_name);
 			break;
-		case STAT_OPERATION.PERCENTAGE:
+		case STAT_OPERATION.PERCENTAGE: {
 			const current = await characterUtil.getCharacterStat(session.characterId, stat_name);
-			const newVal = Math.floor(current * (resolvedValue / 100));
+			const newVal = Math.max(1, Math.floor(current * (resolvedValue / 100)));
 			result = await characterUtil.setCharacterStat(session.characterId, stat_name, newVal);
 			newStatValue = newVal;
 			break;
+		}
 		}
 
 		// Store result in output variable if specified

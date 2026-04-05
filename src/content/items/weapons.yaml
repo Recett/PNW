@@ -321,7 +321,7 @@ weapons:
       base_damage: 4
       scaling: 0.3
       hit_mod: 0.75
-      cooldown: 120
+      cooldown: 300
 
   - id: shield_2
     name: Round Shield
@@ -337,7 +337,7 @@ weapons:
       base_damage: 6
       scaling: 0.3
       hit_mod: 0.75
-      cooldown: 110
+      cooldown: 300
 
   - id: ratsbane
     name: "Ratsbane"
