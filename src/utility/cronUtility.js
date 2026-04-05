@@ -13,21 +13,21 @@ const GALEBY_APPEAR_CHANCE = 25; // 25% per hour → ~6 visible hours per 24h
 
 const job = new CronJob('0 0 * * *', async () => {
 	await performCronJob();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 const hourlyJob = new CronJob('0 * * * *', async () => {
 	await performHourlyJob();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 // This job runs every Sunday at 00:00 — resets NPC shop purchase counts
 const weeklyStockResetJob = new CronJob('0 0 * * 0', async () => {
 	await performWeeklyStockReset();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 // This job runs every day at 01:00 — processes daily tasks (offset from midnight job)
 const dailyTaskJob = new CronJob('0 1 * * *', async () => {
 	await performDailyTasks();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 // This job runs every day at 04:00 GMT+7 — initializes bilge ecosystem flags if missing
 const bilgeBootstrapJob = new CronJob('0 4 * * *', async () => {
@@ -37,7 +37,7 @@ const bilgeBootstrapJob = new CronJob('0 4 * * *', async () => {
 // This job runs every 30 minutes — health monitoring and alerting
 const healthMonitorJob = new CronJob('*/30 * * * *', async () => {
 	await performHealthCheck();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 // Do NOT start the job automatically
 
