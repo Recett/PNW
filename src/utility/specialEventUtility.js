@@ -299,9 +299,9 @@ async function finishCookingSession(characterId, options = {}) {
 			};
 		}
 
-		// Calculate final dish quality/value based on traits and combinations
-		const dishQuality = calculateDishQuality(session.traits, session.additivesUsed);
+		// Calculate final dish quality/value based on score derived from traits
 		const dishScore = calculateDishScore(session.traits);
+		const dishQuality = calculateDishQuality(session.traits);
 		
 		// Create the finished dish item (this would need item creation logic)
 		const finishedDish = {
@@ -430,26 +430,13 @@ function getSpiceItemId(spiceId) {
 	return spiceItemMapping[spiceId.toLowerCase()] || null;
 }
 
-function calculateDishQuality(traits, additivesUsed) {
-	// Calculate dish quality based on traits and cooking complexity
-	let quality = 'Common';
-	const traitCount = traits.length;
-	const additiveCount = additivesUsed.length;
-	
-	if (traitCount >= 8 || additiveCount >= 4) {
-		quality = 'Legendary';
-	}
-	else if (traitCount >= 6 || additiveCount >= 3) {
-		quality = 'Epic';
-	}
-	else if (traitCount >= 4 || additiveCount >= 2) {
-		quality = 'Rare';
-	}
-	else if (traitCount >= 2 || additiveCount >= 1) {
-		quality = 'Uncommon';
-	}
-	
-	return quality;
+function calculateDishQuality(traits) {
+	const score = calculateDishScore(traits);
+	if (score > 200) return 'Legendary';
+	if (score > 100) return 'Epic';
+	if (score > 50)  return 'Rare';
+	if (score > 20)  return 'Uncommon';
+	return 'Common';
 }
 
 /**

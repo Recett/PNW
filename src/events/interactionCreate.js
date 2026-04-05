@@ -125,10 +125,6 @@ async function handleTradeInteraction(interaction) {
 
 	const { getCharacterBase } = require('../utility/characterUtility');
 	const tradeUtility = require('../utility/tradeUtility');
-	const { Trade, TradeItem, CharacterItem, CharacterBase } = require('../dbObject');
-
-	// Initialize trade utility models if not already done
-	tradeUtility.initModels({ Trade, TradeItem, CharacterItem, CharacterBase });
 
 	const character = await getCharacterBase(interaction.user.id);
 	if (!character) {

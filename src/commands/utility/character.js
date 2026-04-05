@@ -210,9 +210,13 @@ module.exports = {
 			}
 
 			if (avatar) {
-				if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)($|\?)/i.test(avatar)) {
+				try {
+					const parsed = new URL(avatar);
+					if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error();
+				}
+				catch {
 					return await interaction.reply({
-						content: 'Please provide a valid image URL (jpg, jpeg, png, gif, webp).',
+						content: 'Please provide a valid image URL (must start with http:// or https://).',
 						flags: MessageFlags.Ephemeral,
 					});
 				}

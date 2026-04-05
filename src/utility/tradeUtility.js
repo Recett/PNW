@@ -1,19 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const contentStore = require('@root/contentStore.js');
 const characterUtil = require('@utility/characterUtility.js');
-
-// Will be initialized after dbObject is loaded
-let Trade, TradeItem, CharacterItem, CharacterBase;
-
-/**
- * Initialize models - call this after dbObject is ready
- */
-function initModels(models) {
-	Trade = models.Trade;
-	TradeItem = models.TradeItem;
-	CharacterItem = models.CharacterItem;
-	CharacterBase = models.CharacterBase;
-}
+const { Trade, TradeItem, CharacterItem, CharacterBase } = require('@root/dbObject');
 
 /**
  * Check if a player has an active trade
@@ -440,7 +428,6 @@ async function getPlayerTradeItems(tradeId, characterId) {
 }
 
 module.exports = {
-	initModels,
 	getActiveTrade,
 	createTrade,
 	acceptTrade,

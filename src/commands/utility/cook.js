@@ -156,6 +156,16 @@ async function handleAdditiveAddition(interaction) {
 	const additiveId = interaction.values[0];
 
 	try {
+		// Stamina check before adding additive
+		const ADDITIVE_STAMINA_COST = 2;
+		const character = await CharacterBase.findOne({ where: { id: userId } });
+		if ((character?.currentStamina ?? 0) < ADDITIVE_STAMINA_COST) {
+			return interaction.reply({
+				content: `Bạn quá mệt để thêm gia vị. (C\u1ea7n ${ADDITIVE_STAMINA_COST} stamina, hi\u1ec7n c\u00f3 ${character?.currentStamina ?? 0})`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+
 		const result = await specialEventUtil.addAdditiveToSession(userId, additiveId, { requireAdditiveItem: false });
 		
 		if (!result.success) {
@@ -166,7 +176,7 @@ async function handleAdditiveAddition(interaction) {
 		}
 
 		// Consume 2 stamina for adding additive
-		await characterUtil.modifyCharacterStat(userId, 'currentStamina', -2, 'add');
+		await characterUtil.modifyCharacterStat(userId, 'currentStamina', -ADDITIVE_STAMINA_COST, 'add');
 
 		await showCookingInterface(interaction, userId, result.session);
 
