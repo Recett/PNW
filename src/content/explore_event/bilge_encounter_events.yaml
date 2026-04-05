@@ -337,7 +337,7 @@ events:
 
     message:
       text: |
-        Bầy chuột thối rữa dạt ra hai bên. Một khối đen khổng lồ xuất hiện từ bóng tối. Vua Chuột không chết — nó đang đứng trước mặt bạn.
+        Rat King - hoặc ít nhất thứ đã từng là Rat King - xuất hiện trước mặt bạn. Nó đã chết, nhưng vẫn di chuyển. Xương của nó lộ ra ở một vài chỗ, và những mảng lông còn sót lại rụng xuống khi nó đi lại.
 
     enemy:
       - enemy: rat_king_undead
@@ -390,76 +390,7 @@ events:
     event_type: combat
 
     message:
-      text: "Bạn vấp ngã. Vua Chuột không chết chặn lối thoát, chuẩn bị nghiền nát bạn."
-
-    combat:
-      enemy: rat_king_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-undead-victory
-      on_defeat: bilge-defeat
-
-  # ── RAT KING UNDEAD ENRAGED (all rats dead) ────
-
-  - id: bilge-encounter-rat-king-undead-enraged
-    name: "The Undead Rat King (Enraged)"
-    event_type: encounter
-
-    message:
-      text: |
-        Hầm tàu im lặng đến rợn người. Không có gì di chuyển. Rồi bạn nghe thấy nó — một tiếng rít trầm, đều đặn. Vua Chuột không chết xuất hiện từ bóng tối, đôi mắt đỏ rực như lửa. Tất cả lũ chuột đã bị tiêu diệt. Giờ chỉ còn nó.
-
-    enemy:
-      - enemy: rat_king_undead
-        display_order: 0
-
-    option:
-      - id: bilge-rat-king-undead-enraged-fight
-        text: "Chiến đấu"
-        next: bilge-fight-rat-king-undead-enraged
-        display_order: 0
-      - id: bilge-rat-king-undead-enraged-flee
-        text: "Bỏ chạy"
-        next: bilge-flee-rat-king-undead-enraged
-        display_order: 1
-
-  - id: bilge-fight-rat-king-undead-enraged
-    name: "Fight the Enraged Undead Rat King"
-    event_type: combat
-
-    combat:
-      enemy: rat_king_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-undead-victory
-      on_defeat: bilge-defeat
-
-  - id: bilge-flee-rat-king-undead-enraged
-    name: "Flee from the Enraged Undead Rat King"
-    event_type: encounter
-
-    check:
-      - name: flee-speed-rat-king-undead-enraged
-        type: stat
-        stat_data:
-          stat_name: agi
-          use_dice_roll: true
-          difficulty_modifier: 6.5
-        silent: true
-        on_success: bilge-flee-success
-        on_failure: bilge-flee-fail-rat-king-undead-enraged
-
-    action:
-      - type: stat
-        stat_name: stamina
-        value: "-15"
-        operation: add
-        silent: true
-
-  - id: bilge-flee-fail-rat-king-undead-enraged
-    name: "Flee failed — Enraged Undead Rat King"
-    event_type: combat
-
-    message:
-      text: "Không kịp. Vua Chuột không chết cắn phập vào chân bạn từ phía sau."
+      text: "Bạn vấp ngã. Undead Rat King chặn lối thoát, chuẩn bị nghiền nát bạn."
 
     combat:
       enemy: rat_king_undead
@@ -494,14 +425,9 @@ events:
     event_type: encounter
 
     message:
-      text: "Bạn đã hạ gục con chuột. Thu được một ít thịt chuột."
+      text: "Bạn đã hạ gục con chuột. Không chắc nó sẽ không dậy lại lần nữa, nhưng bạn tạm thời an toàn."
 
     action:
-      - type: item
-        item: rat_meat
-        quantity: "1"
-        operation: give
-        silent: false
       - type: flag
         flag_name: global.undead_rat_count
         flag_value: "1"
@@ -511,15 +437,11 @@ events:
         silent: false
         custom_message: "Còn lại ${remaining_rats} con chuột dưới hầm tàu."
 
-  # Fired by hunt.js when undead_rat_count=0 AND undead_rat_king_slain=1.
-  # Sets the permanent bilge_cleared flag, awards XP to all, then posts to storyboard.
+  # Chained via `next:` from bilge-rat-king-undead-victory.
+  # Sets global.undead_bilge_cleared and posts storyboard narration.
   - id: bilge-undead-cleared
     name: "Undead Bilge Cleared"
     event_type: encounter
-
-    message:
-      text: |
-        Vua Chuột không-chết đã bị tiêu diệt. Hầm tàu im lặng hoàn toàn.
 
     action:
       - type: flag
@@ -710,7 +632,7 @@ events:
     event_type: encounter
 
     message:
-      text: "Bạn kiểm soát hơi thở, bước chậm rãi qua lớp khói. Cơ thể chịu đựng được hầu hết độc tố — chỉ một phần nhỏ thấm vào."
+      text: "Bạn kiểm soát hơi thở, bước qua chậm rãi nhưng an toàn."
 
     action:
       - type: variable
