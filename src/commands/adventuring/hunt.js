@@ -2,12 +2,27 @@ const { SlashCommandBuilder, InteractionContextType, MessageFlags } = require('d
 const { CharacterBase, GlobalFlag } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 
-// Bilge encounter raffle:
-//   ratTickets   = current global.undead_rat_count (50 max)
-//   kingTickets  = floor(depth / 2), 0 if king is already slain
+// Original rat system — encounter weights scale with depth:
+//   ratWeight   = max(1, 8 - depth*2)  — decreases, floor 1
+//   adultWeight = depth*2              — grows linearly
+//   kingWeight  = max(0, (depth-3)*2) — zero until depth 4, then grows; 0 if king is slain
+function pickEncounterEventOriginal(depth, ratKingSlain) {
+	const ratWeight = Math.max(1, 8 - depth * 2);
+	const adultWeight = depth * 2;
+	const kingWeight = ratKingSlain ? 0 : Math.max(0, (depth - 3) * 2);
+	const total = ratWeight + adultWeight + kingWeight;
+	const roll = Math.random() * total;
+	if (kingWeight > 0 && roll < kingWeight) return 'bilge-encounter-rat-king';
+	if (roll < kingWeight + adultWeight) return 'bilge-encounter-rat-adult';
+	return 'bilge-encounter-rat';
+}
+
+// Undead rat system — encounter raffle:
+//   ratTickets    = current global.undead_rat_count (50 max)
+//   kingTickets   = floor(depth / 2), 0 if king is already slain
 //   miasmaTickets = 3 — constant low-chance environmental hazard
-//   ghoulTickets = floor(depth / 3) — rare, grows with depth
-function pickEncounterEvent(ratCount, depth, ratKingSlain) {
+//   ghoulTickets  = floor(depth / 3) — rare, grows with depth
+function pickEncounterEventUndead(ratCount, depth, ratKingSlain) {
 	const ratTickets = ratCount;
 	const kingTickets = ratKingSlain ? 0 : Math.floor(depth / 2);
 	const miasmaTickets = 3;
@@ -43,6 +58,14 @@ module.exports = {
 				});
 			}
 
+			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
+			if (bilgeClearedRecord && parseInt(bilgeClearedRecord.value) === 1) {
+				return await interaction.reply({
+					content: 'The bilge has been cleared. There is nothing left to hunt.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
+
 			const locationUtil = interaction.client.locationUtil;
 			const channel = interaction.channel;
 			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
@@ -63,13 +86,14 @@ module.exports = {
 				});
 			}
 
+			const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+			if (!hasKey) {
+				const eventUtil = interaction.client.eventUtil;
+				return await eventUtil.processEvent('bilge-door-locked', interaction, userId, { ephemeral: false });
+			}
+
 			const [bilgeFlag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
 			if (!bilgeFlag.value) {
-				const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
-				if (!hasKey) {
-					const eventUtil = interaction.client.eventUtil;
-					return await eventUtil.processEvent('bilge-door-locked', interaction, userId, { ephemeral: false });
-				}
 				await bilgeFlag.update({ value: 1 });
 				await characterUtil.removeCharacterItem(userId, 'bilge-key');
 			}
@@ -83,37 +107,65 @@ module.exports = {
 			}
 			await character.update({ currentStamina: character.currentStamina - STAMINA_COST });
 
-			const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-			if (!ratCountRecord) {
-				return await interaction.reply({
-					content: 'The bilge has not been initialized yet. Return after midnight.',
-					flags: MessageFlags.Ephemeral,
-				});
-			}
-			const ratCount = parseInt(ratCountRecord.value) || 0;
-			const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
-			const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
-
 			const depth = character.depth || 0;
 			const eventUtil = interaction.client.eventUtil;
-			const eventId = pickEncounterEvent(ratCount, depth, ratKingSlain);
 
-			if (!eventId) {
-				if (ratKingSlain) {
+			// If the undead system is initialized, run it instead of the original system.
+			const undeadRatCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
+			if (undeadRatCountRecord) {
+				const ratCount = parseInt(undeadRatCountRecord.value) || 0;
+				const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+				const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
+
+				const eventId = pickEncounterEventUndead(ratCount, depth, ratKingSlain);
+				if (!eventId) {
+					if (ratKingSlain) {
+						return await interaction.reply({
+							content: 'The bilge has been cleared. There is nothing left to hunt.',
+							flags: MessageFlags.Ephemeral,
+						});
+					}
 					return await interaction.reply({
-						content: 'The bilge has been cleared. There is nothing left to hunt.',
+						content: 'There are no rats left in the bilge. Return at midnight when they respawn.',
 						flags: MessageFlags.Ephemeral,
 					});
 				}
-				return await interaction.reply({
-					content: 'There are no rats left in the bilge. Return at midnight when they respawn.',
-					flags: MessageFlags.Ephemeral,
-				});
+
+				const newDepth = depth + 1;
+				await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
+				await eventUtil.processEvent(eventId, interaction, userId, { ephemeral: false });
+				return;
+			}
+
+			// Original system.
+			const ratAdultsRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_adults' } });
+			const ratAdults = ratAdultsRecord ? parseInt(ratAdultsRecord.value) || 0 : 0;
+			const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_slain' } });
+			const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
+
+			if (ratAdults <= 0 && ratKingSlain === 1) {
+				console.log('[Hunt] Bilge cleared! Awarding 1000 XP to all characters.');
+				const allCharacters = await CharacterBase.findAll();
+				for (const char of allCharacters) {
+					try {
+						await characterUtil.modifyCharacterStat(char.id, 'xp', 1000);
+					}
+					catch (err) {
+						console.error(`[Hunt] Failed to award XP to ${char.id}:`, err);
+					}
+				}
+				return await eventUtil.processEvent('bilge-cleared', interaction, userId, { ephemeral: true });
+			}
+
+			if (ratAdults <= 0) {
+				const newDepth = depth + 1;
+				await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
+				return await eventUtil.processEvent('bilge-encounter-rat-king-enraged', interaction, userId, { ephemeral: false });
 			}
 
 			const newDepth = depth + 1;
 			await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
-
+			const eventId = pickEncounterEventOriginal(newDepth, ratKingSlain);
 			await eventUtil.processEvent(eventId, interaction, userId, { ephemeral: false });
 		}
 		catch (error) {

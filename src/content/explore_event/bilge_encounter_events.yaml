@@ -30,9 +30,8 @@ events:
     name: "Fight rat"
     event_type: combat
     combat:
-      enemy: rat_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
+      enemy: rat
+      on_victory: bilge-victory
       on_defeat: bilge-defeat
 
   - id: bilge-flee-rat
@@ -58,16 +57,15 @@ events:
         silent: true
 
   - id: bilge-flee-fail-rat
-    name: "Flee failed — rat (undead)"
+    name: "Flee failed — rat"
     event_type: combat
 
     message:
-      text: "Bạn trượt chân trên sàn ướt. Con chuột lập tức lao tới tấn công."
+      text: "Bạn trượt chân trên sàn ườt. Con chuột lập tức lao tới tấn công."
 
     combat:
-      enemy: rat_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
+      enemy: rat
+      on_victory: bilge-victory
       on_defeat: bilge-defeat
 
   # ── RAT ADULT ENCOUNTER (depth 2+) ────────────
@@ -95,8 +93,7 @@ events:
 
     combat:
       enemy: rat_adult
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
+      on_victory: bilge-victory
       on_defeat: bilge-defeat
 
   - id: bilge-flee-rat-adult
@@ -122,7 +119,7 @@ events:
         silent: true
 
   - id: bilge-flee-fail-rat-adult
-    name: "Flee failed — adult rat (undead)"
+    name: "Flee failed — adult rat"
     event_type: combat
 
     message:
@@ -130,8 +127,7 @@ events:
 
     combat:
       enemy: rat_adult
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
+      on_victory: bilge-victory
       on_defeat: bilge-defeat
 
   # ── RAT KING ENCOUNTER (depth 4+, rare) ───────
@@ -164,7 +160,6 @@ events:
 
     combat:
       enemy: rat_king
-      ambient_effect: bilge_gas
       on_victory: bilge-rat-king-victory
       on_defeat: bilge-defeat
 
@@ -199,7 +194,7 @@ events:
 
     combat:
       enemy: rat_king
-      ambient_effect: bilge_gas
+
       on_victory: bilge-rat-king-victory
       on_defeat: bilge-defeat
 
@@ -233,7 +228,6 @@ events:
 
     combat:
       enemy: rat_king_enraged
-      ambient_effect: bilge_gas
       on_victory: bilge-rat-king-victory
       on_defeat: bilge-defeat
 
@@ -268,7 +262,6 @@ events:
 
     combat:
       enemy: rat_king_enraged
-      ambient_effect: bilge_gas
       on_victory: bilge-rat-king-victory
       on_defeat: bilge-defeat
 
@@ -367,7 +360,7 @@ events:
     combat:
       enemy: rat_king_undead
       ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-victory
+      on_victory: bilge-rat-king-undead-victory
       on_defeat: bilge-defeat
 
   - id: bilge-flee-rat-king-undead
@@ -402,7 +395,7 @@ events:
     combat:
       enemy: rat_king_undead
       ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-victory
+      on_victory: bilge-rat-king-undead-victory
       on_defeat: bilge-defeat
 
   # ── RAT KING UNDEAD ENRAGED (all rats dead) ────
@@ -436,7 +429,7 @@ events:
     combat:
       enemy: rat_king_undead
       ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-victory
+      on_victory: bilge-rat-king-undead-victory
       on_defeat: bilge-defeat
 
   - id: bilge-flee-rat-king-undead-enraged
@@ -471,7 +464,7 @@ events:
     combat:
       enemy: rat_king_undead
       ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-victory
+      on_victory: bilge-rat-king-undead-victory
       on_defeat: bilge-defeat
 
   # ── OUTCOMES ───────────────────────────────────
@@ -489,6 +482,12 @@ events:
         quantity: "1"
         operation: give
         silent: false
+      - type: flag
+        flag_name: global.rat_adults
+        flag_value: "1"
+        flag_operation: subtract
+        flag_type: global
+        silent: true
 
   - id: bilge-victory-rat
     name: "Undead rat killed"
@@ -514,6 +513,31 @@ events:
 
   # Fired by hunt.js when undead_rat_count=0 AND undead_rat_king_slain=1.
   # Sets the permanent bilge_cleared flag, awards XP to all, then posts to storyboard.
+  - id: bilge-undead-cleared
+    name: "Undead Bilge Cleared"
+    event_type: encounter
+
+    message:
+      text: |
+        Vua Chuột không-chết đã bị tiêu diệt. Hầm tàu im lặng hoàn toàn.
+
+    action:
+      - type: flag
+        flag_name: global.undead_bilge_cleared
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: narrate
+        channel: storyboard
+        title: "Hầm Tàu Im Lặng Lần Nữa"
+        text: |
+          Bầu không khí nặng nề trong hầm tàu cuối cùng cũng tan biến. Vua Chuột không-chết — thứ đã cai trị bóng tối phía dưới — đã bị tiêu diệt hoàn toàn.
+
+          Những bộ xương chuột rải rác trên sàn gỗ ướt. Không còn tiếng sột soạt, không còn tiếng rít, không còn ánh đỏ rực từ đôi mắt trong bóng tối.
+
+          Hầm tàu đã được thanh tẩy.
+
   - id: bilge-cleared
     name: "Bilge Cleared"
     event_type: encounter
@@ -561,6 +585,33 @@ events:
         operation: give
         silent: false
       - type: flag
+        flag_name: char.rat_king_slain
+        flag_value: "1"
+        flag_operation: set
+        flag_type: character
+        silent: true
+      - type: flag
+        flag_name: global.rat_king_slain
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+  - id: bilge-rat-king-undead-victory
+    name: "Undead Rat King killed"
+    event_type: encounter
+
+    message:
+      text: |
+        Vua Chuột không-chết gục ngã. Xác nó tan rã thành bụi và xương mục. Hầm tàu bỗng tĩnh lặng hoàn toàn.
+
+    action:
+      - type: item
+        item: ratsbane
+        quantity: "1"
+        operation: give
+        silent: false
+      - type: flag
         flag_name: char.undead_rat_king_slain
         flag_value: "1"
         flag_operation: set
@@ -582,11 +633,11 @@ events:
         channel: storyboard
         title: "Và rồi..."
         text: |
-          Bầu không khí dưới hầm tàu nhẹ dần khi Vua Chuột gục ngã. Những con chuột còn lại từ từ trở lại thành những bộ xương.
+          Bầu không khí dưới hầm tàu nhẹ dần khi Vua Chuột không-chết gục ngã. Những con chuột còn lại từ từ trở lại thành những bộ xương vô hồn.
 
           *Chuyện gì đã xảy ra?*
 
-    next: bilge-cleared
+    next: bilge-undead-cleared
 
   - id: bilge-defeat
     name: "Lost in bilge"
@@ -627,8 +678,7 @@ events:
 
     message:
       text: |
-        Một bóng đen khổng lồ đứng giữa hầm tàu. Bộ xương chuột biến dạng, phủ đầy mô thịt thối và ánh mắt đỏ rực. Đây là một con Ma Chuột — không phải loài thú bình thường bạn từng gặp.
-        Khôn ngoan hơn là bỏ chạy.
+        Một bóng đen khổng lồ đứng giữa hầm tàu. Bộ xương chuột biến dạng, phủ đầy mô thịt thối và ánh mắt đỏ rực. Đây là một con Rat Ghoul — không phải loài thú bình thường bạn từng gặp.
 
     option:
       - id: bilge-ghoul-fight
@@ -636,7 +686,7 @@ events:
         next: bilge-fight-rat-ghoul
         display_order: 0
       - id: bilge-ghoul-flee
-        text: "Bỏ chạy (khôn ngoan hơn)"
+        text: "Tránh Ghoul chẳng xấu mặt nào"
         next: bilge-flee-rat-ghoul
         display_order: 1
 
@@ -677,7 +727,7 @@ events:
     event_type: combat
 
     message:
-      text: "Con Ma Chuột chặn lối thoát. Bạn không còn lựa chọn nào khác."
+      text: "Con Rat Ghoul chặn lối thoát. Bạn không còn lựa chọn nào khác."
 
     combat:
       enemy: rat_ghoul

@@ -29,10 +29,10 @@ const dailyTaskJob = new CronJob('0 1 * * *', async () => {
 	await performDailyTasks();
 });
 
-// This job runs every day at 03:00 — initializes bilge ecosystem flags if missing
-const bilgeBootstrapJob = new CronJob('0 3 * * *', async () => {
+// This job runs every day at 04:00 GMT+7 — initializes bilge ecosystem flags if missing
+const bilgeBootstrapJob = new CronJob('0 4 * * *', async () => {
 	await performBilgeEcosystemBootstrap();
-});
+}, null, false, 'Asia/Ho_Chi_Minh');
 
 // This job runs every 30 minutes — health monitoring and alerting
 const healthMonitorJob = new CronJob('*/30 * * * *', async () => {
@@ -657,17 +657,17 @@ async function startCronJob(client) {
 		console.log('Daily task processor cron job started.');
 	}
 
-	if (false && !bilgeBootstrapJob.running) {
+	if (!bilgeBootstrapJob.running) {
 		await CronLog.upsert({
 			job_name: 'bilge_bootstrap',
 			status: 'stopped',
-			schedule: '0 3 * * *',
-			description: 'Bilge ecosystem flag initialization — sets missing flags to defaults (runs at 03:00)',
+			schedule: '0 4 * * *',
+			description: 'Bilge ecosystem flag initialization — sets missing flags to defaults (runs at 04:00 GMT+7)',
 			is_enabled: true,
 		});
 
 		bilgeBootstrapJob.start();
-		console.log('Bilge bootstrap cron job started.');
+		console.log('Bilge bootstrap cron job started (04:00 Asia/Ho_Chi_Minh).');
 	}
 
 	// Start health monitoring job
