@@ -603,7 +603,7 @@ events:
 
     message:
       text: |
-        Vua Chuột không-chết gục ngã. Xác nó tan rã thành bụi và xương mục. Hầm tàu bỗng tĩnh lặng hoàn toàn.
+        Rat King gục ngã. Xác nó tan rã thành bụi và xương mục. Ở giữa đống xương là một vật kì lạ. Một viên đá màu xanh lá cây?
 
     action:
       - type: item
@@ -633,7 +633,7 @@ events:
         channel: storyboard
         title: "Và rồi..."
         text: |
-          Bầu không khí dưới hầm tàu nhẹ dần khi Vua Chuột không-chết gục ngã. Những con chuột còn lại từ từ trở lại thành những bộ xương vô hồn.
+          Bầu không khí dưới hầm tàu nhẹ dần khi Rat King gục ngã. Những con chuột còn lại từ từ trở lại thành những bộ xương vô hồn.
 
           *Chuyện gì đã xảy ra?*
 
@@ -653,6 +653,8 @@ events:
         silent: true
 
   # ── MIASMA HAZARD ─────────────────────────────
+  # Two choices: sprint past (high stamina cost, escapes) or
+  # hold breath/endure (CON check: pass = 5% HP, fail = 20% HP).
 
   - id: bilge-encounter-miasma
     name: "Miasma"
@@ -660,15 +662,90 @@ events:
 
     message:
       text: |
-        Một luồng khí độc từ xác chuột thối rữa bốc lên bao phủ lấy bạn. Phổi bạn bỏng rát — không có gì để chiến đấu, chỉ có thể cúi đầu chịu đựng và bước qua.
+        Một mùi hôi thối nồng nặc bốc lên. Có lẽ không nên ở đây lâu.
+
+    option:
+      - id: bilge-miasma-run
+        text: "Chạy!"
+        next: bilge-miasma-run
+        display_order: 0
+      - id: bilge-miasma-endure
+        text: "Bình tĩnh nín thở."
+        next: bilge-miasma-endure
+        display_order: 1
+
+  - id: bilge-miasma-run
+    name: "Miasma — Run past"
+    event_type: encounter
+
+    message:
+      text: "Bạn lấy hết sức để chạy. Tiêu tốn 20 stamina."
 
     action:
+      - type: stat
+        stat_name: stamina
+        value: "-20"
+        operation: add
+        silent: true
+
+    next: bilge-flee-success
+
+  - id: bilge-miasma-endure
+    name: "Miasma — CON check"
+    event_type: encounter
+
+    check:
+      - name: miasma-con-check
+        type: stat
+        stat_data:
+          stat_name: con
+          use_dice_roll: true
+          difficulty_modifier: 5
+        silent: true
+        on_success: bilge-miasma-endure-success
+        on_failure: bilge-miasma-endure-fail
+
+  - id: bilge-miasma-endure-success
+    name: "Miasma — Endured lightly"
+    event_type: encounter
+
+    message:
+      text: "Bạn kiểm soát hơi thở, bước chậm rãi qua lớp khói. Cơ thể chịu đựng được hầu hết độc tố — chỉ một phần nhỏ thấm vào."
+
+    action:
+      - type: variable
+        variable_name: hp_before
+        source_type: stat
+        source_name: currentHp
+        silent: true
+      - type: stat
+        stat_name: currentHp
+        value: "95"
+        operation: percentage
+        output_variable: hp_after
+        silent: false
+        custom_message: "Lost ${hp_before - hp_after} HP."
+
+  - id: bilge-miasma-endure-fail
+    name: "Miasma — Endured badly"
+    event_type: encounter
+
+    message:
+      text: "Bạn cố nín thở nhưng cuối cùng không thể chịu nổi."
+
+    action:
+      - type: variable
+        variable_name: hp_before
+        source_type: stat
+        source_name: currentHp
+        silent: true
       - type: stat
         stat_name: currentHp
         value: "80"
         operation: percentage
+        output_variable: hp_after
         silent: false
-        custom_message: "Khí độc hầm tàu gây thiệt hại 20% HP."
+        custom_message: "Lost ${hp_before - hp_after} HP."
 
   # ── RAT GHOUL ENCOUNTER ────────────────────────
 
