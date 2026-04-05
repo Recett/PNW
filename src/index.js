@@ -1,3 +1,5 @@
+process.env.TZ = 'Asia/Ho_Chi_Minh';
+
 // Load environment variables from .env file (for local development)
 // Railway will provide environment variables directly
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
