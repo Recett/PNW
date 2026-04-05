@@ -181,8 +181,8 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 5
-      evade: 16
-      speed: 16
+      evade: 18
+      speed: 18
     attack:
       - id: bite
         name: Bite
