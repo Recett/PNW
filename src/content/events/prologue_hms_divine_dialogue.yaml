@@ -124,9 +124,14 @@
         next: york-shop
         display_order: 6
 
+      - id: turnin
+        text: "Tôi có thức ăn cho kho dự trữ."
+        next: york-turnin-menu
+        display_order: 7
+
       - id: leave
         text: "Để ${npc_2p} làm việc tiếp."
-        display_order: 7
+        display_order: 8
 
   - id: york-shop
     name: "York Waylan —Cửa Hàng"

@@ -261,10 +261,34 @@ function processTextTemplate(text, playerAge, playerGender, character = null, np
 	const npcAge = npc?.age || 25;
 	const npcGender = npc?.gender;
 
-	// If no NPC, use peer relationship (equal treatment)
-	const secondPerson = hasNpc ? getNpcToPlayerPronoun(npcAge, playerAge, playerGender) : getPeerPronoun(playerGender);
-	const npcSelf = hasNpc ? getNpcSelfPronoun(npcAge, npcGender, playerAge) : 'tôi';
-	const npcSecondPerson = hasNpc ? getPlayerToNpcPronoun(playerAge, npcAge, npcGender) : 'bạn';
+	// Resolve custom NPC pronoun overrides (support both 'pronoun' and 'pronouns' field names)
+	const npcPronounOverrides = npc?.pronouns || npc?.pronoun || null;
+	let secondPerson, npcSelf, npcSecondPerson;
+	if (hasNpc) {
+		const relationship = getAgeRelationship(npcAge, playerAge);
+		const genderKey = getGenderKey(playerGender);
+		const overrideBlock = npcPronounOverrides?.[relationship];
+
+		// ${2p}: how NPC addresses player — check override first
+		if (overrideBlock?.to_player) {
+			const tp = overrideBlock.to_player;
+			secondPerson = (typeof tp === 'string') ? tp : (tp[genderKey] || tp.default || getNpcToPlayerPronoun(npcAge, playerAge, playerGender));
+		}
+		else {
+			secondPerson = getNpcToPlayerPronoun(npcAge, playerAge, playerGender);
+		}
+
+		// ${npc_1p}: how NPC refers to self — check override first
+		npcSelf = overrideBlock?.npc_self ?? getNpcSelfPronoun(npcAge, npcGender, playerAge);
+
+		// ${npc_2p}: how player addresses NPC — check player_to_npc field first
+		npcSecondPerson = npc.player_to_npc || getPlayerToNpcPronoun(playerAge, npcAge, npcGender);
+	}
+	else {
+		secondPerson = getPeerPronoun(playerGender);
+		npcSelf = 'tôi';
+		npcSecondPerson = 'bạn';
+	}
 	const npcName = npc?.name || npc?.fullname || '';
 
 	// Replace placeholders
