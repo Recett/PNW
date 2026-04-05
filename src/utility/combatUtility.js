@@ -61,9 +61,24 @@ async function performAttack(attackerId, defenderId) {
  * @returns {Object} { combatLog, actors: final state }
  */
 function calculateDamage(attacker, tracker, target, ignoreDefense = false, critMultiplier = 1) {
-	const attackVal = tracker.attack || 0;
+	let attackVal = tracker.attack || 0;
 	const defenseVal = ignoreDefense ? 0 : (target.defense || 0);
-	let baseDamage = Math.max(0, attackVal - defenseVal);
+
+	// DEX/STR damage variance (player-only — attacker must have str and dex).
+	// Variance applied pre-defense on the raw attack value.
+	// DEX = 0.5× STR → min attack 50%.  DEX = 2× STR → min attack 100% (no variance).
+	// Linear interpolation between those two anchor points.
+	if (attackVal > 0 && attacker.str != null && attacker.dex != null) {
+		const str = attacker.str || 1;
+		const dex = attacker.dex || 0;
+		const ratio = dex / str;
+		const t = Math.min(1, Math.max(0, (ratio - 0.5) / 1.5));
+		const minFraction = 0.5 + 0.5 * t;
+		const minAttack = Math.floor(attackVal * minFraction);
+		attackVal = minAttack + Math.floor(Math.random() * (attackVal - minAttack + 1));
+	}
+
+	const baseDamage = Math.max(0, attackVal - defenseVal);
 	return Math.floor(baseDamage * critMultiplier);
 }
 
@@ -333,6 +348,8 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		shieldStrength: 0,
 		shieldIsGreatshield: false,
 		con: playerBase.con || 0,
+		str: playerBase.str || 0,
+		dex: playerBase.dex || 0,
 		maxHp: playerBase.maxHp || 100,
 		miasmaStacks: 0,     // populated below from DB flag if ambient effect is active
 		attacks: await Promise.all(playerAttacks.map(async (atk) => {

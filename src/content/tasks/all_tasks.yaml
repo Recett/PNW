@@ -40,7 +40,7 @@ tasks:
   # Example: Daily HP/Stamina regeneration for characters in town
   - id: daily-town-regen
     name: "Daily Town Regeneration"
-    description: "Characters in town locations regenerate 10% HP and Stamina daily"
+    description: "Characters in town locations regenerate 10% HP and 7% Stamina daily"
     schedule: daily
     active: false  # Disabled for now - example only
     tag: [regeneration, daily, town]
@@ -76,10 +76,10 @@ tasks:
         operation: add_percent_of_max
         silent: true
         
-      # Regenerate 10% Stamina
+      # Regenerate 7% Stamina
       - type: stat
         stat_name: stamina
-        stat_value: "10"
+        stat_value: "7"
         operation: add_percent_of_max
         silent: true
 
