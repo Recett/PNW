@@ -362,8 +362,9 @@ async function handleInventory(interaction, userId) {
 	const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
 	if (unregistered === 1) return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 
-	const inventory = await characterUtil.getCharacterInventory(userId);
-	if (!inventory || inventory.length === 0) return await interaction.editReply({ content: 'Your inventory is empty.' });
+	const rawInventory = await characterUtil.getCharacterInventory(userId);
+	const inventory = (rawInventory || []).filter(inv => inv.item != null);
+	if (inventory.length === 0) return await interaction.editReply({ content: 'Your inventory is empty.' });
 
 	const inventoryList = inventory.map(inv => {
 		const item = inv.item;
@@ -789,20 +790,40 @@ async function handleDelete(interaction, userId) {
 	const character = await CharacterBase.findOne({ where: { id: targetId } });
 	if (!character) return await interaction.editReply({ content: 'Character not found.' });
 
-	// Reply before deleting threads — if the command was run inside a character thread,
-	// deleting that thread invalidates the interaction message and editReply throws 10008.
-	const message = targetUser && targetUser.id !== userId
-		? `Character for ${targetUser.username} has been deleted.`
-		: 'Your character and all associated data have been deleted.';
-	await interaction.editReply({ content: message });
+	const isAdminAction = targetUser && targetUser.id !== userId;
+	const charName = character.name || 'Unknown';
 
+	const embed = new EmbedBuilder()
+		.setColor(0xFF0000)
+		.setTitle('\u26A0\uFE0F Delete Character')
+		.setDescription(
+			isAdminAction
+				? `You are about to delete **${charName}** (${targetUser.username})'s character.\n\n**All character data, inventory, flags, and threads will be permanently deleted. This cannot be undone.**\n\nClick **Delete Character** and type the character name to confirm.`
+				: `You are about to delete your character **${charName}**.\n\n**All character data, inventory, flags, and threads will be permanently deleted. This cannot be undone.**\n\nClick **Delete Character** and type the character name to confirm.`,
+		);
+
+	const confirmButton = new ButtonBuilder()
+		.setCustomId(`char_delete_confirm|${targetId}|${userId}`)
+		.setLabel('Delete Character')
+		.setStyle(ButtonStyle.Danger);
+
+	const cancelButton = new ButtonBuilder()
+		.setCustomId('char_delete_cancel')
+		.setLabel('Cancel')
+		.setStyle(ButtonStyle.Secondary);
+
+	const row = new ActionRowBuilder().addComponents(confirmButton, cancelButton);
+	await interaction.editReply({ embeds: [embed], components: [row] });
+}
+
+async function performDelete(guild, targetId) {
 	// Delete threads: grant each thread's parent channel role first, then delete, then clean up.
 	// Mirrors the pattern in register.js — private thread ops require the user to have
 	// access to the parent channel. We temporarily re-grant the role to guarantee access.
 	const rolesToRemove = new Set();
 	try {
 		const threads = await CharacterThread.findAll({ where: { character_id: targetId } });
-		const targetMember = await interaction.guild.members.fetch(targetId);
+		const targetMember = await guild.members.fetch(targetId);
 		for (const threadRecord of threads) {
 			if (!threadRecord.thread_id) continue;
 			try {
@@ -815,7 +836,7 @@ async function handleDelete(interaction, userId) {
 					}
 				}
 				// force: true bypasses stale cache (archived threads are evicted from gateway cache)
-				const thread = await interaction.guild.channels.fetch(threadRecord.thread_id, { force: true });
+				const thread = await guild.channels.fetch(threadRecord.thread_id, { force: true });
 				if (thread && thread.isThread()) {
 					await thread.delete('Character deleted');
 				}
@@ -839,7 +860,7 @@ async function handleDelete(interaction, userId) {
 			if (location?.role) rolesToRemove.add(location.role);
 		}
 		if (rolesToRemove.size > 0) {
-			const member = await interaction.guild.members.fetch(targetId);
+			const member = await guild.members.fetch(targetId);
 			await member.roles.remove([...rolesToRemove]).catch(() => {});
 		}
 	}
@@ -862,3 +883,5 @@ async function handleDelete(interaction, userId) {
 	]);
 	await CharacterBase.destroy({ where: { id: targetId } });
 }
+
+module.exports.performDelete = performDelete;

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { CharacterBase, CharacterItem, GlobalFlag } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
+const contentStore = require('../../contentStore.js');
 const { EMOJI } = require('../../enums');
 
 module.exports = {
@@ -67,6 +68,22 @@ module.exports = {
 						.setDescription('The item ID to search for (e.g. bilge-key).')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('orphancheck')
+				.setDescription('Scan all character inventories for item IDs that no longer exist in the content store.'),
+		)
+		.addSubcommand(sub =>
+			sub.setName('remapitem')
+				.setDescription('Replace one item ID with another across ALL character inventories.')
+				.addStringOption(opt =>
+					opt.setName('from_id')
+						.setDescription('The broken/old item ID to replace.')
+						.setRequired(true))
+				.addStringOption(opt =>
+					opt.setName('to_id')
+						.setDescription('The valid item ID to remap to.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -110,8 +127,85 @@ module.exports = {
 		if (sub === 'grant') return handleGrant(interaction);
 		if (sub === 'item') return handleItem(interaction);
 		if (sub === 'finditem') return handleFindItem(interaction);
+		if (sub === 'orphancheck') return handleOrphanCheck(interaction);
+		if (sub === 'remapitem') return handleRemapItem(interaction);
 	},
 };
+
+// ─── Orphan Check ────────────────────────────────────────────────────────────
+
+async function handleOrphanCheck(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const allRows = await CharacterItem.findAll();
+	const orphans = allRows.filter(row => contentStore.items.findByPk(row.item_id) == null);
+
+	if (orphans.length === 0) {
+		return interaction.editReply({ content: `${EMOJI.SUCCESS} No orphaned item entries found. All inventories are clean.` });
+	}
+
+	const grouped = {};
+	for (const row of orphans) {
+		if (!grouped[row.item_id]) grouped[row.item_id] = [];
+		grouped[row.item_id].push(row.character_id);
+	}
+
+	const lines = Object.entries(grouped).map(([itemId, charIds]) =>
+		`\`${itemId}\` — ${charIds.length} player(s) affected`,
+	);
+
+	return interaction.editReply({
+		content: `${EMOJI.WARNING} **Orphaned item entries found** (${orphans.length} total rows):\n${lines.join('\n')}\n\nUse \`/debug remapitem\` to fix.`,
+	});
+}
+
+// ─── Remap Item ───────────────────────────────────────────────────────────────
+
+async function handleRemapItem(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const fromId = interaction.options.getString('from_id');
+	const toId = interaction.options.getString('to_id');
+
+	if (!contentStore.items.findByPk(toId)) {
+		return interaction.editReply({
+			content: `${EMOJI.FAILURE} Target item \`${toId}\` does not exist in the content store. Aborting.`,
+		});
+	}
+
+	const rows = await CharacterItem.findAll({ where: { item_id: fromId } });
+	if (rows.length === 0) {
+		return interaction.editReply({
+			content: `${EMOJI.WARNING} No character has item \`${fromId}\`. Nothing to remap.`,
+		});
+	}
+
+	let replaced = 0;
+	let merged = 0;
+
+	for (const row of rows) {
+		const existing = await CharacterItem.findOne({ where: { character_id: row.character_id, item_id: toId } });
+		if (existing) {
+			// Merge stacks, preserve the higher equipped state
+			await existing.update({
+				amount: existing.amount + row.amount,
+				equipped: existing.equipped || row.equipped,
+			});
+			await row.destroy();
+			merged++;
+		}
+		else {
+			await row.update({ item_id: toId });
+			replaced++;
+		}
+	}
+
+	const toItem = contentStore.items.findByPk(toId);
+	return interaction.editReply({
+		content: `${EMOJI.SUCCESS} Remapped \`${fromId}\` → \`${toId}\` (${toItem?.name ?? toId}) across ${rows.length} player(s).\n` +
+			`Replaced: ${replaced} | Merged into existing stack: ${merged}`,
+	});
+}
 
 // ─── Grant ────────────────────────────────────────────────────────────────────
 

@@ -170,7 +170,10 @@ let calculateAttackStat = async (characterId) => {
 
 	if (weaponDetails.length > 1) {
 		const mainhandWeapons = weaponDetails.filter(w => w.weapon.slot === 'mainhand');
-		const offhandWeapons = weaponDetails.filter(w => w.weapon.slot === 'offhand');
+		// Shields in the offhand are not dual wielding — exclude them from the penalty check
+		const offhandWeapons = weaponDetails.filter(w => w.weapon.slot === 'offhand' && w.weapon.subtype !== 'shield');
+		// Non-shield weapons only (shields don't cause dual wield penalty)
+		const nonShieldWeapons = weaponDetails.filter(w => w.weapon.subtype !== 'shield');
 
 		// Check if any weapon has "No Dualwielding Penalty" tag
 		for (const weaponDetail of weaponDetails) {
@@ -185,11 +188,11 @@ let calculateAttackStat = async (characterId) => {
 		}
 
 		if (mainhandWeapons.length > 0 && offhandWeapons.length > 0) {
-			// Standard dual wielding (mainhand + offhand)
+			// Standard dual wielding (mainhand + offhand non-shield)
 			isDualWielding = true;
 		}
-		else if (weaponDetails.length > 1) {
-			// Multiple weapons of same type or unusual combination
+		else if (nonShieldWeapons.length > 1) {
+			// Multiple non-shield weapons of same type or unusual combination
 			isDualWielding = true;
 		}
 	}

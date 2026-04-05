@@ -721,8 +721,21 @@ class EventProcessor {
 		// Track if we're doing pure math or text substitution
 		let isPureMath = true;
 		
+		// Pronoun/name placeholders that must be preserved for processTextTemplate
+		const PRONOUN_PLACEHOLDERS = new Set([
+			'player_name', 'player_fullname',
+			'first_person', '1p',
+			'second_person', '2p',
+			'npc_1p', 'npc_2p', 'npc_name',
+		]);
+
 		// Replace all ${...} expressions
 		const resolved = str.replace(/\$\{([^}]+)\}/g, (match, expr) => {
+			// Preserve pronoun/name placeholders so processTextTemplate can handle them
+			if (PRONOUN_PLACEHOLDERS.has(expr.trim())) {
+				return match;
+			}
+
 			// Substitute variable names with their values
 			let processedExpr = expr;
 			

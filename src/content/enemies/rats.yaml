@@ -98,7 +98,7 @@ enemies:
       gold: 0
       exp: 200
     drop:
-      - id: rat_king_weapon
+      - id: ratsbane
         chance: 1.0
         quantity: 1
 
@@ -131,6 +131,6 @@ enemies:
       gold: 0
       exp: 200
     drop:
-      - id: rat_king_weapon
+      - id: ratsbane
         chance: 1.0
         quantity: 1    

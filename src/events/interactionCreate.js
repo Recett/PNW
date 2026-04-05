@@ -360,6 +360,57 @@ async function handleCookingInteraction(interaction) {
 	}
 }
 
+// Handle character delete button/modal interactions
+async function handleCharDeleteInteraction(interaction) {
+	if (!interaction.isButton()) return false;
+	const customId = interaction.customId;
+
+	if (customId === 'char_delete_cancel') {
+		await interaction.update({ content: 'Character deletion cancelled.', embeds: [], components: [] });
+		return true;
+	}
+
+	if (!customId.startsWith('char_delete_confirm|')) return false;
+
+	const parts = customId.split('|');
+	const targetId = parts[1];
+	const actingUserId = parts[2];
+
+	// Only the person who initiated the command can confirm
+	if (interaction.user.id !== actingUserId) {
+		await interaction.reply({ content: 'This confirmation is not for you.', ephemeral: true });
+		return true;
+	}
+
+	const { CharacterBase } = require('../dbObject.js');
+	const character = await CharacterBase.findOne({ where: { id: targetId } });
+	if (!character) {
+		await interaction.update({ content: 'Character not found.', embeds: [], components: [] });
+		return true;
+	}
+
+	const charName = character.name || 'Unknown';
+	const labelBase = `Type "${charName}" to confirm`;
+	const label = labelBase.length > 45 ? 'Type the character name to confirm' : labelBase;
+
+	const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+
+	const modal = new ModalBuilder()
+		.setCustomId(`char_delete_modal|${targetId}|${actingUserId}`)
+		.setTitle('Confirm Character Deletion');
+
+	const nameInput = new TextInputBuilder()
+		.setCustomId('char_delete_name_input')
+		.setLabel(label)
+		.setStyle(TextInputStyle.Short)
+		.setPlaceholder(charName.substring(0, 100))
+		.setRequired(true);
+
+	modal.addComponents(new ActionRowBuilder().addComponents(nameInput));
+	await interaction.showModal(modal);
+	return true;
+}
+
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
@@ -373,6 +424,8 @@ module.exports = {
 			if (await handleCookingInteraction(interaction)) return;
 			// Check for location exit button
 			if (await handleLocationExitButton(interaction)) return;
+			// Check for character delete confirmation
+			if (await handleCharDeleteInteraction(interaction)) return;
 			// Add other button/select handlers here as needed
 			return;
 		}
@@ -398,6 +451,45 @@ module.exports = {
 				if (interaction.customId === 'character_edit_modal') {
 					const characterCommand = require('../commands/utility/character.js');
 					await characterCommand.handleModal(interaction);
+					return;
+				}
+				if (interaction.customId.startsWith('char_delete_modal|')) {
+					const parts = interaction.customId.split('|');
+					const targetId = parts[1];
+					const actingUserId = parts[2];
+
+					if (interaction.user.id !== actingUserId) {
+						await interaction.reply({ content: 'This confirmation is not for you.', flags: MessageFlags.Ephemeral });
+						return;
+					}
+
+					const { CharacterBase } = require('../dbObject.js');
+					const character = await CharacterBase.findOne({ where: { id: targetId } });
+					if (!character) {
+						await interaction.reply({ content: 'Character not found (may have already been deleted).', flags: MessageFlags.Ephemeral });
+						return;
+					}
+
+					const typedName = interaction.fields.getTextInputValue('char_delete_name_input').trim();
+					if (typedName !== character.name) {
+						await interaction.reply({
+							content: `Name did not match — expected **${character.name}**. Deletion cancelled.`,
+							flags: MessageFlags.Ephemeral,
+						});
+						return;
+					}
+
+					await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+					const charName = character.name;
+					const isAdminAction = actingUserId !== targetId;
+					const characterCommand = require('../commands/utility/character.js');
+					await characterCommand.performDelete(interaction.guild, targetId);
+
+					const message = isAdminAction
+						? `Character **${charName}** has been deleted.`
+						: `Your character **${charName}** and all associated data have been deleted.`;
+					await interaction.editReply({ content: message });
 					return;
 				}
 				// Add other modal handlers here
