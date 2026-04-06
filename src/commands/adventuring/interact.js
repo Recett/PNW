@@ -197,6 +197,7 @@ async function handleMove(interaction, userId) {
 	if (allLinkedIds.length === 0) return await interaction.editReply({ content: 'There are no available locations to move to from here.' });
 
 	const locations = (await Promise.all(allLinkedIds.map(id => LocationBase.findByPk(id)))).filter(loc => loc != null && !loc.hidden);
+	if (locations.length === 0) return await interaction.editReply({ content: 'There are no available locations to move to from here.' });
 	const select = new StringSelectMenuBuilder()
 		.setCustomId('move_location')
 		.setPlaceholder('Choose a location to move to')
@@ -237,6 +238,9 @@ async function handleMove(interaction, userId) {
 		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
 		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
 		await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
+
+		collector.stop();
+		await interaction.editReply({ components: [] }).catch(() => {});
 
 		const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
 		if (isBilge) {

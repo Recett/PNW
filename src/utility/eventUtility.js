@@ -871,6 +871,13 @@ class EventProcessor {
 	 */
 	async collectModalInput(session, options) {
 		const { variable_name, input_label, input_placeholder, input_default, is_numeric } = options;
+
+		// If this variable was already captured by the inline handler, return it immediately
+		// without trying to show another modal (which would fail on a modal-submit interaction).
+		if (session.variables && session.variables[variable_name] !== undefined) {
+			return session.variables[variable_name];
+		}
+
 		let interaction = session.interaction;
 
 		// Create modal (title/label max 45 chars, placeholder max 100 chars)
@@ -2644,7 +2651,10 @@ class EventProcessor {
 										finalValue = isNaN(numValue) ? (parseInt(inputAction.input_default) || 0) : numValue;
 									}
 									
-									// Save to character stats directly
+// Store in session variables so executeVariableAction won't show a second modal
+								session.variables[inputAction.variable_name] = finalValue;
+
+								// Save to character stats directly
 									const statActions = nextActions.filter(a => a.type === 'stat');
 									
 									for (const statAction of statActions) {

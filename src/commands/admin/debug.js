@@ -92,6 +92,14 @@ module.exports = {
 						.setDescription('Target player.')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('unstick')
+				.setDescription('Release a player stuck in a frozen event interaction.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('The player to unstick.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -138,8 +146,32 @@ module.exports = {
 		if (sub === 'orphancheck') return handleOrphanCheck(interaction);
 		if (sub === 'remapitem') return handleRemapItem(interaction);
 		if (sub === 'charinfo') return handleCharInfo(interaction);
+		if (sub === 'unstick') return handleUnstick(interaction);
 	},
 };
+
+// ─── Unstick ─────────────────────────────────────────────────────────────────
+
+async function handleUnstick(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const target = interaction.options.getUser('user');
+	const eventUtil = interaction.client.eventUtil;
+
+	if (!eventUtil) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} eventUtil is not attached to the client.` });
+	}
+
+	const wasLocked = eventUtil.activeCharacters.has(target.id);
+	eventUtil.activeCharacters.delete(target.id);
+
+	if (wasLocked) {
+		return interaction.editReply({ content: `${EMOJI.SUCCESS} <@${target.id}> has been unstuck. Their active event session has been cleared.` });
+	}
+	else {
+		return interaction.editReply({ content: `${EMOJI.WARNING} <@${target.id}> was not locked in any active event.` });
+	}
+}
 
 // ─── Orphan Check ────────────────────────────────────────────────────────────
 

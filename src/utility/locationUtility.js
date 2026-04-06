@@ -273,26 +273,23 @@ let addLocationToCluster = async (locationIdA, locationIdB) => {
 		},
 	});
 
-	if (!existingClusterA & !existingClusterB) {
-		let clusterId = await LocationCluster.create({
-			location_id: locationIdA,
-		}).id;
-		await LocationCluster.create({
-			id: clusterId,
-			location_id: locationIdB,
-		});
+	if (!existingClusterA && !existingClusterB) {
+		const newEntry = await LocationCluster.create({ location_id: locationIdA });
+		const clusterId = String(newEntry.id);
+		await newEntry.update({ cluster_id: clusterId });
+		await LocationCluster.create({ cluster_id: clusterId, location_id: locationIdB });
 		return true;
 	}
 	else if (existingClusterA && !existingClusterB) {
 		await LocationCluster.create({
-			id: existingClusterA.id,
+			cluster_id: existingClusterA.cluster_id,
 			location_id: locationIdB,
 		});
 		return true;
 	}
 	else if (!existingClusterA && existingClusterB) {
 		await LocationCluster.create({
-			id: existingClusterB.id,
+			cluster_id: existingClusterB.cluster_id,
 			location_id: locationIdA,
 		});
 		return true;
