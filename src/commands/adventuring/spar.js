@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } = require('discord.js');
 const { CharacterBase } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const combatUtil = require('@utility/combatUtility.js');
@@ -211,8 +211,12 @@ module.exports = {
 					const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
 
 					const pages = reportResult.pages || [reportResult];
-					for (const page of pages) {
-						await interaction.followUp({ content: page });
+					for (let i = 0; i < pages.length; i++) {
+						const embed = new EmbedBuilder()
+							.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${i + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
+							.setColor(0x5865F2)
+							.setDescription(pages[i]);
+						await interaction.followUp({ embeds: [embed] });
 					}
 				}
 				catch (combatErr) {

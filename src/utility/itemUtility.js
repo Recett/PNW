@@ -137,15 +137,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				return true;
 			}
 
-			const [characterItem] = await CharacterItem.findOrCreate({
-				where: { character_id: character.id, item_id: item.id },
-				defaults: { equipped: true, amount: 1 },
-			});
-			characterItem.equipped = true;
-			await characterItem.save();
-
-			// Recalculate stats
-			await getCharacterUtility().recalculateCharacterStats(character);
+			await getCharacterUtility().equipCharacterItem(character.id, item.id, item.item_type);
 
 			await btnInteraction.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 			if (onComplete) onComplete();
