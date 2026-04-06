@@ -1618,7 +1618,7 @@ class EventProcessor {
 		const characterBefore = await characterUtil.getCharacterBase(session.characterId);
 		const oldLocationId = characterBefore?.location_id;
 
-		await locationUtil.moveCharacterToLocation(session.characterId, location_id);
+		await locationUtil.moveCharacterToLocation(session.characterId, location_id, session.interaction.guild);
 
 		// Post move activity messages
 		const client = session.interaction?.client;

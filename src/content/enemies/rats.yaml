@@ -181,12 +181,12 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 5
-      evade: 18
-      speed: 18
+      evade: 16
+      speed: 16
     attack:
       - id: bite
         name: Bite
-        base_damage: 16
+        base_damage: 14
         accuracy: 12
         critical_chance: 10
         cooldown: 90
@@ -200,7 +200,7 @@ enemies:
     enemy_type: undead
     status: active
     stat:
-      health: 80
+      health: 60
       defense: 0
       defense_percent: 0
       crit_resistance: 5
@@ -209,7 +209,7 @@ enemies:
     attack:
       - id: bite
         name: Bite
-        base_damage: 22
+        base_damage: 18
         accuracy: 10
         critical_chance: 5
         cooldown: 90

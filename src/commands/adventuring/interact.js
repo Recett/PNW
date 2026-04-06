@@ -213,12 +213,12 @@ async function handleMove(interaction, userId) {
 
 	collector.on('collect', async i => {
 		const selectedId = i.values[0];
-		const { newLocation } = await interaction.client.locationUtil.transitionLocationRoles({
-			guild: interaction.guild,
-			memberId: userId,
-			newLocationId: selectedId,
-			delayMs: 5000,
-		});
+		const { newLocation } = await interaction.client.locationUtil.moveCharacterToLocation(
+			userId,
+			selectedId,
+			interaction.guild,
+			5000,
+		);
 
 		// Post move activity to old and new location channels
 		const characterName = character.name || `<@${userId}>`;

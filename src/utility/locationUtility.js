@@ -357,16 +357,28 @@ async function updateLocationRoles({ guild, memberId, newLocationId }) {
 }
 
 /**
- * Transition location roles with delayed old role removal.
- * Adds new role first, then removes old role after delay to prevent jarring channel switch.
- * @param {Object} params - { guild, memberId, newLocationId, delayMs }
- * @returns {Object} { newLocation } - The new location data for channel linking
+ * Move character to a new location.
+ * Adds new role first, then removes old roles. When delayMs is set, old role
+ * removal is deferred (fire-and-forget) so Discord does not redirect the player
+ * to the top channel before they can navigate to the new one.
+ * @param {string} characterId - Character ID
+ * @param {number} newLocationId - New location ID
+ * @param {Object} guild - Discord guild object
+ * @param {number} delayMs - If set, old role removal is deferred by this many ms
+ * @returns {Object} { newLocation } - The destination location record
  */
-async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs = 5000 }) {
-	const member = await guild.members.fetch(memberId);
+async function moveCharacterToLocation(characterId, newLocationId, guild, delayMs = null) {
+	const member = await guild.members.fetch(characterId);
 
-	// Get new location data (needed for channel link)
+	// Get destination location data
 	const newLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
+
+	// Reset bilge depth and miasma stacks if moving to a non-bilge location
+	const isBilge = newLoc && Array.isArray(newLoc.tag) && newLoc.tag.includes('bilge');
+	if (!isBilge) {
+		await CharacterBase.update({ depth: 0 }, { where: { id: characterId } });
+		await CharacterStatus.destroy({ where: { character_id: characterId, source: 'bilge' } });
+	}
 
 	// Add new location role FIRST
 	let newRoleId = null;
@@ -380,10 +392,10 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 		}
 	}
 
-	// Remove all OTHER location roles (not the new one) after delay
-	setTimeout(async () => {
+	// Remove all OTHER location roles (not the new one)
+	const removeOldRoles = async () => {
 		try {
-			const freshMember = await guild.members.fetch(memberId);
+			const freshMember = await guild.members.fetch(characterId);
 			const allLocations = await LocationBase.findAll();
 			for (const loc of allLocations) {
 				if (loc.role && loc.role !== newRoleId && freshMember.roles.cache.has(loc.role)) {
@@ -399,13 +411,20 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 		catch (err) {
 			console.error('Error removing old location roles:', err);
 		}
-	}, delayMs);
+	};
 
-	// Update LocationContain for the character
+	if (delayMs) {
+		setTimeout(removeOldRoles, delayMs);
+	}
+	else {
+		await removeOldRoles();
+	}
+
+	// Update LocationContain
 	if (newLocationId) {
 		await LocationContain.findOrCreate({
-			where: { object_id: memberId },
-			defaults: { location_id: newLocationId, type: 'PC' },
+			where: { object_id: characterId },
+			defaults: { location_id: newLocationId, type: gamecon.PC },
 		}).then(([record, created]) => {
 			if (!created) {
 				record.location_id = newLocationId;
@@ -418,76 +437,11 @@ async function transitionLocationRoles({ guild, memberId, newLocationId, delayMs
 	if (newLocationId) {
 		await CharacterBase.update(
 			{ location_id: newLocationId },
-			{ where: { id: memberId } },
+			{ where: { id: characterId } },
 		);
 	}
 
 	return { newLocation: newLoc };
-}
-
-/**
- * Move character to a new location
- * @param {string} characterId - Character ID
- * @param {number} newLocationId - New location ID
- * @param {Object} guild - Discord guild object (optional for role updates)
- */
-async function moveCharacterToLocation(characterId, newLocationId, guild = null) {
-	// Reset bilge depth and miasma stacks if moving to a non-bilge location
-	const destLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
-	const isBilge = destLoc && Array.isArray(destLoc.tag) && destLoc.tag.includes('bilge');
-	if (!isBilge) {
-		await CharacterBase.update({ depth: 0 }, { where: { id: characterId } });
-		await CharacterStatus.destroy({ where: { character_id: characterId, source: 'bilge' } });
-	}
-
-	// Update character's location in CharacterBase
-	await CharacterBase.update(
-		{ location_id: newLocationId },
-		{ where: { id: characterId } },
-	);
-
-	// Update LocationContain
-	await LocationContain.findOrCreate({
-		where: { object_id: characterId },
-		defaults: { location_id: newLocationId, type: gamecon.PC },
-	}).then(([record, created]) => {
-		if (!created) {
-			record.location_id = newLocationId;
-			return record.save();
-		}
-	});
-
-	// Update Discord roles if guild is provided
-	if (guild) {
-		const member = await guild.members.fetch(characterId);
-
-		// Add new location role FIRST
-		let newRoleId = null;
-		if (destLoc && destLoc.role) {
-			newRoleId = destLoc.role;
-			try {
-				await member.roles.add(destLoc.role);
-			}
-			catch {
-				// Ignore if role not present or error
-			}
-		}
-		
-		// Remove all OTHER location roles (not the new one)
-		const allLocations = await LocationBase.findAll();
-		for (const loc of allLocations) {
-			if (loc.role && loc.role !== newRoleId && member.roles.cache.has(loc.role)) {
-				try {
-					await member.roles.remove(loc.role);
-				}
-				catch {
-					// Ignore if role not present or error
-				}
-			}
-		}
-	}
-	
-	return true;
 }
 
 /**
@@ -582,7 +536,6 @@ module.exports = {
 	addLocationToCluster,
 	getLocationContents,
 	updateLocationRoles,
-	transitionLocationRoles,
 	moveCharacterToLocation,
 	postLocationActivity,
 	loadLocationActivityMessages,
