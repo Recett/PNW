@@ -78,14 +78,13 @@ module.exports = {
 				});
 			}
 
-			const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
-			if (!hasKey) {
-				const eventUtil = interaction.client.eventUtil;
-				return await eventUtil.processEvent('bilge-door-locked', interaction, userId, { ephemeral: false });
-			}
-
 			const [bilgeFlag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
 			if (!bilgeFlag.value) {
+				const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+				if (!hasKey) {
+					const eventUtil = interaction.client.eventUtil;
+					return await eventUtil.processEvent('bilge-door-locked', interaction, userId, { ephemeral: false });
+				}
 				await bilgeFlag.update({ value: 1 });
 				await characterUtil.removeCharacterItem(userId, 'bilge-key');
 			}
