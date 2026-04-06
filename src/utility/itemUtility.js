@@ -270,9 +270,8 @@ async function getCharacterEquippedItemsByType(characterId, itemType) {
 	});
 	return equipped
 		.map(ci => {
-			const raw = ci.get ? ci.get({ plain: true }) : ci;
-			raw.item = contentStore.items.findByPk(raw.item_id);
-			return raw;
+			ci.item = contentStore.items.findByPk(ci.item_id);
+			return ci;
 		})
 		.filter(ci => ci.item && ci.item.item_type === itemType);
 }
@@ -307,9 +306,8 @@ async function getCharacterItemsByType(characterId, itemType) {
 	});
 	return items
 		.map(ci => {
-			const raw = ci.get ? ci.get({ plain: true }) : ci;
-			raw.item = contentStore.items.findByPk(raw.item_id);
-			return raw;
+			ci.item = contentStore.items.findByPk(ci.item_id);
+			return ci;
 		})
 		.filter(ci => ci.item && ci.item.item_type === itemType);
 }

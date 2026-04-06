@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
-const { CharacterBase, CharacterItem, GlobalFlag } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const contentStore = require('../../contentStore.js');
 const { EMOJI } = require('../../enums');
@@ -84,6 +84,14 @@ module.exports = {
 						.setDescription('The valid item ID to remap to.')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('charinfo')
+				.setDescription('Show raw HP, location, and regen eligibility info for a player.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -129,6 +137,7 @@ module.exports = {
 		if (sub === 'finditem') return handleFindItem(interaction);
 		if (sub === 'orphancheck') return handleOrphanCheck(interaction);
 		if (sub === 'remapitem') return handleRemapItem(interaction);
+		if (sub === 'charinfo') return handleCharInfo(interaction);
 	},
 };
 
@@ -362,6 +371,61 @@ async function handleFindItem(interaction) {
 		content: `Players holding \`${itemId}\` (${rows.length}):\n${lines.join('\n')}`,
 		flags: MessageFlags.Ephemeral,
 	});
+}
+
+// ─── Char Info ───────────────────────────────────────────────────────────────
+
+async function handleCharInfo(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const targetUser = interaction.options.getUser('user');
+	const nowSeconds = Math.floor(Date.now() / 1000);
+
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+	}
+
+	const location = character.location_id
+		? await LocationBase.findOne({ where: { id: character.location_id } })
+		: null;
+
+	// Use the same flag name the cron SQL checks
+	const koFlag = await CharacterFlag.findOne({ where: { character_id: targetUser.id, flag: 'knocked_out' } });
+
+	const hasMaxHp = character.maxHp !== null && character.maxHp !== undefined;
+	const hasCurrentHp = character.currentHp !== null && character.currentHp !== undefined;
+	const locationType = location?.type ?? null;
+	const isInTown = locationType !== null && locationType.toLowerCase() === 'town';
+	const isKnockedOut = koFlag !== null && parseInt(koFlag.value) > nowSeconds;
+	const wouldRegen = hasMaxHp && hasCurrentHp && isInTown && !isKnockedOut;
+
+	let regenNote = '';
+	if (hasMaxHp && hasCurrentHp) {
+		const gain = Math.floor(character.maxHp * 0.20 + 0.999);
+		const after = Math.min(character.maxHp, character.currentHp + gain);
+		regenNote = ` (next tick: +${gain} \u2192 ${after})`;
+	}
+
+	const lines = [
+		`**Character:** ${character.name} (${targetUser})`,
+		`**HP:** \`${character.currentHp ?? 'NULL'}\` / \`${character.maxHp ?? 'NULL'}\`${regenNote}`,
+		`**Location:** ${location?.name ?? '(unknown)'} \`[${character.location_id ?? 'NULL'}]\``,
+		`**Location type:** \`${locationType ?? 'NULL'}\``,
+		`**knocked_out flag:** ${koFlag ? `value=\`${koFlag.value}\` (expires <t:${koFlag.value}:R>)` : '(none)'}`,
+		'',
+		'**Regen filter check:**',
+		`${hasMaxHp ? EMOJI.SUCCESS : EMOJI.FAILURE} maxHp IS NOT NULL`,
+		`${hasCurrentHp ? EMOJI.SUCCESS : EMOJI.FAILURE} currentHp IS NOT NULL`,
+		`${isInTown ? EMOJI.SUCCESS : EMOJI.FAILURE} location type = 'town' (actual: \`${locationType ?? 'NULL'}\`)`,
+		`${!isKnockedOut ? EMOJI.SUCCESS : EMOJI.FAILURE} not knocked out`,
+		'',
+		wouldRegen
+			? `${EMOJI.SUCCESS} **Player WOULD receive HP regen.**`
+			: `${EMOJI.FAILURE} **Player is EXCLUDED from HP regen.**`,
+	];
+
+	return interaction.editReply({ content: lines.join('\n') });
 }
 
 // ─── Flag Get ─────────────────────────────────────────────────────────────────

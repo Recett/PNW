@@ -106,7 +106,7 @@ async function performHourlyJob() {
 			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
 			WHERE maxStamina IS NOT NULL 
 				AND currentStamina IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 		`);
 		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
 
@@ -132,7 +132,7 @@ async function performHourlyJob() {
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town')
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
 				AND id NOT IN (
 					SELECT character_id FROM character_flags
 					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${nowSeconds}
@@ -499,7 +499,7 @@ async function startCronJob(client) {
 			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
 			WHERE maxStamina IS NOT NULL 
 				AND currentStamina IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town');
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 		`);
 			// Wake up knocked-out players whose recovery has expired: set HP to 1
 			const catchUpNow = Math.floor(runTime instanceof Date ? runTime.getTime() / 1000 : Date.now() / 1000);
@@ -523,7 +523,7 @@ async function startCronJob(client) {
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE type = 'town')
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
 				AND id NOT IN (
 					SELECT character_id FROM character_flags
 					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${catchUpNow}

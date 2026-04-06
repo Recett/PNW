@@ -46,8 +46,14 @@ module.exports = {
 						.setRequired(false))
 				.addStringOption(option =>
 					option.setName('type')
-						.setDescription('Type of the location')
-						.setRequired(false))
+						.setDescription('Type of the location (affects HP/stamina regen eligibility)')
+						.setRequired(false)
+						.addChoices(
+							{ name: 'Town (HP/stamina regen)', value: 'town' },
+							{ name: 'Dungeon', value: 'dungeon' },
+							{ name: 'Field', value: 'field' },
+							{ name: 'None (clear type)', value: 'none' },
+						))
 				.addBooleanOption(option =>
 					option.setName('lock')
 						.setDescription('Lock or unlock the location')
@@ -446,6 +452,7 @@ module.exports = {
 			channel: channel.id,
 			role: role.id,
 			lock: false,
+			type: 'town',
 		};
 
 		await LocationBase.create(newLocation);
@@ -466,7 +473,7 @@ module.exports = {
 		const hidden = interaction.options.getBoolean('hidden');
 
 		if (name !== null) updates.name = name;
-		if (type !== null) updates.type = type;
+		if (type !== null) updates.type = type === 'none' ? null : type;
 		if (lock !== null) updates.lock = lock;
 		if (hidden !== null) updates.hidden = hidden;
 

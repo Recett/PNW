@@ -20,7 +20,6 @@ events:
       text: |
         Cái bát nằm nguyên trên sàn khoang. Thức ăn nguội dần trong im lặng.
         Morale không xuất hiện.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
 
@@ -35,7 +34,6 @@ events:
       text: |
         Morale bước vào khoang, dừng lại trước cái bát và cúi xuống ngửi.
         Cô đứng yên vài giây rồi quay đầu rời đi. Thức ăn không bị chạm tới.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
 
@@ -50,7 +48,6 @@ events:
       text: |
         Morale ăn vài miếng nhỏ, dừng lại giữa chừng rồi ngửi lại phần còn lại trong bát.
         Cô rời khỏi khoang khi thức ăn vẫn còn lại một phần.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
 
@@ -65,7 +62,6 @@ events:
       text: |
         Morale ăn đều đặn cho đến khi phần thức ăn trong bát hết hẳn.
         Cô ngửi đáy bát một lần rồi rời khỏi khoang.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
 
@@ -80,7 +76,6 @@ events:
       text: |
         Morale ăn nhanh hơn thường lệ, gần như không dừng lại.
         Khi bát trống, cô liếm quanh thành bát và đáy bát thêm vài lần trước khi rời đi.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
 
@@ -95,7 +90,6 @@ events:
       text: |
         Morale ăn hết phần thức ăn rồi tiếp tục liếm đáy bát, chậm và kỹ, cho đến khi không còn mùi gì đáng chú ý.
         Cô kiểm tra lại bát một lần cuối rồi rời khỏi khoang, để lại chiếc bát trống và sạch.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
     action:
@@ -150,7 +144,6 @@ events:
       title: "Trung úy Morale"
       text: |
         Morale nhìn bạn khi bạn lại gần. Ánh nhìn dừng lại lâu hơn thường lệ, rồi cô quay đầu đi, tai khẽ động như đang lắng nghe điều gì đó không còn ở đó.
-      avatar: "lt_morale.png"
       message_type: "npc_flavor"
 
     action:

@@ -629,8 +629,9 @@ class EventProcessor {
 		let allSuccess = true;
 
 		for (const { item_id, required_quantity } of items) {
+			const resolvedQty = parseInt(this.resolveExpression(required_quantity ?? 1, session)) || 1;
 			const hasItem = await characterUtil.checkCharacterInventory(
-				session.characterId, item_id, required_quantity || 1,
+				session.characterId, item_id, resolvedQty,
 			);
 			if (!hasItem) allSuccess = false;
 		}
@@ -1997,6 +1998,20 @@ class EventProcessor {
 	}
 
 	/**
+	 * Returns true if str is a valid http/https URL accepted by Discord embeds.
+	 */
+	_isValidUrl(str) {
+		if (!str || typeof str !== 'string') return false;
+		try {
+			const url = new URL(str);
+			return url.protocol === 'http:' || url.protocol === 'https:';
+		}
+		catch {
+			return false;
+		}
+	}
+
+	/**
 	 * Build the Discord message
 	 */
 	async buildMessage(eventBase, session) {
@@ -2042,7 +2057,7 @@ class EventProcessor {
 				if (npc) {
 					session.npc = npc; // Store for pronoun processing
 					embed.setTitle(npc.name);
-					if (npc.avatar) {
+						if (npc.avatar && this._isValidUrl(npc.avatar)) {
 						embed.setThumbnail(npc.avatar);
 					}
 				}
@@ -2053,7 +2068,7 @@ class EventProcessor {
 			}
 
 			// Use event message avatar only if no NPC speaker (or NPC has no avatar)
-			if (eventMessage.avatar && !eventMessage.npc_speaker) {
+			if (eventMessage.avatar && !eventMessage.npc_speaker && this._isValidUrl(eventMessage.avatar)) {
 				embed.setThumbnail(eventMessage.avatar);
 			}
 
@@ -2066,8 +2081,8 @@ class EventProcessor {
 
 			embed.setDescription(resultText + text);
 
-			if (eventMessage.avatar) embed.setThumbnail(eventMessage.avatar);
-			if (eventMessage.illustration) embed.setImage(eventMessage.illustration);
+			if (eventMessage.avatar && this._isValidUrl(eventMessage.avatar)) embed.setThumbnail(eventMessage.avatar);
+			if (eventMessage.illustration && this._isValidUrl(eventMessage.illustration)) embed.setImage(eventMessage.illustration);
 		}
 		else {
 			// No message component, just show results
