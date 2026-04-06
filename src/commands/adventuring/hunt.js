@@ -58,14 +58,6 @@ module.exports = {
 				});
 			}
 
-			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
-			if (bilgeClearedRecord && parseInt(bilgeClearedRecord.value) === 1) {
-				return await interaction.reply({
-					content: 'The bilge has been cleared. There is nothing left to hunt.',
-					flags: MessageFlags.Ephemeral,
-				});
-			}
-
 			const locationUtil = interaction.client.locationUtil;
 			const channel = interaction.channel;
 			const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
@@ -113,6 +105,13 @@ module.exports = {
 			// If the undead system is initialized, run it instead of the original system.
 			const undeadRatCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
 			if (undeadRatCountRecord) {
+				const undeadClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
+				if (undeadClearedRecord && parseInt(undeadClearedRecord.value) === 1) {
+					return await interaction.reply({
+						content: 'The bilge has been cleared. There is nothing left to hunt.',
+						flags: MessageFlags.Ephemeral,
+					});
+				}
 				const ratCount = parseInt(undeadRatCountRecord.value) || 0;
 				const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
 				const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
@@ -138,6 +137,13 @@ module.exports = {
 			}
 
 			// Original system.
+			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
+			if (bilgeClearedRecord && parseInt(bilgeClearedRecord.value) === 1) {
+				return await interaction.reply({
+					content: 'The bilge has been cleared. There is nothing left to hunt.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
 			const ratAdultsRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_adults' } });
 			const ratAdults = ratAdultsRecord ? parseInt(ratAdultsRecord.value) || 0 : 0;
 			const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_slain' } });

@@ -157,7 +157,7 @@ async function handleAdditiveAddition(interaction) {
 
 	try {
 		// Stamina check before adding additive
-		const ADDITIVE_STAMINA_COST = 2;
+		const ADDITIVE_STAMINA_COST = 1;
 		const character = await CharacterBase.findOne({ where: { id: userId } });
 		if ((character?.currentStamina ?? 0) < ADDITIVE_STAMINA_COST) {
 			return interaction.reply({

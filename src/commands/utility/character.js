@@ -328,8 +328,15 @@ async function handleStat(interaction, userId) {
 		`Current Weight: ${combat.currentWeight ?? '-'}`,
 		`Max Weight: ${combat.maxWeight ?? '-'}`,
 	] : ['None'];
+	const _atkMax = attack?.attack ?? 0;
+	const _str = character.str || 1;
+	const _dex = character.dex || 0;
+	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
+	const _minFrac = 0.5 + 0.5 * _t;
+	const _avgAtk = attack ? Math.round(_atkMax * (1 + _minFrac) / 2) : null;
 	const attackFields = attack ? [
-		`Attack: ${attack.attack ?? '-'}${foodNote('attack')}`,
+		`Attack: ${_avgAtk ?? '-'} (max ${_atkMax})${foodNote('attack')}`,
+		// (displayed as average; actual rolls vary per DEX/STR ratio)
 		`Accuracy: ${attack.accuracy ?? '-'}${foodNote('accuracy')}`,
 		`Critical: ${attack.critical ?? '-'}${foodNote('critical')}`,
 	] : ['None'];

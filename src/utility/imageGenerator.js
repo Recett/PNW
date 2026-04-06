@@ -502,8 +502,14 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	// === COMBAT STATS SECTION ===
 	drawSectionHeader(ctx, 'COMBAT', 25, 270, 290);
 
+	const _atkMax = attackStats?.attack ?? 0;
+	const _str = character?.str || 1;
+	const _dex = character?.dex || 0;
+	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
+	const _minFrac = 0.5 + 0.5 * _t;
+	const _avgAtk = Math.round(_atkMax * (1 + _minFrac) / 2);
 	const combatData = [
-		{ label: 'Attack', value: attackStats?.attack ?? 0 },
+		{ label: 'Attack', value: _avgAtk },
 		{ label: 'Defense', value: combatStats?.defense ?? 0 },
 		{ label: 'Accuracy', value: attackStats?.accuracy ?? 0 },
 		{ label: 'Evade', value: combatStats?.evade ?? 0 },
