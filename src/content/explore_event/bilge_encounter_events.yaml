@@ -265,6 +265,70 @@ events:
       on_victory: bilge-rat-king-victory
       on_defeat: bilge-defeat
 
+  # ── RAT UNDEAD ENCOUNTER ───────────────────────
+
+  - id: bilge-encounter-rat-undead
+    name: "Undead Rat"
+    event_type: encounter
+
+    message:
+      text: "Con chuột nhỏ bước ra từ bóng tối. Lông rụng gần hết, mắt trống rỗng — nó đã chết từ lâu, nhưng vẫn đang di chuyển."
+
+    option:
+      - id: bilge-rat-undead-fight
+        text: "Chiến đấu"
+        next: bilge-fight-rat-undead
+        display_order: 0
+      - id: bilge-rat-undead-flee
+        text: "Bỏ chạy"
+        next: bilge-flee-rat-undead
+        display_order: 1
+
+  - id: bilge-fight-rat-undead
+    name: "Fight undead rat"
+    event_type: combat
+
+    combat:
+      enemy: rat_undead
+      ambient_effect: bilge_gas
+      on_victory: bilge-victory-rat
+      on_defeat: bilge-defeat
+
+  - id: bilge-flee-rat-undead
+    name: "Flee from undead rat"
+    event_type: encounter
+
+    check:
+      - name: flee-speed-rat-undead
+        type: stat
+        stat_data:
+          stat_name: agi
+          use_dice_roll: true
+          difficulty_modifier: 6
+        silent: true
+        on_success: bilge-flee-success
+        on_failure: bilge-flee-fail-rat-undead
+
+    action:
+      - type: stat
+        stat_name: stamina
+        value: "-8"
+        operation: add
+        silent: true
+
+  - id: bilge-flee-fail-rat-undead
+    name: "Flee failed — undead rat"
+    event_type: combat
+
+    message:
+      text: "Con chuột chết không biết mệt. Nó bám theo bạn không buông."
+
+    combat:
+      enemy: rat_undead
+      ambient_effect: bilge_gas
+      on_victory: bilge-victory-rat
+      on_defeat: bilge-defeat
+
   # ── ADULT RAT UNDEAD ENCOUNTER ─────────────────
 
   - id: bilge-encounter-rat-adult-undead

@@ -38,7 +38,7 @@ function pickEncounterEventUndead(ratCount, depth, ratKingSlain) {
 	if (roll < cursor) return 'bilge-encounter-miasma';
 	cursor += ghoulTickets;
 	if (ghoulTickets > 0 && roll < cursor) return 'bilge-encounter-rat-ghoul';
-	return Math.random() < 0.5 ? 'bilge-encounter-rat' : 'bilge-encounter-rat-adult-undead';
+	return Math.random() < 0.5 ? 'bilge-encounter-rat-undead' : 'bilge-encounter-rat-adult-undead';
 }
 
 module.exports = {
