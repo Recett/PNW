@@ -1,6 +1,7 @@
 const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting, CharacterStatus } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
+const { EmbedBuilder } = require('discord.js');
 const gamecon = require('@root/Data/gamecon.json');
 
 // In-memory store: channelId → Discord message ID of the last activity message
@@ -460,7 +461,12 @@ async function postLocationActivity(client, locationId, characterName, activityT
 	else if (g === 'nữ' || g === 'nu' || g === 'female' || g === 'f') pronoun = 'cô ấy';
 	const Pronoun = pronoun.charAt(0).toUpperCase() + pronoun.slice(1);
 
-	const phrases = activityType === 'arrive' ? ARRIVAL_PHRASES : DEPARTURE_PHRASES;
+	const meta = location.metadata || {};
+	const customArrival = Array.isArray(meta.arrival_phrases) && meta.arrival_phrases.length > 0 ? meta.arrival_phrases : null;
+	const customDeparture = Array.isArray(meta.departure_phrases) && meta.departure_phrases.length > 0 ? meta.departure_phrases : null;
+	const phrases = activityType === 'arrive'
+		? (customArrival || ARRIVAL_PHRASES)
+		: (customDeparture || DEPARTURE_PHRASES);
 	const template = phrases[Math.floor(Math.random() * phrases.length)];
 	const text = `*${template.replace(/\{name\}/g, characterName).replace(/\{pronoun\}/g, pronoun).replace(/\{Pronoun\}/g, Pronoun)}*`;
 
@@ -484,7 +490,13 @@ async function postLocationActivity(client, locationId, characterName, activityT
 			}
 
 			// Post new activity message
-			const newMsg = await channel.send({ content: text });
+			const isArrive = activityType === 'arrive';
+			const embed = new EmbedBuilder()
+				.setDescription(`${isArrive ? '\u2192' : '\u2190'} ${text}`)
+				.setColor(isArrive ? 0x5865F2 : 0x747F8D)
+				.setFooter({ text: location.name || 'Unknown Location' })
+				.setTimestamp();
+			const newMsg = await channel.send({ embeds: [embed] });
 			locationActivityMessages.set(channelId, newMsg.id);
 
 			// Persist full map to DB so deletions survive a restart

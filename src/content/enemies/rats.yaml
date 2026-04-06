@@ -15,6 +15,7 @@ enemies:
   - id: rat
     name: Rat
     unknown_name: Rat
+    description: A common ship rat. Filthy, fast, and fearless. It bares its yellowed teeth and lunges without hesitation.
     level: 1
     enemy_type: beast
     status: active
@@ -32,6 +33,7 @@ enemies:
         accuracy: 12
         critical_chance: 10
         cooldown: 90
+        description: A quick, vicious snap at exposed skin.
     reward:
       exp: 30
       item:
@@ -42,6 +44,7 @@ enemies:
   - id: rat_adult
     name: Adult Rat
     unknown_name: Adult Rat
+    description: A large, battle-scarred rat the size of a small cat. Slow to provoke but relentless once it attacks.
     level: 2
     enemy_type: beast
     status: active
@@ -59,6 +62,7 @@ enemies:
         accuracy: 10
         critical_chance: 3
         cooldown: 90
+        description: A heavy, deliberate bite that tears through cloth and flesh alike.
     reward:
       exp: 50
       item:
@@ -72,6 +76,7 @@ enemies:
   - id: rat_ghoul
     name: Rat Ghoul
     unknown_name: Rat Ghoul
+    description: A rat twisted by death into something worse. Its movements are jerky and wrong, and its bite carries a foul cold that lingers long after the wound closes.
     level: 4
     enemy_type: undead
     status: active
@@ -89,12 +94,14 @@ enemies:
         accuracy: 12
         critical_chance: 15
         cooldown: 90
+        description: Ragged claws and dead teeth tear at the wound in unison.
     reward:
       exp: 120
 
   - id: rat_king
     name: Rat King
     unknown_name: Rat King
+    description: Dozens of rats knotted together by their tails into a writhing, many-headed mass. The Rat King does not flee. It does not tire. It only grows.
     level: 5
     enemy_type: beast
     status: active
@@ -115,6 +122,7 @@ enemies:
         accuracy: 10
         critical_chance: 5
         cooldown: 90
+        description: A dozen mouths bite at once from every direction.
     regen_per_day: 20
     regen_per_fight: 20
     reward:
@@ -128,6 +136,7 @@ enemies:
   - id: rat_king_enraged
     name: Rat King
     unknown_name: Rat King
+    description: The Rat King, broken open and furious. Half its bodies are dead weight, dragging behind the living ones. It is faster now, not despite the damage — because of it.
     level: 5
     enemy_type: beast
     status: active
@@ -148,6 +157,7 @@ enemies:
         accuracy: 12
         critical_chance: 20
         cooldown: 90
+        description: The mass lurches forward and tears with everything it has left.
     regen_per_day: 20
     regen_per_fight: 20
     reward:
@@ -173,6 +183,7 @@ enemies:
   - id: rat_undead
     name: Undead Rat
     unknown_name: Undead Rat
+    description: A dead rat that refuses to stay dead. It moves without instinct or hunger — only forward, only toward you.
     level: 2
     enemy_type: undead
     status: active
@@ -190,12 +201,14 @@ enemies:
         accuracy: 12
         critical_chance: 10
         cooldown: 90
+        description: Cold teeth close around the wound and do not let go.
     reward:
       exp: 60
 
   - id: rat_adult_undead
     name: Undead Adult Rat
     unknown_name: Undead Adult Rat
+    description: Larger than a normal rat in life, larger still in death. The rot has not slowed it — if anything, it has made it indifferent to pain.
     level: 3
     enemy_type: undead
     status: active
@@ -209,16 +222,18 @@ enemies:
     attack:
       - id: bite
         name: Bite
-        base_damage: 18
+        base_damage: 16
         accuracy: 10
         critical_chance: 5
         cooldown: 90
+        description: A grinding, patient bite that presses through armor like it were cloth.
     reward:
       exp: 80
 
   - id: rat_king_undead
     name: Undead Rat King
     unknown_name: Undead Rat King
+    description: The Rat King, dead and still moving. The knot at its centre has darkened to something like leather. Whatever drove the living mass has been replaced by something quieter, and far more patient.
     level: 6
     enemy_type: undead
     status: active
@@ -239,6 +254,7 @@ enemies:
         accuracy: 14
         critical_chance: 10
         cooldown: 90
+        description: The mass descends as one. There is no gap in the teeth.
     regen_per_day: 200
     regen_per_fight: 40
     reward:

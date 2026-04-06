@@ -448,14 +448,35 @@ function calculateDishQuality(traits) {
 function calculateDishScore(traits, baseScore = 10) {
 	// Trait scoring system
 	const TRAIT_BONUSES = {
+		// High-value transformed traits
 		'Velvet': 25,
+		'Rich Sauce': 14,
 		'Glazed': 20,
 		'Crust': 18,
+		'Hardened': 10,
 		'Crispy': 15,
 		'Chewy': 15,
+		'Thick': 9,
 		'Smooth': 12,
+		'Vapor': 7,
+		'Fizzy': 6,
+		'Paste': 5,
 		'Tender': 10,
 		'Starch': 5,
+		'Grainy': 5,
+		'Elastic': 5,
+		'Liquid': 4,
+		'Bready': 4,
+		'Dough': 4,
+		'Stringy': 4,
+		'Ropy': 4,
+		'Salty': 4,
+		'Dry': 4,
+		'Fermenting': 3,
+		'Sour': 3,
+		'Fat': 3,
+		'Oily': 3,
+		'Broth': 8,
 		'Gristly': 2,
 		'Soggy': -20
 	};
