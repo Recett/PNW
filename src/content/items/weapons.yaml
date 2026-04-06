@@ -400,3 +400,21 @@ weapons:
       scaling: 1.0
       hit_mod: 0.73
       cooldown: 160
+
+  - id: admin-divine-blade
+    name: "Admin's Divine Blade"
+    description: "A weapon of absolute authority, forged beyond the laws of this world. Only those who shape reality itself may wield it."
+    item_type: weapon
+    value: 0
+    weight: 1
+    tag:
+      - unique
+      - admin
+      - admin_only
+    weapon:
+      slot: twohand
+      subtype: sword
+      base_damage: 9999
+      scaling: 2.0
+      hit_mod: 1.0
+      cooldown: 50

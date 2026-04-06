@@ -210,7 +210,9 @@ async function runInitTracker(actors, options = {}) {
 							}
 						}
 						
-						target.hp = Math.max(0, target.hp - damage);
+						// Protected user: HP cannot drop below 1 in combat
+						const hpFloor = target.userId === '275992469764833280' ? 1 : 0;
+						target.hp = Math.max(hpFloor, target.hp - damage);
 					}
 				}
 				// === Call skill triggers: After Attack ===
@@ -266,7 +268,9 @@ async function runInitTracker(actors, options = {}) {
 					const stacks = playerActor.miasmaStacks || 0;
 					const damage = stacks * Math.floor((playerActor.maxHp || 100) / 100);
 					if (damage > 0) {
-						playerActor.hp = Math.max(0, playerActor.hp - damage);
+						// Protected user: HP cannot drop below 1 in combat
+						const hpFloor = playerActor.userId === '275992469764833280' ? 1 : 0;
+						playerActor.hp = Math.max(hpFloor, playerActor.hp - damage);
 					}
 					playerActor.miasmaStacks = stacks + 1;
 					combatLog.push({
@@ -341,6 +345,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	const player = {
 		id: 'player',
 		name: playerBase.name || 'Player',
+		userId: playerId,
 		hp: playerBase.currentHp ?? playerBase.maxHp ?? 100,
 		defense: playerCombatStats?.defense || 0,
 		evade: playerCombatStats?.evade || 0,
