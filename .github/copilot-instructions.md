@@ -55,6 +55,14 @@ const characterUtil = require('@utility/characterUtility.js');  // Utilities
 - **Stroustrup brace style** (`else` on new line)
 - No trailing spaces
 
+## Feedback & Correction Protocol
+
+**When the user complains or expresses dissatisfaction (especially with strong language):**
+1. **Immediately undo the last change** — do not ask, do not explain first, just revert
+2. **Then reflect** — identify what was misunderstood and state it clearly
+3. **Do not double down** — never defend or iterate on a rejected approach
+4. A complaint is always an implicit undo request
+
 ## Common Workflows
 
 **Add new slash command:**

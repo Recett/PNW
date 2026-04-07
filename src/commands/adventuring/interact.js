@@ -158,6 +158,10 @@ async function handleMove(interaction, userId) {
 	const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
 	if (unregistered === 1) return await interaction.editReply({ content: 'You must complete the registration process before using this command.' });
 
+	if (interaction.client.eventUtil.isCharacterActive(userId)) {
+		return await interaction.editReply({ content: 'You cannot move while in an active event. Please finish your current interaction first.' });
+	}
+
 	// Clean up excess location roles
 	try {
 		const member = await interaction.guild.members.fetch(userId);

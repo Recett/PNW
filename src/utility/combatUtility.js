@@ -488,10 +488,18 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	if (actors.player) {
 		await characterUtility.setCharacterStat(playerId, 'currentHp', actors.player.hp);
 
-		// If player was knocked out, set a 12-hour recovery flag
+		// If player was knocked out, apply a 12-hour knocked_out status
 		if (actors.player.hp <= 0) {
-			const recoveryTime = Math.floor(Date.now() / 1000) + 12 * 3600;
-			await characterUtility.updateCharacterFlag(playerId, 'knocked_out', recoveryTime);
+			const { CharacterStatus } = require('@root/dbObject.js');
+			const expiresAt = new Date(Date.now() + 12 * 3600 * 1000);
+			await CharacterStatus.upsert({
+				character_id: playerId,
+				status_id: 'knocked_out',
+				category: 'debuff',
+				scope: 'persistent',
+				duration_unit: 'seconds',
+				expires_at: expiresAt,
+			}, { conflictFields: ['character_id', 'status_id'] });
 		}
 	}
 
@@ -1132,10 +1140,16 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	// Build outcome section
 	const survivors = Object.values(actors).filter(a => a.hp > 0);
 	const defeated = Object.values(actors).filter(a => a.hp <= 0);
+	const isMutualDestruction = survivors.length === 0 && defeated.length > 0;
 	const isDraw = survivors.length === Object.values(actors).length;
 
 	let outcomeSection;
-	if (isDraw) {
+	if (isMutualDestruction) {
+		outcomeSection = '\u2620\uFE0F **BATTLE OUTCOME** \u2620\uFE0F\n';
+		outcomeSection += `**Mutual Destruction** — both combatants fell simultaneously!\n`;
+		outcomeSection += defeated.map(a => a.name).join(' and ') + ' are both defeated.\n';
+	}
+	else if (isDraw) {
 		outcomeSection = '\u23F1\uFE0F **BATTLE OUTCOME** \u23F1\uFE0F\n';
 		outcomeSection += `**Inconclusive** — time ran out.\n`;
 		outcomeSection += survivors.map(a => `${a.name}: ${a.hp} HP remaining`).join(', ') + '\n';

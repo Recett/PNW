@@ -173,10 +173,10 @@ class EventProcessor {
 				if (this.activeCharacters.has(characterId)) {
 					try {
 						if (interaction.replied || interaction.deferred) {
-							await interaction.followUp({ content: '⚠️ You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
+							await interaction.followUp({ content: '\u26A0\uFE0F You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
 						}
 						else {
-							await interaction.reply({ content: '⚠️ You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
+							await interaction.reply({ content: '\u26A0\uFE0F You are already in an active event. Please finish it first.', flags: MessageFlags.Ephemeral });
 						}
 					}
 					catch (e) { /* ignore */ }
@@ -3368,6 +3368,30 @@ module.exports = {
 
 	evaluateInlineCheck: (checkData, session) =>
 		eventProcessor.evaluateInlineCheck(checkData, session),
+
+	/**
+	 * Unlock a character that is stuck in an active event.
+	 * Removes them from activeCharacters and purges any associated activeEvents sessions.
+	 * @param {string} characterId - The Discord user/character ID to unlock.
+	 * @returns {{ wasLocked: boolean }} Whether the character was actually locked.
+	 */
+	unlockCharacter(characterId) {
+		const wasLocked = eventProcessor.activeCharacters.has(characterId);
+		eventProcessor.activeCharacters.delete(characterId);
+
+		// Also purge any lingering session entries for this character
+		for (const [sessionId, session] of eventProcessor.activeEvents) {
+			if (session.characterId === characterId) {
+				eventProcessor.activeEvents.delete(sessionId);
+			}
+		}
+
+		return { wasLocked };
+	},
+
+	isCharacterActive(characterId) {
+		return eventProcessor.activeCharacters.has(characterId);
+	},
 
 	EventProcessor,
 	eventProcessor,

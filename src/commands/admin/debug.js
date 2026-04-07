@@ -3,6 +3,7 @@ const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, C
 const characterUtil = require('@utility/characterUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
 const contentStore = require('../../contentStore.js');
+const eventUtil = require('@utility/eventUtility.js');
 const { EMOJI } = require('../../enums');
 
 module.exports = {
@@ -247,14 +248,8 @@ async function handleUnstick(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 	const target = interaction.options.getUser('user');
-	const eventUtil = interaction.client.eventUtil;
 
-	if (!eventUtil) {
-		return interaction.editReply({ content: `${EMOJI.FAILURE} eventUtil is not attached to the client.` });
-	}
-
-	const wasLocked = eventUtil.activeCharacters.has(target.id);
-	eventUtil.activeCharacters.delete(target.id);
+	const { wasLocked } = eventUtil.unlockCharacter(target.id);
 
 	if (wasLocked) {
 		return interaction.editReply({ content: `${EMOJI.SUCCESS} <@${target.id}> has been unstuck. Their active event session has been cleared.` });
@@ -502,7 +497,6 @@ async function handleCharInfo(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 	const targetUser = interaction.options.getUser('user');
-	const nowSeconds = Math.floor(Date.now() / 1000);
 
 	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
 	if (!character) {
@@ -513,14 +507,14 @@ async function handleCharInfo(interaction) {
 		? await LocationBase.findOne({ where: { id: character.location_id } })
 		: null;
 
-	// Use the same flag name the cron SQL checks
-	const koFlag = await CharacterFlag.findOne({ where: { character_id: targetUser.id, flag: 'knocked_out' } });
+	// Use the same table the cron SQL checks
+	const koStatus = await CharacterStatus.findOne({ where: { character_id: targetUser.id, status_id: 'knocked_out' } });
 
 	const hasMaxHp = character.maxHp !== null && character.maxHp !== undefined;
 	const hasCurrentHp = character.currentHp !== null && character.currentHp !== undefined;
 	const locationType = location?.type ?? null;
 	const isInTown = locationType !== null && locationType.toLowerCase() === 'town';
-	const isKnockedOut = koFlag !== null && parseInt(koFlag.value) > nowSeconds;
+	const isKnockedOut = koStatus !== null && koStatus.expires_at !== null && new Date(koStatus.expires_at) > new Date();
 	const wouldRegen = hasMaxHp && hasCurrentHp && isInTown && !isKnockedOut;
 
 	let regenNote = '';
@@ -530,12 +524,13 @@ async function handleCharInfo(interaction) {
 		regenNote = ` (next tick: +${gain} \u2192 ${after})`;
 	}
 
+	const koExpiresTs = koStatus?.expires_at ? Math.floor(new Date(koStatus.expires_at).getTime() / 1000) : null;
 	const lines = [
 		`**Character:** ${character.name} (${targetUser})`,
 		`**HP:** \`${character.currentHp ?? 'NULL'}\` / \`${character.maxHp ?? 'NULL'}\`${regenNote}`,
 		`**Location:** ${location?.name ?? '(unknown)'} \`[${character.location_id ?? 'NULL'}]\``,
 		`**Location type:** \`${locationType ?? 'NULL'}\``,
-		`**knocked_out flag:** ${koFlag ? `value=\`${koFlag.value}\` (expires <t:${koFlag.value}:R>)` : '(none)'}`,
+		`**knocked_out** (character_statuses): ${isKnockedOut ? `active, expires <t:${koExpiresTs}:R>` : koStatus ? `(expired — stale record in DB${koExpiresTs ? `, was <t:${koExpiresTs}:R>` : ', no expires_at'})` : '(none)'}`,
 		'',
 		'**Regen filter check:**',
 		`${hasMaxHp ? EMOJI.SUCCESS : EMOJI.FAILURE} maxHp IS NOT NULL`,

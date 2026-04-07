@@ -111,13 +111,13 @@ async function performCharacterRegen() {
 			UPDATE character_bases
 			SET currentHp = 1
 			WHERE id IN (
-				SELECT character_id FROM character_flags
-				WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${nowSeconds}
+				SELECT character_id FROM character_statuses
+				WHERE status_id = 'knocked_out' AND expires_at <= datetime('now')
 			) AND currentHp <= 0;
 		`);
 		await CharacterBase.sequelize.query(`
-			DELETE FROM character_flags
-			WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${nowSeconds};
+			DELETE FROM character_statuses
+			WHERE status_id = 'knocked_out' AND expires_at <= datetime('now');
 		`);
 
 		const hpResult = await CharacterBase.sequelize.query(`
@@ -127,8 +127,8 @@ async function performCharacterRegen() {
 				AND currentHp IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
 				AND id NOT IN (
-					SELECT character_id FROM character_flags
-					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${nowSeconds}
+					SELECT character_id FROM character_statuses
+					WHERE status_id = 'knocked_out' AND expires_at > datetime('now')
 				);
 		`);
 		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
@@ -564,17 +564,17 @@ async function startCronJob(client) {
 			UPDATE character_bases
 			SET currentHp = 1
 			WHERE id IN (
-				SELECT character_id FROM character_flags
-				WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${catchUpNow}
+				SELECT character_id FROM character_statuses
+				WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch')
 			) AND currentHp <= 0;
 		`);
 			await CharacterBase.sequelize.query(`
-			DELETE FROM character_flags
-			WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${catchUpNow};
+			DELETE FROM character_statuses
+			WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch');
 		`);
 
 			// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
-			// Excludes knocked-out characters (those with an active knocked_out flag)
+			// Excludes knocked-out characters (those with an active knocked_out status)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
@@ -582,8 +582,8 @@ async function startCronJob(client) {
 				AND currentHp IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
 				AND id NOT IN (
-					SELECT character_id FROM character_flags
-					WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) > ${catchUpNow}
+					SELECT character_id FROM character_statuses
+					WHERE status_id = 'knocked_out' AND expires_at > datetime(${catchUpNow}, 'unixepoch')
 				);
 		`);
 

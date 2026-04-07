@@ -27,11 +27,15 @@ const COOKING_ADDITIVES = {
 		primaryTrait: 'Sour',
 		transformations: {
 			'Gristly': 'Tender',
-			'Crust': 'Soggy', 
 			'Heavy': 'Fermenting',
-			'Grainy': 'Smooth',
 			'Elastic': 'Stringy',
-			'Pungent': 'Sharp'
+			'Pungent': 'Sharp',
+			'Gelatinous': 'Soggy',
+			'Brittle': 'Grainy',
+			'Thick': 'Ropy',
+			'Glazed': 'Smooth',
+			'Dough': 'Vapor',
+			'Hardened': 'Crust'
 		}
 	},
 	'lard': {
@@ -39,11 +43,15 @@ const COOKING_ADDITIVES = {
 		primaryTrait: 'Fat',
 		transformations: {
 			'Dry': 'Crispy',
-			'Vapor': 'Rich Sauce',
-			'Soggy': 'Glazed',
+			'Sour': 'Syrup',
+			'Grainy': 'Rich Sauce',
 			'Stringy': 'Velvet',
 			'Tender': 'Mellow',
-			'Sharp': 'Savory'
+			'Sharp': 'Savory',
+			'Starch': 'Glazed',
+			'Ropy': 'Elastic',
+			'Vapor': 'Chewy',
+			'Fermenting': 'Brittle'
 		}
 	},
 	'hardtack': {
@@ -51,35 +59,47 @@ const COOKING_ADDITIVES = {
 		primaryTrait: 'Dry',
 		transformations: {
 			'Liquid': 'Starch',
-			'Sour': 'Grainy',
 			'Syrup': 'Paste',
-			'Gelatinous': 'Chewy',
-			'Ropy': 'Thick',
-			'Pungent': 'Bready'
+			'Rich Sauce': 'Thick',
+			'Crispy': 'Bready',
+			'Chewy': 'Gristly',
+			'Smooth': 'Grainy',
+			'Mellow': 'Gelatinous',
+			'Velvet': 'Dough',
+			'Savory': 'Heavy',
+			'Malty': 'Hardened'
 		}
 	},
 	'old_ale': {
 		name: 'Old Ale',
 		primaryTrait: 'Liquid',
 		transformations: {
-			'Sour': 'Vapor',
-			'Salty': 'Fizzy',
-			'Brittle': 'Malty',
+			'Salty': 'Pungent',
+			'Soggy': 'Malty',
 			'Paste': 'Dough',
+			'Fat': 'Vapor',
+			'Crust': 'Grainy',
+			'Bready': 'Starch',
 			'Gristly': 'Elastic',
-			'Thick': 'Broth'
+			'Thick': 'Gelatinous',
+			'Hardened': 'Crispy',
+			'Dry': 'Mellow'
 		}
 	},
 	'sea_salt': {
 		name: 'Sea-Salt',
 		primaryTrait: 'Salty',
 		transformations: {
-			'Starch': 'Crust',
-			'Savory': 'Cured',
+			'Tender': 'Glazed',
+			'Mellow': 'Savory',
+			'Thick': 'Heavy',
+			'Crispy': 'Crust',
+			'Grainy': 'Starch',
+			'Smooth': 'Ropy',
+			'Gelatinous': 'Elastic',
 			'Dough': 'Hardened',
-			'Fermenting': 'Acrid',
-			'Mellow': 'Complex',
-			'Liquid': 'Brine'
+			'Chewy': 'Gristly',
+			'Vapor': 'Fermenting'
 		}
 	}
 };
@@ -125,11 +145,18 @@ async function applyCookingAdditive(characterId, spiceId, currentTraits = [], op
 			const currentTrait = result.traits[i];
 			if (transformations[currentTrait]) {
 				const newTrait = transformations[currentTrait];
-				result.traits[i] = newTrait;
 				result.transformations.push({
 					from: currentTrait,
 					to: newTrait
 				});
+				if (result.traits.includes(newTrait)) {
+					// Target already exists — remove the source to avoid duplicates
+					result.traits.splice(i, 1);
+					i--;
+				}
+				else {
+					result.traits[i] = newTrait;
+				}
 			}
 		}
 

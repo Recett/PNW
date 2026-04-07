@@ -61,9 +61,9 @@ Examples:
 | Function | `performCharacterRegen()` |
 
 **What it does:**
-- Increases `currentStamina` by 5% of `maxStamina` (rounded up), capped at `maxStamina`, for all characters in a `town`-type location
-- Increases `currentHp` by 5% of `maxHp` (same rule) for all characters in town
-- Recovers knocked-out characters whose HP has naturally regenerated above zero
+- Increases `currentStamina` by 10% of `maxStamina` (rounded up), capped at `maxStamina`, for all characters in a `town`-type location
+- Wakes up knocked-out characters whose `knocked_out` status (in `character_statuses`) has expired: sets HP to 1 and removes the status row
+- Increases `currentHp` by 20% of `maxHp` (same rule) for all characters in town, **excluding** characters with an active `knocked_out` status
 
 **Catch-up on restart:** Yes — replays every missed hourly tick between the last recorded run and now. For example, if the bot was down for 3 hours, 3 catch-up ticks fire immediately on startup.
 
