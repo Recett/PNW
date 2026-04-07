@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
-const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, CharacterCombatStat, CharacterAttackStat, CharacterStatus } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
+const itemUtility = require('@utility/itemUtility.js');
 const contentStore = require('../../contentStore.js');
 const { EMOJI } = require('../../enums');
 
@@ -100,6 +101,14 @@ module.exports = {
 						.setDescription('The player to unstick.')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('statcheck')
+				.setDescription('Recalculate and display the full stat breakdown for a player.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -147,8 +156,90 @@ module.exports = {
 		if (sub === 'remapitem') return handleRemapItem(interaction);
 		if (sub === 'charinfo') return handleCharInfo(interaction);
 		if (sub === 'unstick') return handleUnstick(interaction);
+		if (sub === 'statcheck') return handleStatCheck(interaction);
 	},
 };
+
+// ─── Stat Check ──────────────────────────────────────────────────────────────
+
+async function handleStatCheck(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const targetUser = interaction.options.getUser('user');
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+	}
+
+	// Recalculate fresh (defense before attack so maxWeight is current in DB)
+	await characterUtil.calculateCombatStat(character.id);
+	await characterUtil.calculateAttackStat(character.id);
+
+	const combatStat = await CharacterCombatStat.findOne({ where: { character_id: character.id } });
+	const attackStats = await CharacterAttackStat.findAll({ where: { character_id: character.id } });
+
+	// Gather equipped items with weights for the breakdown
+	const equippedRows = await CharacterItem.findAll({ where: { character_id: character.id, equipped: true } });
+	const gearLines = [];
+	for (const row of equippedRows) {
+		const details = await itemUtility.getItemWithDetails(row.item_id);
+		let weight = details?.weight || details?.weapon?.weight || details?.armor?.weight || 0;
+		const slot = details?.weapon?.slot ?? details?.armor?.slot ?? '?';
+		gearLines.push(`  \`${row.item_id}\` [${slot}] — weight \`${weight}\``);
+	}
+
+	// Weight penalty display
+	const curW = combatStat?.currentWeight ?? 0;
+	const maxW = combatStat?.maxWeight ?? 0;
+	let penaltyLine;
+	if (curW > maxW && maxW > 0) {
+		const penalty = Math.pow(curW - maxW, 2) * 1.5 / curW;
+		penaltyLine = `${EMOJI.FAILURE} OVERWEIGHT — penalty \`${penalty.toFixed(2)}\` (agi reduced by \`${Math.floor(penalty)}\`, accuracy reduced by \`${Math.floor(penalty)}\`)`;
+	}
+	else {
+		penaltyLine = `${EMOJI.SUCCESS} Not overweight`;
+	}
+
+	// Food buffs
+	const now = Date.now();
+	const foodRows = await CharacterStatus.findAll({ where: { character_id: character.id, source: 'food' } });
+	const activeFoodRows = foodRows.filter(b => b.expires_at == null || new Date(b.expires_at).getTime() >= now);
+	const foodLines = activeFoodRows.length > 0
+		? activeFoodRows.map(b => `  \`${b.stat_target}\` +${b.potency}`)
+		: ['  (none)'];
+
+	// Per-weapon attack stat lines
+	const weaponLines = attackStats.length > 0
+		? attackStats.map(a => {
+			const item = contentStore.items.findByPk(a.item_id);
+			const name = item?.name ?? a.item_id;
+			return `  **${name}** — atk \`${a.attack}\` | acc \`${a.accuracy}\` | crit \`${a.critical}\` | cd \`${a.cooldown}\``;
+		})
+		: ['  (no weapons)'];
+
+	const lines = [
+		`**Stat Check — ${character.name}** (${targetUser})`,
+		'',
+		`**Base stats:** STR \`${character.str}\` | DEX \`${character.dex}\` | AGI \`${character.agi}\` | CON \`${character.con}\``,
+		'',
+		`**Equipped gear:**`,
+		...(gearLines.length > 0 ? gearLines : ['  (none)']),
+		`**Weight:** \`${curW}\` / \`${maxW}\` (maxWeight = STR)`,
+		penaltyLine,
+		'',
+		`**Combat stats (DB after recalc):**`,
+		`  defense \`${combatStat?.defense ?? 'N/A'}\` | speed \`${combatStat?.speed ?? 'N/A'}\` | evade \`${combatStat?.evade ?? 'N/A'}\``,
+		`  crit_resistance \`${combatStat?.crit_resistance ?? 'N/A'}\` | defense_percent \`${combatStat?.defense_percent ?? 'N/A'}\``,
+		'',
+		`**Attack stats per weapon:**`,
+		...weaponLines,
+		'',
+		`**Active food buffs:**`,
+		...foodLines,
+	];
+
+	return interaction.editReply({ content: lines.join('\n') });
+}
 
 // ─── Unstick ─────────────────────────────────────────────────────────────────
 

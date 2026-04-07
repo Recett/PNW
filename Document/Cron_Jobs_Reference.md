@@ -51,20 +51,19 @@ Examples:
 
 ## Hourly Jobs
 
-### `hourly_job` — HP & Stamina Regeneration + World State
+### `character_regen` — HP & Stamina Regeneration
 
 | Field | Value |
 |---|---|
 | Schedule | `0 * * * *` |
 | Fires | Every hour at :00 |
-| DB key | `hourly_job` |
-| Function | `performHourlyJob()` |
+| DB key | `character_regen` |
+| Function | `performCharacterRegen()` |
 
 **What it does:**
 - Increases `currentStamina` by 5% of `maxStamina` (rounded up), capped at `maxStamina`, for all characters in a `town`-type location
 - Increases `currentHp` by 5% of `maxHp` (same rule) for all characters in town
-- Triggers `performPendingDeleteCleanup()` — cleans up stale deferred message deletions (see below)
-- Triggers `performGalebyCycle()` — rolls Galeby's hourly presence (see below)
+- Recovers knocked-out characters whose HP has naturally regenerated above zero
 
 **Catch-up on restart:** Yes — replays every missed hourly tick between the last recorded run and now. For example, if the bot was down for 3 hours, 3 catch-up ticks fire immediately on startup.
 
@@ -74,9 +73,9 @@ Examples:
 
 | Field | Value |
 |---|---|
-| Schedule | Runs inside `hourly_job` + once on startup |
-| Fires | Every hour, and immediately when the bot starts |
-| DB key | *(no dedicated log entry — part of `hourly_job`)* |
+| Schedule | `0 * * * *` |
+| Fires | Every hour at :00, and once on startup |
+| DB key | `pending_delete_cleanup` |
 | Function | `performPendingDeleteCleanup()` |
 
 **What it does:**
@@ -95,9 +94,9 @@ Event conversations schedule their closing message for deletion after 1 hour so 
 
 | Field | Value |
 |---|---|
-| Schedule | Runs inside `hourly_job` |
+| Schedule | `0 * * * *` |
 | Fires | Every hour at :00 |
-| DB key | *(no dedicated log entry — part of `hourly_job`)* |
+| DB key | `galeby_cycle` |
 | Function | `performGalebyCycle()` |
 | Constant | `GALEBY_APPEAR_CHANCE = 25` |
 
@@ -110,9 +109,26 @@ Event conversations schedule their closing message for deletion after 1 hour so 
 **Effect on gameplay:**
 - The NPC `john-galeby` has a `required_checks` entry gating on `global.galeby_present == 1`
 - When the flag is 0, Galeby is invisible in `/look` and `/interact` for all players
-- Expected ~6 visible hours per 24h; errors are caught silently so a failure does not affect the rest of `hourly_job`
+- Expected ~6 visible hours per 24h; errors are caught and logged but do not abort other hourly jobs
 
 **Initial state:** On first deploy, `galeby_present` does not exist in `global_flags` — Galeby is absent until the first hourly tick fires. Seed manually if needed: `INSERT OR REPLACE INTO global_flags (flag_name, flag_value) VALUES ('galeby_present', 1);`
+
+---
+
+### `hourly_tasks` — YAML Hourly Task Runner
+
+| Field | Value |
+|---|---|
+| Schedule | `0 * * * *` |
+| Fires | Every hour at :00 |
+| DB key | `hourly_tasks` |
+| Function | `performHourlyTasks()` |
+
+**What it does:**
+- Calls `taskUtility.processScheduledTasks('hourly')` to execute all active hourly tasks defined in `src/content/tasks/all_tasks.yaml`
+- Tasks are evaluated per-character: each character that passes the task's `checks` has its `actions` applied
+
+**Catch-up on restart:** No.
 
 ---
 
@@ -190,5 +206,5 @@ Event conversations schedule their closing message for deletion after 1 hour so 
 4. Export the job variable from `module.exports` if needed externally
 5. Add an entry to this document under the appropriate timing section
 
-### Sub-functions (no dedicated CronLog entry)
-If the new job is a helper called from within an existing job (like `performGalebyCycle` or `performPendingDeleteCleanup`), document it under its parent job section rather than as a top-level entry. Wrap it in its own try/catch so failures don't abort the parent job.
+### Housekeeping note
+Each job — even those sharing the same cron schedule — should have its own `CronLog` entry and monitoring wrapper so failures are attributed independently. A failure in one job must not abort others running on the same tick.

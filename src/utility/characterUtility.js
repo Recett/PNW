@@ -115,13 +115,11 @@ let calculateAttackStat = async (characterId) => {
 	const agi = character.agi || 0;
 	const cooldownReduction = Math.floor(Math.sqrt(agi));
 
-	// Get combat stat for weight penalty calculation
+	// Get combat stat for weight penalty calculation (calculateCombatStat must run first)
 	const combatStat = await CharacterCombatStat.findOne({ where: { character_id: characterId } });
 	const currentWeight = combatStat?.currentWeight || 0;
-	const maxWeight = combatStat?.maxWeight || 1;
-	// P = (W - C)² / (W / 1.5) where W = currentWeight, C = maxWeight
-	// Ensure penalty is never negative (always >= 0)
-	const overweightPenalty = (currentWeight > maxWeight && currentWeight > 0)
+	const maxWeight = combatStat?.maxWeight || 0;
+	const overweightPenalty = (currentWeight > maxWeight && maxWeight > 0)
 		? Math.max(0, Math.pow(currentWeight - maxWeight, 2) * 1.5 / currentWeight)
 		: 0;
 

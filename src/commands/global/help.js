@@ -16,7 +16,7 @@ const COMMAND_LAYOUT = [
 	{ category: '⚔️ Activities', admin: false, commands: ['hunt', 'raid'] },
 	{ category: '🔧 General', admin: false, commands: ['register', 'item', 'trade', 'project', 'ping'] },
 	// ── Admin sections ───────────────────────────────────────────────────────
-	{ category: '⚙️ Server Management', admin: true, commands: ['location', 'narrate', 'setting', 'cronjob', 'task', 'monitor', 'dbsync'] },
+	{ category: '⚙️ Server Management', admin: true, commands: ['location', 'narrate', 'setting', 'cronjob', 'task', 'dbsync'] },
 	{ category: '⚔️ Game Management', admin: true, commands: ['raidmanage', 'playerlist', 'history'] },
 	{ category: '🧪 Testing', admin: true, commands: ['testnewchar', 'testcombat', 'testraid', 'diagnose-permissions'] },
 ];

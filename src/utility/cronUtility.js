@@ -20,7 +20,11 @@ const job = makeCronJob('0 0 * * *', async () => {
 });
 
 const hourlyJob = makeCronJob('0 * * * *', async () => {
-	await performHourlyJob();
+	// Each subtask runs independently — a failure in one does not abort the others
+	await performCharacterRegen();
+	await performPendingDeleteCleanup();
+	await performGalebyCycle();
+	await performHourlyTasks();
 });
 
 // This job runs every Sunday at 00:00 — resets NPC shop purchase counts
@@ -80,26 +84,19 @@ async function performCronJob() {
 
 const { CharacterBase, CharacterSetting } = require('@root/dbObject.js');
 
-async function performHourlyJob() {
-	const jobName = 'hourly_job';
+async function performCharacterRegen() {
+	const jobName = 'character_regen';
 	const monitor = getCronMonitor();
 	let tracker = null;
-
 	try {
-		// Start enhanced monitoring
 		tracker = await monitor.startExecution(jobName, {
-			description: 'Hourly HP/Stamina regeneration and cleanup',
-			expected_duration_ms: 10000, // Expected ~10 seconds
+			description: 'Hourly HP/Stamina regeneration for characters in town',
+			expected_duration_ms: 5000,
 		});
+		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
 
-		// Mark job as running (legacy CronLog)
-		await CronLog.upsert({
-			job_name: jobName,
-			status: 'running',
-			last_run: new Date(),
-		});
+		const nowSeconds = Math.floor(Date.now() / 1000);
 
-		// Increase every character's currentStamina by 5% of maxStamina, up to maxStamina (only in town locations)
 		const staminaResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
@@ -109,8 +106,7 @@ async function performHourlyJob() {
 		`);
 		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
 
-		// Wake up knocked-out players whose 12-hour recovery has expired: set HP to 1
-		const nowSeconds = Math.floor(Date.now() / 1000);
+		// Wake up knocked-out players whose recovery has expired
 		await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = 1
@@ -124,8 +120,6 @@ async function performHourlyJob() {
 			WHERE flag = 'knocked_out' AND CAST(value AS INTEGER) <= ${nowSeconds};
 		`);
 
-		// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
-		// Excludes knocked-out characters (those with an active knocked_out flag)
 		const hpResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
@@ -139,38 +133,20 @@ async function performHourlyJob() {
 		`);
 		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
 
-		// Clean up stale pending message deletions
-		const cleanupCount = await performPendingDeleteCleanup();
-		monitor.logDatabaseOperation(tracker.id, cleanupCount);
-
-		// Roll Galeby's hourly presence
-		await performGalebyCycle();
-
-		// Mark job as stopped (success) - legacy CronLog
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		await job.update({
 			status: 'stopped',
 			execution_count: (job.execution_count || 0) + 1,
 			success_count: (job.success_count || 0) + 1,
 		});
-
-		// Complete monitoring
 		await monitor.completeExecution(tracker.id, {
 			stamina_updates: staminaResult[1] || 0,
 			hp_updates: hpResult[1] || 0,
-			cleanup_count: cleanupCount,
 		});
-
 	}
 	catch (error) {
-		console.error(`Error in ${jobName}:`, error);
-		
-		// Handle monitoring failure
-		if (tracker) {
-			await monitor.failExecution(tracker.id, error);
-		}
-
-		// Mark job as error - legacy CronLog
+		console.error('[CharacterRegen] Error:', error);
+		if (tracker) await monitor.failExecution(tracker.id, error);
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		if (job) {
 			await job.update({
@@ -181,35 +157,70 @@ async function performHourlyJob() {
 				last_error_at: new Date(),
 			});
 		}
-		throw error;
 	}
 }
 
 async function performGalebyCycle() {
+	const jobName = 'galeby_cycle';
+	const monitor = getCronMonitor();
+	let tracker = null;
 	try {
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Hourly Galeby presence roll (25% chance to appear)',
+			expected_duration_ms: 1000,
+		});
+		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
+
 		const roll = Math.floor(Math.random() * 100) + 1;
 		const present = roll <= GALEBY_APPEAR_CHANCE;
 		await GlobalFlag.upsert({ flag: 'galeby_present', value: present ? 1 : 0 });
 		console.log(`[Galeby] Hour roll: ${present ? 'present' : 'absent'} (${roll}/100)`);
+
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		await job.update({
+			status: 'stopped',
+			execution_count: (job.execution_count || 0) + 1,
+			success_count: (job.success_count || 0) + 1,
+		});
+		await monitor.completeExecution(tracker.id, { roll, present });
 	}
 	catch (error) {
 		console.error('[Galeby] Error in performGalebyCycle:', error);
+		if (tracker) await monitor.failExecution(tracker.id, error);
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		if (job) {
+			await job.update({
+				status: 'error',
+				execution_count: (job.execution_count || 0) + 1,
+				error_count: (job.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
 	}
 }
 
 async function performPendingDeleteCleanup() {
-	if (!_discordClient) return 0;
+	if (!_discordClient) return;
+	const jobName = 'pending_delete_cleanup';
+	const monitor = getCronMonitor();
+	let tracker = null;
 	const ONE_HOUR_MS = 60 * 60 * 1000;
 	let cleaned = 0;
 	try {
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Clean up stale deferred Discord message deletions',
+			expected_duration_ms: 3000,
+		});
+		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
+
 		const rows = await CharacterSetting.findAll({ where: { setting: '_pending_delete' } });
 		for (const row of rows) {
 			const parts = row.value.split('|');
 			if (parts.length >= 3) {
 				const age = Date.now() - parseInt(parts[2], 10);
-				if (age < ONE_HOUR_MS) continue; // Still within the 1hr window
+				if (age < ONE_HOUR_MS) continue;
 			}
-			// Older than 1hr (or missing timestamp) — delete message and destroy row
 			try {
 				const channel = await _discordClient.channels.fetch(parts[0]).catch(() => null);
 				if (channel) {
@@ -222,11 +233,71 @@ async function performPendingDeleteCleanup() {
 			cleaned++;
 		}
 		if (cleaned > 0) console.log(`[PendingDeleteCleanup] Cleaned ${cleaned} stale pending deletion(s).`);
+		monitor.logDatabaseOperation(tracker.id, cleaned);
+
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		await job.update({
+			status: 'stopped',
+			execution_count: (job.execution_count || 0) + 1,
+			success_count: (job.success_count || 0) + 1,
+		});
+		await monitor.completeExecution(tracker.id, { cleaned });
 	}
 	catch (error) {
 		console.error('[PendingDeleteCleanup] Error:', error);
+		if (tracker) await monitor.failExecution(tracker.id, error);
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		if (job) {
+			await job.update({
+				status: 'error',
+				execution_count: (job.execution_count || 0) + 1,
+				error_count: (job.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
 	}
-	return cleaned;
+}
+
+async function performHourlyTasks() {
+	const jobName = 'hourly_tasks';
+	const monitor = getCronMonitor();
+	let tracker = null;
+	try {
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Hourly YAML task processor',
+			expected_duration_ms: 5000,
+		});
+		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
+
+		const results = await taskUtility.processScheduledTasks('hourly');
+		monitor.logDatabaseOperation(tracker.id, results.charactersProcessed || 0);
+
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		await job.update({
+			status: 'stopped',
+			execution_count: (job.execution_count || 0) + 1,
+			success_count: (job.success_count || 0) + 1,
+		});
+		await monitor.completeExecution(tracker.id, {
+			tasks_processed: results.tasksProcessed || 0,
+			characters_processed: results.charactersProcessed || 0,
+		});
+	}
+	catch (error) {
+		console.error('[HourlyTasks] Error:', error);
+		if (tracker) await monitor.failExecution(tracker.id, error);
+		const job = await CronLog.findOne({ where: { job_name: jobName } });
+		if (job) {
+			await job.update({
+				status: 'error',
+				execution_count: (job.execution_count || 0) + 1,
+				error_count: (job.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
+	}
 }
 
 async function performWeeklyStockReset() {
@@ -241,6 +312,10 @@ async function performWeeklyStockReset() {
 		// Clear all NPC purchase records — restocks all shops to YAML max
 		const deleted = await NpcPurchase.destroy({ where: {} });
 		console.log(`[WeeklyStockReset] Cleared ${deleted} purchase record(s).`);
+
+		// Process weekly YAML tasks
+		const weeklyTaskResults = await taskUtility.processScheduledTasks('weekly');
+		console.log(`[WeeklyStockReset] Processed ${weeklyTaskResults.tasksProcessed} weekly task(s) for ${weeklyTaskResults.charactersProcessed} character(s).`);
 
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		await job.update({
@@ -467,17 +542,15 @@ async function performHealthCheck() {
 
 async function startCronJob(client) {
 	_discordClient = client || null;
-	// Helper for catch-up: run hourly job for a specific time
-	async function performHourlyJobForTime(runTime) {
-		const jobName = 'hourly_job';
+	// Helper for catch-up: replay missed character regen ticks
+	async function performCharacterRegenForTime(runTime) {
+		const jobName = 'character_regen';
 		try {
-			// Update last_run without changing status (catch-up doesn't need full status tracking)
 			await CronLog.upsert({
 				job_name: jobName,
 				last_run: runTime,
 			});
 
-			// Increase every character's currentStamina by 10% of maxStamina, up to maxStamina (only in town locations)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
@@ -571,33 +644,28 @@ async function startCronJob(client) {
 	}
 
 	if (!hourlyJob.running) {
-		// Initialize hourly job in database
-		await CronLog.upsert({
-			job_name: 'hourly_job',
-			status: 'stopped',
-			schedule: '0 * * * *',
-			description: 'Hourly HP/Stamina regeneration for characters in town',
-			is_enabled: true,
-		});
+		// Register all hourly sub-jobs independently
+		await CronLog.upsert({ job_name: 'character_regen', status: 'stopped', schedule: '0 * * * *', description: 'Hourly HP/Stamina regeneration for characters in town', is_enabled: true });
+		await CronLog.upsert({ job_name: 'galeby_cycle', status: 'stopped', schedule: '0 * * * *', description: 'Hourly Galeby presence roll', is_enabled: true });
+		await CronLog.upsert({ job_name: 'pending_delete_cleanup', status: 'stopped', schedule: '0 * * * *', description: 'Hourly cleanup of stale deferred message deletions', is_enabled: true });
+		await CronLog.upsert({ job_name: 'hourly_tasks', status: 'stopped', schedule: '0 * * * *', description: 'Hourly YAML task processor', is_enabled: true });
 
-		// Hourly job catch-up
-		const lastHourly = await CronLog.findOne({ where: { job_name: 'hourly_job' } });
-		let lastRun = lastHourly && lastHourly.last_run ? new Date(lastHourly.last_run) : null;
+		// Catch-up: only character_regen needs replay (stat accumulation is cumulative)
+		const lastRegen = await CronLog.findOne({ where: { job_name: 'character_regen' } });
+		let lastRun = lastRegen && lastRegen.last_run ? new Date(lastRegen.last_run) : null;
 		const now = new Date();
 		if (!lastRun) {
-			// If never run, pick a reasonable start time (e.g., 25 hours ago)
 			lastRun = new Date(now.getTime() - 25 * 60 * 60 * 1000);
 		}
-		// Align to the next hour after lastRun
 		lastRun.setMinutes(0, 0, 0);
 		lastRun.setHours(lastRun.getHours() + 1);
 		while (lastRun <= now) {
-			await performHourlyJobForTime(lastRun);
+			await performCharacterRegenForTime(lastRun);
 			lastRun.setHours(lastRun.getHours() + 1);
 		}
 
 		hourlyJob.start();
-		console.log('Hourly cron job started.');
+		console.log('Hourly cron jobs started (character_regen, galeby_cycle, pending_delete_cleanup, hourly_tasks).');
 	}
 
 	if (!weeklyStockResetJob.running) {
