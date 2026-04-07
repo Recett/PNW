@@ -2528,6 +2528,8 @@ class EventProcessor {
 			}
 			catch (error) {
 				console.error('Reaction collector error:', error);
+				this.activeEvents.delete(session.sessionId);
+				if (session.characterId) this.activeCharacters.delete(session.characterId);
 			}
 		});
 
@@ -2884,6 +2886,8 @@ class EventProcessor {
 			}
 			catch (error) {
 				console.error('Collector error:', error);
+				this.activeEvents.delete(session.sessionId);
+				if (session.characterId) this.activeCharacters.delete(session.characterId);
 				await this.handleError(componentInteraction, error);
 			}
 		});
