@@ -492,14 +492,18 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		if (actors.player.hp <= 0) {
 			const { CharacterStatus } = require('@root/dbObject.js');
 			const expiresAt = new Date(Date.now() + 12 * 3600 * 1000);
-			await CharacterStatus.upsert({
-				character_id: playerId,
-				status_id: 'knocked_out',
-				category: 'debuff',
-				scope: 'persistent',
-				duration_unit: 'seconds',
-				expires_at: expiresAt,
-			}, { conflictFields: ['character_id', 'status_id'] });
+			const [existing] = await CharacterStatus.findOrCreate({
+				where: { character_id: playerId, status_id: 'knocked_out' },
+				defaults: {
+					category: 'debuff',
+					scope: 'persistent',
+					duration_unit: 'seconds',
+					expires_at: expiresAt,
+				},
+			});
+			if (existing) {
+				await existing.update({ expires_at: expiresAt });
+			}
 		}
 	}
 
