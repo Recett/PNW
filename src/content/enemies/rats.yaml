@@ -24,8 +24,8 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 0
-      evade: 16
-      speed: 16
+      evade: 14
+      speed: 14
     attack:
       - id: bite
         name: Bite
@@ -192,8 +192,8 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 5
-      evade: 16
-      speed: 16
+      evade: 14
+      speed: 14
     attack:
       - id: bite
         name: Bite
@@ -217,8 +217,8 @@ enemies:
       defense: 0
       defense_percent: 0
       crit_resistance: 5
-      evade: 12
-      speed: 12
+      evade: 10
+      speed: 10
     attack:
       - id: bite
         name: Bite
@@ -245,8 +245,8 @@ enemies:
       defense: 3
       defense_percent: 0
       crit_resistance: 10
-      evade: 14
-      speed: 14
+      evade: 12
+      speed: 12
     attack:
       - id: bite
         name: Bite

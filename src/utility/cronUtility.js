@@ -9,33 +9,32 @@ const { eventProcessor } = require('./eventUtility');
 
 let _discordClient = null;
 
+const CRON_TIMEZONE = 'Asia/Ho_Chi_Minh';
+// Always use this factory — it enforces the server timezone on every job
+const makeCronJob = (schedule, fn) => new CronJob(schedule, fn, null, false, CRON_TIMEZONE);
+
 const GALEBY_APPEAR_CHANCE = 25; // 25% per hour → ~6 visible hours per 24h
 
-const job = new CronJob('0 0 * * *', async () => {
+const job = makeCronJob('0 0 * * *', async () => {
 	await performCronJob();
 });
 
-const hourlyJob = new CronJob('0 * * * *', async () => {
+const hourlyJob = makeCronJob('0 * * * *', async () => {
 	await performHourlyJob();
 });
 
 // This job runs every Sunday at 00:00 — resets NPC shop purchase counts
-const weeklyStockResetJob = new CronJob('0 0 * * 0', async () => {
+const weeklyStockResetJob = makeCronJob('0 0 * * 0', async () => {
 	await performWeeklyStockReset();
 });
 
 // This job runs every day at 01:00 — processes daily tasks (offset from midnight job)
-const dailyTaskJob = new CronJob('0 1 * * *', async () => {
+const dailyTaskJob = makeCronJob('0 1 * * *', async () => {
 	await performDailyTasks();
 });
 
-// This job runs every day at 04:00 GMT+7 — initializes bilge ecosystem flags if missing
-const bilgeBootstrapJob = new CronJob('0 4 * * *', async () => {
-	await performBilgeEcosystemBootstrap();
-});
-
 // This job runs every 30 minutes — health monitoring and alerting
-const healthMonitorJob = new CronJob('*/30 * * * *', async () => {
+const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
 	await performHealthCheck();
 });
 
@@ -271,6 +270,21 @@ async function performBilgeEcosystemDailyCycle() {
 	const KING_MAX_HP = 400; // matches rat_king_undead stat.health
 	const KING_HP_REGEN = 200;
 
+	// Skip entirely if the undead event has already been cleared
+	const clearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
+	const isCleared = clearedRecord ? parseInt(clearedRecord.value) || 0 : 0;
+	if (isCleared) {
+		console.log('[BilgeEcosystem] Undead event already cleared — skipping daily cycle.');
+		return;
+	}
+
+	// Skip if the event has never been activated (no undead_rat_count row)
+	const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
+	if (!ratCountRecord) {
+		console.log('[BilgeEcosystem] Undead event not yet active — skipping daily cycle.');
+		return;
+	}
+
 	// Reset the undead rat pool every midnight
 	await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: String(RAT_COUNT) });
 
@@ -286,36 +300,6 @@ async function performBilgeEcosystemDailyCycle() {
 	}
 
 	console.log(`[BilgeEcosystem] Daily reset — undead_rat_count: ${RAT_COUNT}, king slain: ${isSlain}`);
-}
-
-async function performBilgeEcosystemBootstrap() {
-	const KING_MAX_HP = 400;
-
-	// Initialize undead_rat_count if it has never been set
-	const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-	if (!ratCountRecord) {
-		await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: '50' });
-		console.log('[BilgeBootstrap] Initialized global.undead_rat_count = 50');
-	}
-
-	// Initialize rat_king HP if it has never been set and king is not slain
-	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
-	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
-	if (!isSlain) {
-		const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_hp' } });
-		if (!hpRecord) {
-			await GlobalFlag.upsert({ flag: 'global.undead_rat_king_hp', value: String(KING_MAX_HP) });
-			console.log(`[BilgeBootstrap] Initialized global.undead_rat_king_hp = ${KING_MAX_HP}`);
-		}
-	}
-
-	if (_discordClient) {
-		const eventData = contentStore.events.findByPk('bilge-ecosystem-bootstrap');
-		const narrateAction = eventData?.action?.find(a => a.type === 'narrate');
-		if (narrateAction) {
-			await eventProcessor.executeNarrateAction(narrateAction, { client: _discordClient, variables: {} });
-		}
-	}
 }
 
 async function performDailyTasks() {
@@ -657,19 +641,6 @@ async function startCronJob(client) {
 		console.log('Daily task processor cron job started.');
 	}
 
-	if (!bilgeBootstrapJob.running) {
-		await CronLog.upsert({
-			job_name: 'bilge_bootstrap',
-			status: 'stopped',
-			schedule: '0 4 * * *',
-			description: 'Bilge ecosystem flag initialization — sets missing flags to defaults (runs at 04:00 GMT+7)',
-			is_enabled: true,
-		});
-
-		bilgeBootstrapJob.start();
-		console.log('Bilge bootstrap cron job started (04:00 Asia/Ho_Chi_Minh).');
-	}
-
 	// Start health monitoring job
 	healthMonitorJob.start();
 	console.log('Health monitor cron job started (runs every 30 minutes).');
@@ -688,7 +659,6 @@ module.exports = {
 	hourlyJob,
 	weeklyStockResetJob,
 	dailyTaskJob,
-	bilgeBootstrapJob,
 	healthMonitorJob,
 	startCronJob,
 	performHealthCheck,

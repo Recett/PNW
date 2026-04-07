@@ -131,12 +131,12 @@ async function runInitTracker(actors, options = {}) {
 				const tohit = tracker.accuracy || 0;
 				const evd = target.evade || 1;
 				let hitRate = 100;
-				rate = evd / tohit;
+				const rate = evd / tohit;
 				if (rate >= 4) {
 					hitRate = 0;
 				}
 				else {
-					x = (rate - 1) / 3;
+					const x = (rate - 1) / 3;
 					hitRate = ((1 - x) / (1 + x)) * 100;
 				}
 				const roll = Math.floor(Math.random() * 100);
@@ -310,11 +310,11 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	if (!playerId) throw new Error('Player ID is required for combat');
 	if (!enemyId) throw new Error('Enemy ID is required for combat');
 
+	// Calculate defense/weight first so overweight penalty is current when attack stats are computed
+	const playerCombatStats = await getDefenseStat(playerId);
+
 	const playerAttacks = await getAttackStat(playerId);
 	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
-
-	// Get player combat stats for speed
-	const playerCombatStats = await getDefenseStat(playerId);
 
 	// Get Enemy base info and stats from YAML content store
 	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
@@ -340,7 +340,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	if (!playerBase) throw new Error('Player not found');
 
 	// Get player's agility/speed from combat stats
-	const playerSpeed = playerCombatStats ? (playerCombatStats.agi || playerCombatStats.agility || 15) : 15;
+	const playerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
 
 	const player = {
 		id: 'player',
