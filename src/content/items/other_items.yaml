@@ -29,6 +29,8 @@ other_items:
     metadata:
       stackable: true
       tradeable: true
+      initialTrait:
+        - Gristly
 
   - id: herring
     name: Herring
@@ -44,7 +46,7 @@ other_items:
       stackable: true
       tradeable: true
       initialTrait:
-        - Oily
+        - Broth
 
   - id: mackerel
     name: Mackerel
@@ -92,7 +94,7 @@ other_items:
       stackable: true
       tradeable: true
       initialTrait:
-        - Stringy
+        - Chewy
 
   - id: bilge-key
     name: Bilge Key
