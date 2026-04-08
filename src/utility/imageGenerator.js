@@ -2,6 +2,45 @@ const { createCanvas, loadImage, GlobalFonts } = require('@napi-rs/canvas');
 const { EQUIPMENT_SLOT_CONFIG, WEAPON_SLOTS } = require('@root/enums.js');
 const fs = require('fs');
 const { execSync } = require('child_process');
+const https = require('https');
+const http = require('http');
+
+/**
+ * Fetch an image URL as a Buffer, sending browser-like headers so that
+ * hotlink-protected hosts (e.g. Pinterest CDN) return the image correctly.
+ * Follows up to 5 redirects.
+ * @param {string} url
+ * @returns {Promise<Buffer>}
+ */
+function fetchImageAsBuffer(url, _redirects = 0) {
+	return new Promise((resolve, reject) => {
+		if (_redirects > 5) return reject(new Error('Too many redirects'));
+		const parsedUrl = new URL(url);
+		const client = parsedUrl.protocol === 'https:' ? https : http;
+		const options = {
+			hostname: parsedUrl.hostname,
+			path: parsedUrl.pathname + parsedUrl.search,
+			headers: {
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+				'Referer': `${parsedUrl.protocol}//${parsedUrl.hostname}/`,
+				'Accept': 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+			},
+		};
+		client.get(options, (res) => {
+			if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+				return fetchImageAsBuffer(res.headers.location, _redirects + 1).then(resolve, reject);
+			}
+			if (res.statusCode !== 200) {
+				res.resume();
+				return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+			}
+			const chunks = [];
+			res.on('data', (chunk) => chunks.push(chunk));
+			res.on('end', () => resolve(Buffer.concat(chunks)));
+			res.on('error', reject);
+		}).on('error', reject);
+	});
+}
 
 /**
  * Find a font file using fc-list (fontconfig) on Linux
@@ -402,7 +441,8 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	const avatarY = 85;
 	try {
 		if (avatarUrl) {
-			const avatar = await loadImage(avatarUrl);
+			const imageBuffer = await fetchImageAsBuffer(avatarUrl);
+			const avatar = await loadImage(imageBuffer);
 			drawCircularAvatar(ctx, avatar, avatarX, avatarY, avatarRadius, rankColor);
 		}
 	}
