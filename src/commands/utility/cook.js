@@ -76,12 +76,20 @@ async function showCookingInterface(interaction, userId, session) {
 	const additiveRow = new ActionRowBuilder().addComponents(selectMenu);
 	const buttonRow = new ActionRowBuilder().addComponents(finishButton, cancelButton);
 
-	const method = interaction.replied || interaction.deferred ? 'editReply' : 'reply';
-	await interaction[method]({
-		embeds: [embed],
-		components: [additiveRow, buttonRow],
-		flags: MessageFlags.Ephemeral
-	});
+	if (interaction.isMessageComponent()) {
+		await interaction.update({
+			embeds: [embed],
+			components: [additiveRow, buttonRow],
+		});
+	}
+	else {
+		const method = interaction.replied || interaction.deferred ? 'editReply' : 'reply';
+		await interaction[method]({
+			embeds: [embed],
+			components: [additiveRow, buttonRow],
+			flags: MessageFlags.Ephemeral
+		});
+	}
 }
 
 // Handle ingredient selection
