@@ -106,30 +106,22 @@ async function performCharacterRegen() {
 		`);
 		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
 
-		// Wake up knocked-out players whose recovery has expired
-		await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentHp = 1
-			WHERE id IN (
-				SELECT character_id FROM character_statuses
-				WHERE status_id = 'knocked_out' AND expires_at <= datetime('now')
-			) AND currentHp <= 0;
-		`);
-		await CharacterBase.sequelize.query(`
-			DELETE FROM character_statuses
-			WHERE status_id = 'knocked_out' AND expires_at <= datetime('now');
-		`);
+		// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
+		// await CharacterBase.sequelize.query(`
+		// 	UPDATE character_bases SET currentHp = 1
+		// 	WHERE id IN (SELECT character_id FROM character_statuses
+		// 		WHERE status_id = 'knocked_out' AND expires_at <= datetime('now')) AND currentHp <= 0;
+		// `);
+		// await CharacterBase.sequelize.query(`
+		// 	DELETE FROM character_statuses WHERE status_id = 'knocked_out' AND expires_at <= datetime('now');
+		// `);
 
 		const hpResult = await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
-				AND id NOT IN (
-					SELECT character_id FROM character_statuses
-					WHERE status_id = 'knocked_out' AND expires_at > datetime('now')
-				);
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 		`);
 		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
 
@@ -558,33 +550,25 @@ async function startCronJob(client) {
 				AND currentStamina IS NOT NULL
 				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 		`);
-			// Wake up knocked-out players whose recovery has expired: set HP to 1
+			// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
 			const catchUpNow = Math.floor(runTime instanceof Date ? runTime.getTime() / 1000 : Date.now() / 1000);
-			await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentHp = 1
-			WHERE id IN (
-				SELECT character_id FROM character_statuses
-				WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch')
-			) AND currentHp <= 0;
-		`);
-			await CharacterBase.sequelize.query(`
-			DELETE FROM character_statuses
-			WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch');
-		`);
+			// await CharacterBase.sequelize.query(`
+			// 	UPDATE character_bases SET currentHp = 1
+			// 	WHERE id IN (SELECT character_id FROM character_statuses
+			// 		WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch')) AND currentHp <= 0;
+			// `);
+			// await CharacterBase.sequelize.query(`
+			// 	DELETE FROM character_statuses WHERE status_id = 'knocked_out'
+			// 		AND expires_at <= datetime(${catchUpNow}, 'unixepoch');
+			// `);
 
 			// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
-			// Excludes knocked-out characters (those with an active knocked_out status)
 			await CharacterBase.sequelize.query(`
 			UPDATE character_bases
 			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
 			WHERE maxHp IS NOT NULL 
 				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town')
-				AND id NOT IN (
-					SELECT character_id FROM character_statuses
-					WHERE status_id = 'knocked_out' AND expires_at > datetime(${catchUpNow}, 'unixepoch')
-				);
+				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 		`);
 
 			// Increment execution count for catch-up runs
