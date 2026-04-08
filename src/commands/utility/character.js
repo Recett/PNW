@@ -222,10 +222,9 @@ module.exports = {
 				}
 			}
 
-			await CharacterBase.update(
-				{ name, fullname, age },
-				{ where: { id: userId } },
-			);
+			const charUpdate = { name, fullname, age };
+			if (avatar !== undefined) charUpdate.avatar = avatar || null;
+			await CharacterBase.update(charUpdate, { where: { id: userId } });
 
 			if (avatar !== undefined) {
 				await setCharacterSetting(userId, 'avatar', avatar || '');
@@ -286,10 +285,12 @@ async function handleStat(interaction, userId) {
 	const combat = await characterUtil.getCharacterCombatStat(targetId);
 	const attack = await characterUtil.getCharacterAttackStat(targetId);
 	const equipment = await characterUtil.getCharacterEquippedItems(targetId);
-	const avatarUrl = character.avatar || displayUser.displayAvatarURL({ forceStatic: false });
+	const settingsAvatar = await getCharacterSetting(targetId, 'avatar');
+	const resolvedAvatar = settingsAvatar || character.avatar || null;
+	const avatarUrl = resolvedAvatar || displayUser.displayAvatarURL({ forceStatic: false });
 	// Canvas requires a reliable PNG URL; WebP/GIF Discord CDN URLs can fail in @napi-rs/canvas
-	const canvasAvatarUrl = character.avatar || displayUser.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
-	console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!character.avatar, ')');
+	const canvasAvatarUrl = resolvedAvatar || displayUser.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
+	console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!resolvedAvatar, ')');
 
 	// Query active food buff rows for (+X) annotation
 	const foodBuffRows = await CharacterStatus.findAll({ where: { character_id: targetId, source: 'food' } });
@@ -492,7 +493,7 @@ async function handleEdit(interaction, userId) {
 		.setRequired(false)
 		.setMaxLength(3);
 	const ageStr = character.age != null ? String(character.age) : '';
-	if (ageStr.length >= 2) ageInput.setValue(ageStr);
+	if (ageStr.length >= 1) ageInput.setValue(ageStr);
 
 	const avatarInput = new TextInputBuilder()
 		.setCustomId('character_avatar')
