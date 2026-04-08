@@ -15,7 +15,14 @@ const http = require('http');
 function fetchImageAsBuffer(url, _redirects = 0) {
 	return new Promise((resolve, reject) => {
 		if (_redirects > 5) return reject(new Error('Too many redirects'));
-		const parsedUrl = new URL(url);
+		let parsedUrl;
+		try {
+			parsedUrl = new URL(url);
+		}
+		catch {
+			return reject(new Error(`Invalid URL: ${url}`));
+		}
+		console.log(`[Avatar] Fetching (redirect=${_redirects}): ${parsedUrl.hostname}${parsedUrl.pathname}`);
 		const client = parsedUrl.protocol === 'https:' ? https : http;
 		const options = {
 			hostname: parsedUrl.hostname,
@@ -27,7 +34,9 @@ function fetchImageAsBuffer(url, _redirects = 0) {
 			},
 		};
 		client.get(options, (res) => {
+			console.log(`[Avatar] Response: HTTP ${res.statusCode} from ${parsedUrl.hostname}, Content-Type: ${res.headers['content-type']}`);
 			if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+				console.log(`[Avatar] Redirect -> ${res.headers.location}`);
 				return fetchImageAsBuffer(res.headers.location, _redirects + 1).then(resolve, reject);
 			}
 			if (res.statusCode !== 200) {
@@ -36,9 +45,19 @@ function fetchImageAsBuffer(url, _redirects = 0) {
 			}
 			const chunks = [];
 			res.on('data', (chunk) => chunks.push(chunk));
-			res.on('end', () => resolve(Buffer.concat(chunks)));
-			res.on('error', reject);
-		}).on('error', reject);
+			res.on('end', () => {
+				const buf = Buffer.concat(chunks);
+				console.log(`[Avatar] Downloaded ${buf.length} bytes from ${parsedUrl.hostname}`);
+				resolve(buf);
+			});
+			res.on('error', (err) => {
+				console.error(`[Avatar] Stream error from ${parsedUrl.hostname}:`, err.message);
+				reject(err);
+			});
+		}).on('error', (err) => {
+			console.error(`[Avatar] Connection error to ${parsedUrl.hostname}:`, err.message);
+			reject(err);
+		});
 	});
 }
 
@@ -441,12 +460,15 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	const avatarY = 85;
 	try {
 		if (avatarUrl) {
+			console.log(`[Avatar] Loading avatar for character ${character.id}: ${avatarUrl}`);
 			const imageBuffer = await fetchImageAsBuffer(avatarUrl);
 			const avatar = await loadImage(imageBuffer);
 			drawCircularAvatar(ctx, avatar, avatarX, avatarY, avatarRadius, rankColor);
+			console.log(`[Avatar] Successfully drawn for ${character.id}`);
 		}
 	}
-	catch {
+	catch (avatarErr) {
+		console.error(`[Avatar] FAILED for character ${character.id} URL=${avatarUrl} — ${avatarErr.message}`);
 		// Draw placeholder circle if avatar fails to load (with rank color ring)
 		ctx.beginPath();
 		ctx.arc(avatarX, avatarY, avatarRadius + 4, 0, Math.PI * 2);

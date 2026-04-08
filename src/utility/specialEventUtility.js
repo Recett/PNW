@@ -479,7 +479,7 @@ function getSpiceItemId(spiceId) {
 
 function calculateDishQuality(traits) {
 	const score = calculateDishScore(traits);
-	if (score > 200) return 'Legendary';
+	if (score > 150) return 'Legendary';
 	if (score > 100) return 'Epic';
 	if (score > 50)  return 'Rare';
 	if (score > 20)  return 'Uncommon';

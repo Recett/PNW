@@ -309,12 +309,14 @@ async function handleStat(interaction, userId) {
 
 	if (!isPlain) {
 		try {
+			console.log(`[Stat] Canvas attempt for ${targetId}: avatar=${canvasAvatarUrl}, combat=${!!combat}, attack=${!!attack}, equip=${equipment?.length}, food=${foodBuffRows?.length}, hp=${character.currentHp}/${character.maxHp}, stamina=${character.currentStamina}/${character.maxStamina}, str=${character.str}, dex=${character.dex}, agi=${character.agi}, con=${character.con}`);
 			const imageBuffer = await generateStatCard(character, combat, attack, equipment, canvasAvatarUrl, foodBuffRows);
 			const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
 			return await interaction.editReply({ files: [attachment] });
 		}
 		catch (canvasError) {
-			console.error('Canvas generation failed, falling back to plain text:', canvasError.message);
+			console.error(`[Stat] Canvas FAILED for ${targetId}:`, canvasError.message);
+			console.error('[Stat] Stack:', canvasError.stack);
 		}
 	}
 
