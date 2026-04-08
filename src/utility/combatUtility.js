@@ -340,10 +340,9 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	if (!playerBase) throw new Error('Player not found');
 
 	// Prevent already-knocked-out players from entering combat (would refresh the KO timer)
-	// TODO: KO mechanic temporarily disabled
-	// if ((playerBase.currentHp ?? 0) <= 0) {
-	// 	throw new Error('Character is knocked out and cannot fight.');
-	// }
+	if ((playerBase.currentHp ?? 0) <= 0) {
+		throw new Error('Character is knocked out and cannot fight.');
+	}
 
 	// Get player's agility/speed from combat stats
 	const playerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;

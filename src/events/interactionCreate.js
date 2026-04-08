@@ -264,10 +264,12 @@ async function handleLocationExitButton(interaction) {
 		}
 		
 		// Filter out locked locations (lock is runtime DB state, not YAML)
+		// If character is at 0 HP, also filter out non-town locations
+		const isWounded = (character.currentHp ?? 0) <= 0;
 		const unlockedLocationIds = [];
 		for (const locId of allPossibleLocations) {
 			const loc = await LocationBase.findByPk(locId);
-			if (loc && !loc.lock) {
+			if (loc && !loc.lock && (!isWounded || (loc.type && loc.type.toLowerCase() === 'town'))) {
 				unlockedLocationIds.push(locId);
 			}
 		}
@@ -278,8 +280,11 @@ async function handleLocationExitButton(interaction) {
 			targetLocationId = unlockedLocationIds[Math.floor(Math.random() * unlockedLocationIds.length)];
 		}
 		else {
-			// No unlocked locations found
-			await interaction.reply({ content: 'Cannot leave this location - no unlocked exit found.', flags: MessageFlags.Ephemeral });
+			// No unlocked locations found (or all filtered out due to low HP)
+			const msg = isWounded
+				? 'You are too wounded to leave — no town-type exit is available from here. Rest here and recover.'
+				: 'Cannot leave this location - no unlocked exit found.';
+			await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
 			return true;
 		}
 
