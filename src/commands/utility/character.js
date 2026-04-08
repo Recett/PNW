@@ -287,6 +287,8 @@ async function handleStat(interaction, userId) {
 	const attack = await characterUtil.getCharacterAttackStat(targetId);
 	const equipment = await characterUtil.getCharacterEquippedItems(targetId);
 	const avatarUrl = character.avatar || displayUser.displayAvatarURL({ forceStatic: false });
+	// Canvas requires a reliable PNG URL; WebP/GIF Discord CDN URLs can fail in @napi-rs/canvas
+	const canvasAvatarUrl = character.avatar || displayUser.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });
 	console.log('[Stat] Avatar URL:', avatarUrl, '(from DB:', !!character.avatar, ')');
 
 	// Query active food buff rows for (+X) annotation
@@ -306,7 +308,7 @@ async function handleStat(interaction, userId) {
 
 	if (!isPlain) {
 		try {
-			const imageBuffer = await generateStatCard(character, combat, attack, equipment, avatarUrl, foodBuffRows);
+			const imageBuffer = await generateStatCard(character, combat, attack, equipment, canvasAvatarUrl, foodBuffRows);
 			const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
 			return await interaction.editReply({ files: [attachment] });
 		}

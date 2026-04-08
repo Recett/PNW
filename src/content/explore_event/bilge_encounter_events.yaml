@@ -473,6 +473,16 @@ events:
     message:
       text: "Bạn đã hạ gục con chuột. Không chắc nó sẽ không dậy lại lần nữa, nhưng bạn tạm thời an toàn."
 
+    action:
+      - type: flag
+        flag_name: global.undead_rat_count
+        flag_value: "1"
+        flag_operation: subtract
+        flag_type: global
+        output_variable: remaining_rats
+        silent: false
+        custom_message: "Còn lại ${remaining_rats} con chuột dưới hầm tàu."
+
   - id: bilge-victory-rat-ghoul
     name: "Rat Ghoul killed"
     event_type: encounter

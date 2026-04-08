@@ -35,7 +35,11 @@ const COOKING_ADDITIVES = {
 			'Thick': 'Ropy',
 			'Glazed': 'Smooth',
 			'Dough': 'Vapor',
-			'Hardened': 'Crust'
+			'Hardened': 'Crust',
+			'Velvet': 'Complex',
+			'Acrid': 'Caustic',
+			'Oily': 'Smooth',
+			'Putrid': 'Sour'
 		}
 	},
 	'lard': {
@@ -51,7 +55,11 @@ const COOKING_ADDITIVES = {
 			'Starch': 'Glazed',
 			'Ropy': 'Elastic',
 			'Vapor': 'Chewy',
-			'Fermenting': 'Brittle'
+			'Fermenting': 'Brittle',
+			'Liquid': 'Broth',
+			'Bready': 'Oily',
+			'Soggy': 'Sludge',
+			'Cured': 'Savory'
 		}
 	},
 	'hardtack': {
@@ -67,7 +75,13 @@ const COOKING_ADDITIVES = {
 			'Mellow': 'Gelatinous',
 			'Velvet': 'Dough',
 			'Savory': 'Heavy',
-			'Malty': 'Hardened'
+			'Malty': 'Hardened',
+			'Sour': 'Acrid',
+			'Broth': 'Charred',
+			'Fermenting': 'Putrid',
+			'Caustic': 'Starch',
+			'Sludge': 'Paste',
+			'Fizzy': 'Starch'
 		}
 	},
 	'old_ale': {
@@ -83,7 +97,10 @@ const COOKING_ADDITIVES = {
 			'Gristly': 'Elastic',
 			'Thick': 'Gelatinous',
 			'Hardened': 'Crispy',
-			'Dry': 'Mellow'
+			'Dry': 'Mellow',
+			'Fermenting': 'Fizzy',
+			'Charred': 'Malty',
+			'Brine': 'Pungent'
 		}
 	},
 	'sea_salt': {
@@ -99,7 +116,10 @@ const COOKING_ADDITIVES = {
 			'Gelatinous': 'Elastic',
 			'Dough': 'Hardened',
 			'Chewy': 'Gristly',
-			'Vapor': 'Fermenting'
+			'Vapor': 'Fermenting',
+			'Broth': 'Cured',
+			'Liquid': 'Brine',
+			'Complex': 'Heavy'
 		}
 	}
 };
