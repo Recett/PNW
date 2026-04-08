@@ -37,6 +37,7 @@ events:
   - id: bilge-flee-rat
     name: "Flee from rat"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat
@@ -58,15 +59,12 @@ events:
 
   - id: bilge-flee-fail-rat
     name: "Flee failed — rat"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Bạn trượt chân trên sàn ườt. Con chuột lập tức lao tới tấn công."
 
-    combat:
-      enemy: rat
-      on_victory: bilge-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat
 
   # ── RAT ADULT ENCOUNTER (depth 2+) ────────────
 
@@ -99,6 +97,7 @@ events:
   - id: bilge-flee-rat-adult
     name: "Flee from adult rat"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-adult
@@ -120,15 +119,12 @@ events:
 
   - id: bilge-flee-fail-rat-adult
     name: "Flee failed — adult rat"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Bạn chạy không kịp. Con chuột lớn hung hãn đuổi theo sát gót."
 
-    combat:
-      enemy: rat_adult
-      on_victory: bilge-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-adult
 
   # ── RAT KING ENCOUNTER (depth 4+, rare) ───────
 
@@ -166,6 +162,7 @@ events:
   - id: bilge-flee-rat-king
     name: "Flee from the Rat King"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-king
@@ -187,16 +184,12 @@ events:
 
   - id: bilge-flee-fail-rat-king
     name: "Flee failed — Rat King"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Bạn vấp ngã. Vua Chuột chặn đứng lối thoát và chuẩn bị nghiền nát bạn."
 
-    combat:
-      enemy: rat_king
-
-      on_victory: bilge-rat-king-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-king
 
   # ── RAT KING ENRAGED ENCOUNTER (no rats left) ──
 
@@ -234,6 +227,7 @@ events:
   - id: bilge-flee-rat-king-enraged
     name: "Flee from the Enraged Rat King"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-king-enraged
@@ -255,15 +249,12 @@ events:
 
   - id: bilge-flee-fail-rat-king-enraged
     name: "Flee failed — Enraged Rat King"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Không kịp. Vua Chuột cắn phập vào chân bạn từ phía sau."
 
-    combat:
-      enemy: rat_king_enraged
-      on_victory: bilge-rat-king-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-king-enraged
 
   # ── RAT UNDEAD ENCOUNTER ───────────────────────
 
@@ -297,6 +288,7 @@ events:
   - id: bilge-flee-rat-undead
     name: "Flee from undead rat"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-undead
@@ -318,16 +310,12 @@ events:
 
   - id: bilge-flee-fail-rat-undead
     name: "Flee failed — undead rat"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Con chuột chết không biết mệt. Nó bám theo bạn không buông."
 
-    combat:
-      enemy: rat_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-undead
 
   # ── ADULT RAT UNDEAD ENCOUNTER ─────────────────
 
@@ -361,6 +349,7 @@ events:
   - id: bilge-flee-rat-adult-undead
     name: "Flee from undead adult rat"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-adult-undead
@@ -382,16 +371,12 @@ events:
 
   - id: bilge-flee-fail-rat-adult-undead
     name: "Flee failed — undead adult rat"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Bạn chạy không thoát. Con chuột to không biết mệt mỏi vẫn đuổi theo sát gót."
 
-    combat:
-      enemy: rat_adult_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory-rat
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-adult-undead
 
   # ── RAT KING UNDEAD ENCOUNTER ──────────────────
 
@@ -430,6 +415,7 @@ events:
   - id: bilge-flee-rat-king-undead
     name: "Flee from the Undead Rat King"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-king-undead
@@ -451,16 +437,12 @@ events:
 
   - id: bilge-flee-fail-rat-king-undead
     name: "Flee failed — Undead Rat King"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Bạn vấp ngã. Undead Rat King chặn lối thoát, chuẩn bị nghiền nát bạn."
 
-    combat:
-      enemy: rat_king_undead
-      ambient_effect: bilge_gas
-      on_victory: bilge-rat-king-undead-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-king-undead
 
   # ── OUTCOMES ───────────────────────────────────
 
@@ -490,6 +472,13 @@ events:
 
     message:
       text: "Bạn đã hạ gục con chuột. Không chắc nó sẽ không dậy lại lần nữa, nhưng bạn tạm thời an toàn."
+
+  - id: bilge-victory-rat-ghoul
+    name: "Rat Ghoul killed"
+    event_type: encounter
+
+    message:
+      text: "Con Rat Ghoul gục xuống. Không thể tin nổi...cái quái gì đây? Và khó tin hơn là bạn đã đánh thắng nó"
 
     action:
       - type: flag
@@ -760,12 +749,13 @@ events:
     combat:
       enemy: rat_ghoul
       ambient_effect: bilge_gas
-      on_victory: bilge-victory
+      on_victory: bilge-victory-rat-ghoul
       on_defeat: bilge-defeat
 
   - id: bilge-flee-rat-ghoul
     name: "Flee from Rat Ghoul"
     event_type: encounter
+    silent: true
 
     check:
       - name: flee-speed-rat-ghoul
@@ -787,16 +777,12 @@ events:
 
   - id: bilge-flee-fail-rat-ghoul
     name: "Flee failed — Rat Ghoul"
-    event_type: combat
+    event_type: encounter
 
     message:
       text: "Con Rat Ghoul chặn lối thoát. Bạn không còn lựa chọn nào khác."
 
-    combat:
-      enemy: rat_ghoul
-      ambient_effect: bilge_gas
-      on_victory: bilge-victory
-      on_defeat: bilge-defeat
+    next: bilge-fight-rat-ghoul
 
   - id: bilge-ecosystem-bootstrap
     name: "Bilge Ecosystem Bootstrap Narrate"
@@ -816,4 +802,4 @@ events:
     event_type: encounter
 
     message:
-      text: "Bạn nhanh chân tẩu thoát lên boong chính an toàn."
+      text: "Bạn nhanh chân tẩu thoát an toàn."

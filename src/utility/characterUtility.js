@@ -1,6 +1,7 @@
 // Lazy load to avoid circular dependency
 const getDbModels = () => require('@root/dbObject.js');
 const itemUtility = require('./itemUtility');
+const contentStore = require('@root/contentStore.js');
 
 let getCharacterBase = async (userId) => {
 	const { CharacterBase } = getDbModels();
@@ -31,44 +32,28 @@ let calculateCombatStat = async (characterId) => {
 	await CharacterBase.update({ maxHp: hp }, { where: { id: characterId } });
 	await CharacterBase.update({ maxStamina: stamina }, { where: { id: characterId } });
 
-	// Calculate defense as the sum of all equipped armor items' defense stat
-	let defense = 0;
-	const equippedItems = await itemUtility.getCharacterEquippedArmor(characterId);
-	for (const eq of equippedItems) {
-		if (eq.item) {
-			const itemDetails = await itemUtility.getItemWithDetails(eq.item_id);
-			if (itemDetails?.armor?.defense != null) {
-				defense += itemDetails.armor.defense;
-			}
-		}
-	}
-
 	// Overweight penalty: lower agi by twice the overweight amount
 	let agi = character.agi || 0;
 	let str = character.str || 0;
 
-	// Calculate currentWeight by summing weights of all equipped items
+	// Fetch all equipped items once — used for both defense and weight calculation
 	const { CharacterItem } = getDbModels();
 	const allItems = await CharacterItem.findAll({
 		where: { character_id: characterId, equipped: true },
 	});
+	let defense = 0;
 	let currentWeight = 0;
 	for (const inv of allItems) {
-		let weight = 0;
-		const itemDetails = await itemUtility.getItemWithDetails(inv.item_id);
+		const itemDetails = contentStore.items.findByPk(String(inv.item_id));
 		if (itemDetails) {
-			weight = itemDetails.weight || 0;
-			// Try to get weapon/armor weight if not present on ItemLib
-			if (!weight) {
-				if (itemDetails.weapon?.weight) {
-					weight = itemDetails.weapon.weight;
-				}
-				else if (itemDetails.armor?.weight) {
-					weight = itemDetails.armor.weight;
-				}
+			// Accumulate defense from armor pieces
+			if (itemDetails.item_type === 'armor' && itemDetails.armor?.defense != null) {
+				defense += itemDetails.armor.defense;
 			}
+			// Accumulate weight
+			let weight = itemDetails.weight || itemDetails.weapon?.weight || itemDetails.armor?.weight || 0;
+			currentWeight += (inv.amount || 1) * weight;
 		}
-		currentWeight += (inv.amount || 1) * weight;
 	}
 
 	let maxWeight = str;
@@ -326,127 +311,107 @@ let getCharacterEquippedItems = async (characterId) => {
 	return equipment;
 };
 
-let equipCharacterItem = async (characterId, itemId, type) => {
-	const { CharacterItem } = getDbModels();
-	// Normalize type to lowercase
-	const normalizedType = type?.toLowerCase();
-	
-	// Get item with weapon/armor details using itemUtility
+/**
+ * Equip or unequip an item for a character.
+ * Handles slot conflicts (weapons/armor), dualwield status, and stat recalculation.
+ * @param {string} characterId
+ * @param {string} itemId
+ * @param {'equip'|'unequip'} action
+ * @returns {Promise<Object|null>} The item (equip) or CharacterItem row (unequip), null if not found
+ */
+let setCharacterItemEquipped = async (characterId, itemId, action) => {
+	const { CharacterItem, CharacterStatus } = getDbModels();
 	const item = await itemUtility.getItemWithDetails(itemId);
 	if (!item) throw new Error('Item not found.');
-	
-	// Determine the slot of the item to equip
-	let slot = null;
-	let isTwoHand = false;
-	if (normalizedType === 'weapon' && item.weapon) {
-		slot = item.weapon.slot;
-		isTwoHand = item.weapon.slot === 'twohand';
-	}
-	else if (normalizedType === 'armor' && item.armor) {
-		slot = item.armor.slot;
-	}
-	if (!slot) throw new Error('Item slot not found.');
 
-	if (normalizedType === 'weapon') {
-		// Get all currently equipped weapons
-		const equippedWeapons = await itemUtility.getCharacterEquippedWeapons(characterId);
-		if (isTwoHand) {
-			// Unequip all mainhand/offhand weapons
-			for (const charItem of equippedWeapons) {
-				const weaponItem = await itemUtility.getItemWithDetails(charItem.item_id);
-				if (weaponItem?.weapon && (weaponItem.weapon.slot === 'mainhand' || weaponItem.weapon.slot === 'offhand' || weaponItem.weapon.slot === 'twohand')) {
+	if (action === 'unequip') {
+		const characterItem = await CharacterItem.findOne({
+			where: { character_id: characterId, item_id: itemId, equipped: true },
+		});
+		if (!characterItem) return null;
+		characterItem.equipped = false;
+		await characterItem.save();
+	}
+	else {
+		// Resolve slot conflicts before equipping
+		const normalizedType = item.item_type?.toLowerCase();
+		if (normalizedType === 'weapon' && item.weapon) {
+			const slot = item.weapon.slot;
+			const isTwoHand = slot === 'twohand';
+			const equippedWeapons = await itemUtility.getCharacterEquippedWeapons(characterId);
+			if (isTwoHand) {
+				for (const charItem of equippedWeapons) {
+					const w = await itemUtility.getItemWithDetails(charItem.item_id);
+					if (w?.weapon && (w.weapon.slot === 'mainhand' || w.weapon.slot === 'offhand' || w.weapon.slot === 'twohand')) {
+						charItem.equipped = false;
+						await charItem.save();
+					}
+				}
+			}
+			else if (slot === 'mainhand' || slot === 'offhand') {
+				let handsUsed = 0;
+				let offhandEquipped = null;
+				let mainhandEquipped = null;
+				for (const charItem of equippedWeapons) {
+					const w = await itemUtility.getItemWithDetails(charItem.item_id);
+					if (!w?.weapon) continue;
+					if (w.weapon.slot === 'mainhand') { handsUsed++; mainhandEquipped = charItem; }
+					if (w.weapon.slot === 'offhand') { handsUsed++; offhandEquipped = charItem; }
+					if (w.weapon.slot === 'twohand') { handsUsed = 2; mainhandEquipped = charItem; offhandEquipped = charItem; }
+				}
+				if (handsUsed >= 2) {
+					if (offhandEquipped && offhandEquipped.item_id !== itemId) {
+						offhandEquipped.equipped = false;
+						await offhandEquipped.save();
+					}
+					else if (mainhandEquipped && mainhandEquipped.item_id !== itemId) {
+						mainhandEquipped.equipped = false;
+						await mainhandEquipped.save();
+					}
+				}
+			}
+		}
+		else if (normalizedType === 'armor' && item.armor) {
+			const slot = item.armor.slot;
+			const equippedArmor = await itemUtility.getCharacterEquippedArmor(characterId);
+			for (const charItem of equippedArmor) {
+				const a = await itemUtility.getItemWithDetails(charItem.item_id);
+				if (a?.armor?.slot === slot && charItem.item_id !== itemId) {
 					charItem.equipped = false;
 					await charItem.save();
 				}
 			}
 		}
-		else if (slot === 'mainhand' || slot === 'offhand') {
-			// Count hands used
-			let handsUsed = 0;
-			let offhandEquipped = null;
-			let mainhandEquipped = null;
-			for (const charItem of equippedWeapons) {
-				const weaponItem = await itemUtility.getItemWithDetails(charItem.item_id);
-				if (!weaponItem?.weapon) continue;
-				if (weaponItem.weapon.slot === 'mainhand') {
-					handsUsed++;
-					mainhandEquipped = charItem;
-				}
-				if (weaponItem.weapon.slot === 'offhand') {
-					handsUsed++;
-					offhandEquipped = charItem;
-				}
-				if (weaponItem.weapon.slot === 'twohand') {
-					handsUsed = 2;
-					mainhandEquipped = charItem;
-					offhandEquipped = charItem;
-				}
-			}
-			if (handsUsed >= 2) {
-				// Prioritize unequipping offhand, then mainhand
-				if (offhandEquipped && offhandEquipped.item_id !== itemId) {
-					offhandEquipped.equipped = false;
-					await offhandEquipped.save();
-				}
-				else if (mainhandEquipped && mainhandEquipped.item_id !== itemId) {
-					mainhandEquipped.equipped = false;
-					await mainhandEquipped.save();
-				}
-			}
-		}
-	}
-	else if (normalizedType === 'armor') {
-		// Unequip any currently equipped item in the same armor slot
-		const equippedInSlot = await itemUtility.getCharacterEquippedArmor(characterId);
-		for (const charItem of equippedInSlot) {
-			const armorItem = await itemUtility.getItemWithDetails(charItem.item_id);
-			const charSlot = armorItem?.armor?.slot;
-			if (charSlot === slot && charItem.item_id !== itemId) {
-				charItem.equipped = false;
-				await charItem.save();
-			}
-		}
-	}
-	// Equip the selected item
-	const [equippedItem] = await CharacterItem.findOrCreate({
-		where: { character_id: characterId, item_id: itemId },
-		defaults: { equipped: true },
-	});
-	equippedItem.equipped = true;
-	await equippedItem.save();
-	await updateCharacterWeight(characterId);
-	// Dualwielding status logic
-	if (normalizedType === 'weapon') {
-		const equippedWeapons = await itemUtility.getCharacterEquippedWeapons(characterId);
-		let mainhandCount = 0;
-		for (const charItem of equippedWeapons) {
-			const weaponItem = await itemUtility.getItemWithDetails(charItem.item_id);
-			if (weaponItem?.weapon?.slot === 'mainhand') mainhandCount++;
-		}
-		const { CharacterStatus } = getDbModels();
-		if (mainhandCount >= 2) {
-			// Upsert dualwielding status
-			const existing = await CharacterStatus.findOne({
-				where: { character_id: characterId, status_id: 'Dualwielding' },
-			});
-			if (!existing) {
-				await CharacterStatus.create({
-					character_id: characterId,
-					status_id: 'Dualwielding',
-					scope: 'persistent',
-				});
-			}
-		}
 		else {
-			// Remove dualwielding status if it exists
-			await CharacterStatus.destroy({
-				where: {
-					character_id: characterId,
-					status_id: 'Dualwielding',
-				},
-			});
+			throw new Error('Item slot not found.');
+		}
+
+		const [equippedItem] = await CharacterItem.findOrCreate({
+			where: { character_id: characterId, item_id: itemId },
+			defaults: { equipped: true },
+		});
+		equippedItem.equipped = true;
+		await equippedItem.save();
+	}
+
+	// Shared: sync dualwield status based on current equipped mainhand count
+	const currentWeapons = await itemUtility.getCharacterEquippedWeapons(characterId);
+	let mainhandCount = 0;
+	for (const charItem of currentWeapons) {
+		const w = await itemUtility.getItemWithDetails(charItem.item_id);
+		if (w?.weapon?.slot === 'mainhand') mainhandCount++;
+	}
+	if (mainhandCount >= 2) {
+		const existing = await CharacterStatus.findOne({ where: { character_id: characterId, status_id: 'Dualwielding' } });
+		if (!existing) {
+			await CharacterStatus.create({ character_id: characterId, status_id: 'Dualwielding', scope: 'persistent' });
 		}
 	}
+	else {
+		await CharacterStatus.destroy({ where: { character_id: characterId, status_id: 'Dualwielding' } });
+	}
+
+	await recalculateCharacterStats({ id: characterId });
 	return item;
 };
 
@@ -991,7 +956,7 @@ module.exports = {
 	updateMultipleCharacterFlags,
 	getCharacterInventory,
 	getCharacterEquippedItems,
-	equipCharacterItem,
+	setCharacterItemEquipped,
 	calculateAttackStat,
 	updateCharacterWeight,
 	recalculateCharacterStats,

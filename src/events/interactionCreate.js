@@ -125,6 +125,7 @@ async function handleTradeInteraction(interaction) {
 
 	const { getCharacterBase } = require('../utility/characterUtility');
 	const tradeUtility = require('../utility/tradeUtility');
+	const { Trade } = require('../dbObject.js');
 
 	const character = await getCharacterBase(interaction.user.id);
 	if (!character) {

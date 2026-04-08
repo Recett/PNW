@@ -339,6 +339,12 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	const playerBase = await characterUtility.getCharacterBase(playerId);
 	if (!playerBase) throw new Error('Player not found');
 
+	// Prevent already-knocked-out players from entering combat (would refresh the KO timer)
+	// TODO: KO mechanic temporarily disabled
+	// if ((playerBase.currentHp ?? 0) <= 0) {
+	// 	throw new Error('Character is knocked out and cannot fight.');
+	// }
+
 	// Get player's agility/speed from combat stats
 	const playerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
 
@@ -488,23 +494,24 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	if (actors.player) {
 		await characterUtility.setCharacterStat(playerId, 'currentHp', actors.player.hp);
 
+		// TODO: KO mechanic temporarily disabled
 		// If player was knocked out, apply a 12-hour knocked_out status
-		if (actors.player.hp <= 0) {
-			const { CharacterStatus } = require('@root/dbObject.js');
-			const expiresAt = new Date(Date.now() + 12 * 3600 * 1000);
-			const [existing] = await CharacterStatus.findOrCreate({
-				where: { character_id: playerId, status_id: 'knocked_out' },
-				defaults: {
-					category: 'debuff',
-					scope: 'persistent',
-					duration_unit: 'seconds',
-					expires_at: expiresAt,
-				},
-			});
-			if (existing) {
-				await existing.update({ expires_at: expiresAt });
-			}
-		}
+		// if (actors.player.hp <= 0) {
+		// 	const { CharacterStatus } = require('@root/dbObject.js');
+		// 	const expiresAt = new Date(Date.now() + 12 * 3600 * 1000);
+		// 	const [koStatus, created] = await CharacterStatus.findOrCreate({
+		// 		where: { character_id: playerId, status_id: 'knocked_out' },
+		// 		defaults: {
+		// 			category: 'debuff',
+		// 			scope: 'persistent',
+		// 			duration_unit: 'seconds',
+		// 			expires_at: expiresAt,
+		// 		},
+		// 	});
+		// 	if (!created) {
+		// 		await koStatus.update({ expires_at: expiresAt });
+		// 	}
+		// }
 	}
 
 	// Generate battle report with appropriate format

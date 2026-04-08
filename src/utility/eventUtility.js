@@ -219,6 +219,18 @@ class EventProcessor {
 				const combatResult = await this.processCombat(combat, session);
 				session.combatResult = combatResult;
 
+				// If combat failed (e.g. player is knocked out), surface the error and abort
+				if (combatResult.result === 'error') {
+					const errMsg = combatResult.message || 'Combat could not start.';
+					if (interaction.replied || interaction.deferred) {
+						await interaction.editReply({ content: `${EMOJI.FAILURE} ${errMsg}` });
+					}
+					else {
+						await interaction.reply({ content: `${EMOJI.FAILURE} ${errMsg}`, flags: MessageFlags.Ephemeral });
+					}
+					return;
+				}
+
 				// Send combat log as separate message first
 				if (combatResult.battleReport) {
 					await this.sendCombatLog(interaction, combatResult, session.ephemeral);
@@ -584,7 +596,7 @@ class EventProcessor {
 			return { success: false, message: 'No character for stat check' };
 		}
 
-		const { stat_name, stat_comparison, stat_value, use_dice_roll } = check.stat_data || {};
+		const { stat_name, stat_comparison, stat_value, use_dice_roll, difficulty_modifier } = check.stat_data || {};
 		const statValue = await characterUtil.getCharacterStat(session.characterId, stat_name);
 
 		let success = false;
@@ -592,7 +604,7 @@ class EventProcessor {
 
 		if (use_dice_roll) {
 			rollResult = Math.floor(Math.random() * 1000) + 1;
-			const target = Math.max(1, Math.min(1000, Math.floor(statValue * ((check.difficulty_modifier || 1) * 10))));
+			const target = Math.max(1, Math.min(1000, Math.floor(statValue * ((difficulty_modifier || 1) * 10))));
 			success = rollResult <= target;
 		}
 		else {
@@ -831,13 +843,21 @@ class EventProcessor {
 			break;
 
 		case VARIABLE_SOURCE.INPUT:
-			value = await this.collectModalInput(session, {
-				variable_name,
-				input_label: input_label || 'Enter value',
-				input_placeholder: input_placeholder || '',
-				input_default: input_default || '',
-				is_numeric: is_numeric || false,
-			});
+			// Skip modal if value was already pre-collected by the fast-path handler
+			// (e.g. when the select-menu collector detected the next event needs input and
+			// showed the modal directly on the fresh componentInteraction before chaining).
+			if (session.variables[variable_name] !== undefined && session.variables[variable_name] !== null) {
+				value = session.variables[variable_name];
+			}
+			else {
+				value = await this.collectModalInput(session, {
+					variable_name,
+					input_label: input_label || 'Enter value',
+					input_placeholder: input_placeholder || '',
+					input_default: input_default || '',
+					is_numeric: is_numeric || false,
+				});
+			}
 			break;
 
 		case VARIABLE_SOURCE.CHAT_INPUT:
@@ -1355,7 +1375,7 @@ class EventProcessor {
 					await characterUtil.addCharacterItem(session.characterId, starterItem.id, 1);
 
 					// 6. Equip the item
-					await characterUtil.equipCharacterItem(session.characterId, starterItem.id, starterItem.item_type);
+					await characterUtil.setCharacterItemEquipped(session.characterId, starterItem.id, 'equip');
 
 					// 7. Remove the starter flag from local session
 					delete session.flags.local[starterFlagName];
@@ -2706,11 +2726,14 @@ class EventProcessor {
 								}
 								catch (error) {
 									console.error('Modal input failed:', error);
+									// Clean up session so the character is not permanently locked
+									this.activeEvents.delete(session.sessionId);
+									if (session.characterId) this.activeCharacters.delete(session.characterId);
 									// Emergency acknowledgment
 									if (!componentInteraction.replied && !componentInteraction.deferred) {
 										await componentInteraction.reply({ 
-											content: `${EMOJI.WARNING} Input failed, please try again.`,
-											ephemeral: true 
+											content: `${EMOJI.WARNING} \u0110\u1EA7u v\u00E0o th\u1EA5t b\u1EA1i, vui l\u00F2ng th\u1EED l\u1EA1i.`,
+											ephemeral: true,
 										});
 									}
 									return;

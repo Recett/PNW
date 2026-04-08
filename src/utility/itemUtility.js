@@ -137,7 +137,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				return true;
 			}
 
-			await getCharacterUtility().equipCharacterItem(character.id, item.id, item.item_type);
+			await getCharacterUtility().setCharacterItemEquipped(character.id, item.id, 'equip');
 
 			await btnInteraction.reply({ content: `You have equipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 			if (onComplete) onComplete();
@@ -150,16 +150,8 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				return true;
 			}
 
-			const characterItem = await CharacterItem.findOne({
-				where: { character_id: character.id, item_id: item.id, equipped: true },
-			});
-			if (characterItem) {
-				characterItem.equipped = false;
-				await characterItem.save();
-
-				// Recalculate stats
-				await getCharacterUtility().recalculateCharacterStats(character);
-
+			const result = await getCharacterUtility().setCharacterItemEquipped(character.id, item.id, 'unequip');
+			if (result) {
 				await btnInteraction.reply({ content: `You have unequipped ${item.name}.`, flags: MessageFlags.Ephemeral });
 			}
 			else {

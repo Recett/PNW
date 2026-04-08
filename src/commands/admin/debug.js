@@ -139,6 +139,30 @@ module.exports = {
 							opt.setName('user')
 								.setDescription('Player (character flag). Omit for global flag.')),
 				),
+		)
+		.addSubcommandGroup(group =>
+			group.setName('status')
+				.setDescription('View or remove character status effects.')
+				.addSubcommand(sub =>
+					sub.setName('list')
+						.setDescription('List all active status effects for a player.')
+						.addUserOption(opt =>
+							opt.setName('user')
+								.setDescription('Target player.')
+								.setRequired(true)),
+				)
+				.addSubcommand(sub =>
+					sub.setName('clear')
+						.setDescription('Remove a specific status effect from a player.')
+						.addUserOption(opt =>
+							opt.setName('user')
+								.setDescription('Target player.')
+								.setRequired(true))
+						.addStringOption(opt =>
+							opt.setName('status_id')
+								.setDescription('Status ID to remove (e.g. knocked_out).')
+								.setRequired(true)),
+				),
 		),
 
 	async execute(interaction) {
@@ -148,6 +172,11 @@ module.exports = {
 		if (group === 'flag') {
 			if (sub === 'get') return handleFlagGet(interaction);
 			if (sub === 'set') return handleFlagSet(interaction);
+		}
+
+		if (group === 'status') {
+			if (sub === 'list') return handleStatusList(interaction);
+			if (sub === 'clear') return handleStatusClear(interaction);
 		}
 
 		if (sub === 'grant') return handleGrant(interaction);
@@ -616,4 +645,77 @@ async function handleFlagSet(interaction) {
 			flags: MessageFlags.Ephemeral,
 		});
 	}
+}
+
+// ─── Status List ───────────────────────────────────────────────────────────────
+
+async function handleStatusList(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const targetUser = interaction.options.getUser('user');
+
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+	}
+
+	const statuses = await CharacterStatus.findAll({ where: { character_id: targetUser.id } });
+	if (statuses.length === 0) {
+		return interaction.editReply({ content: `${EMOJI.SUCCESS} **${character.name}** has no active status effects.` });
+	}
+
+	const now = new Date();
+	const lines = statuses.map(s => {
+		const id = s.status_id || s.status || '(unknown)';
+		let expiry = '';
+		if (s.expires_at) {
+			const ts = Math.floor(new Date(s.expires_at).getTime() / 1000);
+			expiry = new Date(s.expires_at) > now ? ` — expires <t:${ts}:R>` : ' — **expired (stale)**';
+		}
+		const extra = s.potency != null ? ` potency: ${s.potency}` : '';
+		return `\`${id}\`${extra}${expiry}`;
+	});
+
+	return interaction.editReply({
+		content: `**${character.name}** statuses (${statuses.length}):\n${lines.join('\n')}`,
+	});
+}
+
+// ─── Status Clear ──────────────────────────────────────────────────────────────
+
+async function handleStatusClear(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const targetUser = interaction.options.getUser('user');
+	const statusId = interaction.options.getString('status_id');
+
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+	}
+
+	// Match against both status_id and status columns
+	const existing = await CharacterStatus.findOne({
+		where: { character_id: targetUser.id, status_id: statusId },
+	});
+
+	if (!existing) {
+		return interaction.editReply({
+			content: `${EMOJI.WARNING} **${character.name}** does not have status \`${statusId}\`.`,
+		});
+	}
+
+	await existing.destroy();
+
+	// If it was knocked_out, also restore HP to 1 if still at 0
+	if (statusId === 'knocked_out' && (character.currentHp ?? 0) <= 0) {
+		await CharacterBase.update({ currentHp: 1 }, { where: { id: targetUser.id } });
+		return interaction.editReply({
+			content: `${EMOJI.SUCCESS} Removed \`${statusId}\` from **${character.name}** and restored HP to 1.`,
+		});
+	}
+
+	return interaction.editReply({
+		content: `${EMOJI.SUCCESS} Removed \`${statusId}\` from **${character.name}**.`,
+	});
 }
