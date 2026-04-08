@@ -79,8 +79,6 @@ const COOKING_ADDITIVES = {
 			'Sour': 'Acrid',
 			'Broth': 'Charred',
 			'Fermenting': 'Putrid',
-			'Caustic': 'Starch',
-			'Sludge': 'Paste',
 			'Fizzy': 'Starch'
 		}
 	},
@@ -100,7 +98,8 @@ const COOKING_ADDITIVES = {
 			'Dry': 'Mellow',
 			'Fermenting': 'Fizzy',
 			'Charred': 'Malty',
-			'Brine': 'Pungent'
+			'Brine': 'Pungent',
+			'Caustic': 'Brittle'
 		}
 	},
 	'sea_salt': {
@@ -119,7 +118,8 @@ const COOKING_ADDITIVES = {
 			'Vapor': 'Fermenting',
 			'Broth': 'Cured',
 			'Liquid': 'Brine',
-			'Complex': 'Heavy'
+			'Complex': 'Heavy',
+			'Sludge': 'Paste'
 		}
 	}
 };
@@ -525,18 +525,23 @@ function calculateDishScore(traits, baseScore = 10) {
 		'Oily': 3,
 		'Broth': 8,
 		'Gristly': 2,
-		'Soggy': -20
+		'Soggy': -20,
+		'Brittle': 3,
+		'Gelatinous': 5,
+		'Heavy': -10
 	};
 
 	const TRAIT_MULTIPLIERS = {
 		'Complex': 3.0,
 		'Cured': 2.5,
 		'Savory': 1.5,
+		'Syrup': 1.3,
 		'Brine': 1.4,
 		'Sharp': 1.3,
 		'Mellow': 1.2,
 		'Malty': 1.1,
-		'Acrid': 0.5
+		'Acrid': 0.5,
+		'Pungent': 0.8
 	};
 
 	const ZERO_TRAITS = ['Sludge', 'Putrid', 'Caustic', 'Charred'];
