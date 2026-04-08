@@ -28,7 +28,6 @@ const COOKING_ADDITIVES = {
 		transformations: {
 			'Gristly': 'Tender',
 			'Heavy': 'Fermenting',
-			'Elastic': 'Stringy',
 			'Pungent': 'Sharp',
 			'Gelatinous': 'Soggy',
 			'Brittle': 'Grainy',
@@ -38,8 +37,9 @@ const COOKING_ADDITIVES = {
 			'Hardened': 'Crust',
 			'Velvet': 'Complex',
 			'Acrid': 'Caustic',
-			'Oily': 'Smooth',
-			'Putrid': 'Sour'
+			'Putrid': 'Sour',
+			'Broth': 'Sharp',
+			'Elastic': 'Grainy'
 		}
 	},
 	'lard': {
@@ -48,18 +48,18 @@ const COOKING_ADDITIVES = {
 		transformations: {
 			'Dry': 'Crispy',
 			'Sour': 'Syrup',
-			'Grainy': 'Rich Sauce',
-			'Stringy': 'Velvet',
-			'Tender': 'Mellow',
+			'Grainy': 'Velvet',
+			'Tender': 'Broth',
 			'Sharp': 'Savory',
 			'Starch': 'Glazed',
 			'Ropy': 'Elastic',
 			'Vapor': 'Chewy',
 			'Fermenting': 'Brittle',
 			'Liquid': 'Broth',
-			'Bready': 'Oily',
 			'Soggy': 'Sludge',
-			'Cured': 'Savory'
+			'Cured': 'Savory',
+			'Malty': 'Crispy',
+			'Bready': 'Paste'
 		}
 	},
 	'hardtack': {
@@ -68,7 +68,6 @@ const COOKING_ADDITIVES = {
 		transformations: {
 			'Liquid': 'Starch',
 			'Syrup': 'Paste',
-			'Rich Sauce': 'Thick',
 			'Crispy': 'Bready',
 			'Chewy': 'Gristly',
 			'Smooth': 'Grainy',
@@ -79,7 +78,8 @@ const COOKING_ADDITIVES = {
 			'Sour': 'Acrid',
 			'Broth': 'Charred',
 			'Fermenting': 'Putrid',
-			'Fizzy': 'Starch'
+			'Crust': 'Thick',
+			'Ropy': 'Dough'
 		}
 	},
 	'old_ale': {
@@ -91,12 +91,12 @@ const COOKING_ADDITIVES = {
 			'Paste': 'Dough',
 			'Fat': 'Vapor',
 			'Crust': 'Grainy',
-			'Bready': 'Starch',
+			'Acrid': 'Sour',
 			'Gristly': 'Elastic',
 			'Thick': 'Gelatinous',
 			'Hardened': 'Crispy',
 			'Dry': 'Mellow',
-			'Fermenting': 'Fizzy',
+			'Fermenting': 'Syrup',
 			'Charred': 'Malty',
 			'Brine': 'Pungent',
 			'Caustic': 'Brittle'
@@ -497,37 +497,33 @@ function calculateDishScore(traits, baseScore = 10) {
 	const TRAIT_BONUSES = {
 		// High-value transformed traits
 		'Velvet': 25,
-		'Rich Sauce': 14,
 		'Glazed': 20,
 		'Crust': 18,
-		'Hardened': 10,
 		'Crispy': 15,
 		'Chewy': 15,
-		'Thick': 9,
 		'Smooth': 12,
-		'Vapor': 7,
-		'Fizzy': 6,
-		'Paste': 5,
 		'Tender': 10,
+		'Hardened': 10,
+		'Thick': 9,
+		'Broth': 8,
+		'Vapor': 7,
+		'Gelatinous': 5,
+		'Paste': 5,
 		'Starch': 5,
 		'Grainy': 5,
 		'Elastic': 5,
 		'Liquid': 4,
 		'Bready': 4,
 		'Dough': 4,
-		'Stringy': 4,
 		'Ropy': 4,
 		'Salty': 4,
 		'Dry': 4,
 		'Fermenting': 3,
 		'Sour': 3,
 		'Fat': 3,
-		'Oily': 3,
-		'Broth': 8,
+		'Brittle': 3,
 		'Gristly': 2,
 		'Soggy': -20,
-		'Brittle': 3,
-		'Gelatinous': 5,
 		'Heavy': -10
 	};
 
