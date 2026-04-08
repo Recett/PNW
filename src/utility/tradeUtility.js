@@ -116,8 +116,8 @@ async function addItemToTrade(tradeId, characterId, characterItemId, quantity = 
 	}
 
 	// Check quantity
-	if (charItem.quantity < quantity) {
-		return { success: false, error: `You only have ${charItem.quantity} of this item.` };
+	if (charItem.amount < quantity) {
+		return { success: false, error: `You only have ${charItem.amount} of this item.` };
 	}
 
 	// Check if item is already in trade
@@ -127,8 +127,8 @@ async function addItemToTrade(tradeId, characterId, characterItemId, quantity = 
 	if (existingTradeItem) {
 		// Update quantity
 		const newQty = existingTradeItem.quantity + quantity;
-		if (newQty > charItem.quantity) {
-			return { success: false, error: `You only have ${charItem.quantity} of this item.` };
+		if (newQty > charItem.amount) {
+			return { success: false, error: `You only have ${charItem.amount} of this item.` };
 		}
 		existingTradeItem.quantity = newQty;
 		await existingTradeItem.save();
@@ -213,6 +213,8 @@ async function confirmTrade(tradeId, characterId) {
 		trade.recipient_confirmed = true;
 	}
 	await trade.save();
+	// Reload to get the current DB state (guards against concurrent confirmations overwriting each other)
+	await trade.reload();
 
 	// If both confirmed, execute the trade
 	if (trade.initiator_confirmed && trade.recipient_confirmed) {
@@ -241,13 +243,23 @@ async function executeTrade(tradeId) {
 		return { success: false, error: 'One or both players have already completed a trade today. Try again tomorrow (resets at UTC midnight).' };
 	}
 
-	const tradeItems = await TradeItem.findAll({ where: { trade_id: tradeId } });
-
 	// Use a transaction for atomic swap
 	const sequelize = Trade.sequelize;
 	const transaction = await sequelize.transaction();
 
 	try {
+		// Atomically claim the trade — prevents double execution from race conditions
+		const [claimedCount] = await Trade.update(
+			{ status: 'completed' },
+			{ where: { id: tradeId, status: 'active' }, transaction },
+		);
+		if (claimedCount === 0) {
+			await transaction.rollback();
+			return { success: false, error: 'Trade is no longer active.' };
+		}
+
+		const tradeItems = await TradeItem.findAll({ where: { trade_id: tradeId }, transaction });
+
 		for (const tradeItem of tradeItems) {
 			const charItem = await CharacterItem.findByPk(tradeItem.character_item_id, { transaction });
 			if (!charItem) {
@@ -255,7 +267,7 @@ async function executeTrade(tradeId) {
 			}
 
 			// Verify quantity still available
-			if (charItem.quantity < tradeItem.quantity) {
+			if (charItem.amount < tradeItem.quantity) {
 				throw new Error(`Insufficient quantity for item ${charItem.item_id}.`);
 			}
 
@@ -272,7 +284,7 @@ async function executeTrade(tradeId) {
 
 			if (existingItem) {
 				// Add to existing stack
-				existingItem.quantity += tradeItem.quantity;
+				existingItem.amount += tradeItem.quantity;
 				await existingItem.save({ transaction });
 			}
 			else {
@@ -280,26 +292,22 @@ async function executeTrade(tradeId) {
 				await CharacterItem.create({
 					character_id: newOwnerId,
 					item_id: charItem.item_id,
-					quantity: tradeItem.quantity,
+					amount: tradeItem.quantity,
 					equipped: false,
 				}, { transaction });
 			}
 
 			// Remove from original owner
-			if (charItem.quantity === tradeItem.quantity) {
+			if (charItem.amount === tradeItem.quantity) {
 				await charItem.destroy({ transaction });
 			}
 			else {
-				charItem.quantity -= tradeItem.quantity;
+				charItem.amount -= tradeItem.quantity;
 				await charItem.save({ transaction });
 			}
 		}
 
-		// Mark trade as completed
-		trade.status = 'completed';
-		await trade.save({ transaction });
-
-		// Clean up trade items
+		// Clean up trade items (status already set to 'completed' above)
 		await TradeItem.destroy({ where: { trade_id: tradeId }, transaction });
 
 		await transaction.commit();
@@ -314,8 +322,8 @@ async function executeTrade(tradeId) {
 	}
 	catch (error) {
 		await transaction.rollback();
-		trade.status = 'cancelled';
-		await trade.save();
+		// Revert to cancelled since the atomic update may have set status to 'completed'
+		await Trade.update({ status: 'cancelled' }, { where: { id: tradeId } });
 		return { success: false, error: error.message };
 	}
 }

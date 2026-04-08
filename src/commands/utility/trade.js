@@ -135,7 +135,7 @@ async function handleAdd(interaction, character) {
 		const item = contentStore.items.findByPk(charItem.item_id);
 		if (item) {
 			options.push({
-				label: `${item.name} (x${charItem.quantity})`,
+				label: `${item.name} (x${charItem.amount})`,
 				description: item.description?.substring(0, 100) || 'No description',
 				value: `${charItem.id}_${quantity}`,
 			});
