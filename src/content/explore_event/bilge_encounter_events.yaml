@@ -718,7 +718,7 @@ events:
         stat_data:
           stat_name: agi
           use_dice_roll: true
-          difficulty_modifier: 9
+          difficulty_modifier: 7
         silent: true
         on_success: bilge-flee-success
         on_failure: bilge-flee-fail-rat-ghoul
