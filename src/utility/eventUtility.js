@@ -3420,6 +3420,29 @@ module.exports = {
 		return eventProcessor.activeCharacters.has(characterId);
 	},
 
+	/**
+	 * Execute only the immediate actions of a YAML event without any interaction display.
+	 * Useful for triggering side-effects (narrate, stat, item, flag) from outside the event system.
+	 * @param {string} eventId - YAML event ID whose actions should run
+	 * @param {string} characterId - Character to run actions against
+	 * @param {import('discord.js').Client} client - Discord client (needed for narrate actions)
+	 */
+	async runActionsOnly(eventId, characterId, client) {
+		const session = {
+			characterId,
+			interaction: null,
+			client,
+			flags: { local: {}, character: {}, global: {} },
+			variables: {},
+			messages: [],
+			pendingCharacterFlags: {},
+			pendingGlobalFlags: {},
+			npc: null,
+		};
+		await eventProcessor.executeActionsByTrigger(eventId, session, TRIGGER_CONDITION.IMMEDIATE);
+		await eventProcessor.flushPendingFlags(session);
+	},
+
 	EventProcessor,
 	eventProcessor,
 };

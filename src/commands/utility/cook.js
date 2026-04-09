@@ -213,6 +213,19 @@ async function handleCookingFinish(interaction) {
 		}
 
 		const dish = result.dish;
+
+		// First Legendary Dish achievement — one-time global award
+		if (dish.quality === 'Legendary') {
+			const [, isFirst] = await GlobalFlag.findOrCreate({
+				where: { flag: 'global.first_legendary_cook' },
+				defaults: { flag: 'global.first_legendary_cook', value: userId },
+			});
+			if (isFirst) {
+				const eventUtil = require('@utility/eventUtility.js');
+				await eventUtil.runActionsOnly('cook-legendary-first-announce', userId, interaction.client);
+			}
+		}
+
 		const previewBuffs = getDishBuff(dish.traits, dish.quality);
 		let buffPreviewText;
 		if (previewBuffs === null) {

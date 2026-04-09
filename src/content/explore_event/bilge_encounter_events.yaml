@@ -500,61 +500,6 @@ events:
         silent: false
         custom_message: "Còn lại ${remaining_rats} con chuột dưới hầm tàu."
 
-  # Chained via `next:` from bilge-rat-king-undead-victory.
-  # Sets global.undead_bilge_cleared and posts storyboard narration.
-  - id: bilge-undead-cleared
-    name: "Undead Bilge Cleared"
-    event_type: encounter
-
-    action:
-      - type: flag
-        flag_name: global.undead_bilge_cleared
-        flag_value: "1"
-        flag_operation: set
-        flag_type: global
-        silent: true
-      - type: narrate
-        channel: storyboard
-        title: "Hầm Tàu Im Lặng Lần Nữa"
-        text: |
-          Bầu không khí nặng nề trong hầm tàu cuối cùng cũng tan biến. Vua Chuột không-chết — thứ đã cai trị bóng tối phía dưới — đã bị tiêu diệt hoàn toàn.
-
-          Những bộ xương chuột rải rác trên sàn gỗ ướt. Không còn tiếng sột soạt, không còn tiếng rít, không còn ánh đỏ rực từ đôi mắt trong bóng tối.
-
-          Hầm tàu đã được thanh tẩy.
-
-  - id: bilge-cleared
-    name: "Bilge Cleared"
-    event_type: encounter
-
-    message:
-      text: |
-        Hầm tàu im lặng. Mọi con chuột đều đã bị tiêu diệt — kể cả Vua Chuột. Con tàu thở phào nhẹ nhõm.
-        Tất cả thủy thủ được thưởng 1000 XP.
-
-    action:
-      - type: flag
-        flag_name: global.bilge_cleared
-        flag_value: "1"
-        flag_operation: set
-        flag_type: global
-        silent: true
-      - type: narrate
-        channel: storyboard
-        title: "Hầm Tàu Im Lặng"
-        text: |
-          Ánh sáng bình minh xám xịt lọt qua lưới chắn hầm tàu, và lần đầu tiên kể từ khi chuyến hành trình bắt đầu, âm thanh duy nhất còn lại chỉ là tiếng gỗ đưa võng và sóng biển vỗ mạn.
-
-          Đàn chuột đã bị tiêu diệt. Từng con một — cả Vua Chuột cầm quyền vương quốc hôi thối của chúng trong bóng tối phía dưới.
-
-          Những thủy thủ đã quen với tiếng cào cấu và rí rí trong đêm nay bỗng dưng cảm thấy bị giật mình bởi sự im lặng. Một vài người tụ tập bên miệng hầm, nhìn xuống bóng tối phía dưới, hầu như không dám tin vào mắt mình.
-
-          Hầm tàu yên tĩnh.
-
-          Tin tức lan ra nhanh chóng khắp các boong: nạn dịch đã chấm dứt. Thủy thủ bước nhẹ hơn, ngủ sâu hơn. Tàu HMS Divine thở phào.
-
-          *Tất cả những ai đã chiến đấu trong bóng tối được thưởng 1000 XP.*
-
   - id: bilge-rat-king-victory
     name: "Rat King killed"
     event_type: encounter
@@ -793,19 +738,6 @@ events:
       text: "Con Rat Ghoul chặn lối thoát. Bạn không còn lựa chọn nào khác."
 
     next: bilge-fight-rat-ghoul
-
-  - id: bilge-ecosystem-bootstrap
-    name: "Bilge Ecosystem Bootstrap Narrate"
-    event_type: system
-    is_active: false
-
-    action:
-      - type: narrate
-        channel: storyboard
-        text: |
-          Sau khi đánh bại Rat King và quét sạch tầng hầm, mọi người trên tàu đã có thể ngủ ngon hơn. Đó là điều tất cả mọi người nghĩ. Sự yên tĩnh không kéo dài được bao lâu. Bầu không khí ngột ngạt. Những nỗi sợ không rõ ràng xâm chiếm giấc ngủ của bạn. Hành khách trên tàu kháo nhau về tiếng động lạ dưới hầm tàu.
-
-          *Tốc độ hồi phục hp và stamina của mọi người bị giảm xuống.*
 
   - id: bilge-flee-success
     name: "Escaped bilge"
