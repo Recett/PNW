@@ -118,11 +118,11 @@ async function handleAdd(interaction, character) {
 
 	const quantity = interaction.options.getInteger('quantity') || 1;
 
-	// Get character's inventory
+	// Get character's inventory (exclude equipped items)
 	const { CharacterItem } = require('../../dbObject');
 	const contentStore = require('../../contentStore');
 	const inventory = await CharacterItem.findAll({
-		where: { character_id: character.id },
+		where: { character_id: character.id, equipped: false },
 	});
 
 	if (inventory.length === 0) {

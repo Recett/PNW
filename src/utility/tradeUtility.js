@@ -115,6 +115,11 @@ async function addItemToTrade(tradeId, characterId, characterItemId, quantity = 
 		return { success: false, error: 'You do not own this item.' };
 	}
 
+	// Block equipped items
+	if (charItem.equipped) {
+		return { success: false, error: 'You cannot trade an equipped item. Unequip it first.' };
+	}
+
 	// Check quantity
 	if (charItem.amount < quantity) {
 		return { success: false, error: `You only have ${charItem.amount} of this item.` };
