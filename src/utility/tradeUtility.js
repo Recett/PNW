@@ -335,7 +335,9 @@ async function executeTrade(tradeId) {
 	}
 	catch (error) {
 		await transaction.rollback();
-		// Revert to cancelled since the atomic update may have set status to 'completed'
+		// Clean up TradeItem rows (the rollback restored them, so they're still in the DB)
+		// and mark trade cancelled — must destroy TradeItems first due to FK constraint
+		await TradeItem.destroy({ where: { trade_id: tradeId } });
 		await Trade.update({ status: 'cancelled' }, { where: { id: tradeId } });
 		return { success: false, error: error.message };
 	}

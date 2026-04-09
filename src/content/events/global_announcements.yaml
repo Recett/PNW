@@ -1,0 +1,104 @@
+events:
+
+  # ─────────────────────────────────────────────
+  # GLOBAL ANNOUNCEMENTS
+  # Events that broadcast a one-time milestone to
+  # the whole server via a storyboard/announcement
+  # narration. Triggered from code via runActionsOnly.
+  # ─────────────────────────────────────────────
+
+  # ─────────────────────────────────────────────
+  # COOKING
+  # ─────────────────────────────────────────────
+
+  - id: "cook-legendary-first-announce"
+    name: "Món Ăn Huyền Thoại Đầu Tiên — Thông Báo"
+    event_type: "system"
+    is_active: true
+
+    action:
+      - type: stat
+        stat_name: xp
+        value: 1000
+        operation: add
+        silent: true
+      - type: narrate
+        channel: storyboard
+        title: "Món Ăn Huyền Thoại Đầu Tiên!"
+        text: |
+          Mùi thơm lan tỏa khắp con tàu — một thứ mùi mà không ai ở đây từng ngửi thấy trước đây.
+
+          **${player_name}** vừa tạo ra món ăn huyền thoại đầu tiên trong lịch sử! Thành tích phi thường này được ghi nhận bằng **1.000 XP**.
+
+  # ─────────────────────────────────────────────
+  # BILGE / HMS DIVINE
+  # ─────────────────────────────────────────────
+
+  # Chained via `next:` from bilge-rat-king-undead-victory.
+  - id: bilge-undead-cleared
+    name: "Undead Bilge Cleared"
+    event_type: encounter
+
+    action:
+      - type: flag
+        flag_name: global.undead_bilge_cleared
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: narrate
+        channel: storyboard
+        title: "Hầm Tàu Im Lặng Lần Nữa"
+        text: |
+          Bầu không khí nặng nề trong hầm tàu cuối cùng cũng tan biến. Vua Chuột không-chết — thứ đã cai trị bóng tối phía dưới — đã bị tiêu diệt hoàn toàn.
+
+          Những bộ xương chuột rải rác trên sàn gỗ ướt. Không còn tiếng sột soạt, không còn tiếng rít, không còn ánh đỏ rực từ đôi mắt trong bóng tối.
+
+          Hầm tàu đã được thanh tẩy.
+
+  # Triggered when the entire rat infestation arc ends.
+  - id: bilge-cleared
+    name: "Bilge Cleared"
+    event_type: encounter
+
+    message:
+      text: |
+        Hầm tàu im lặng. Mọi con chuột đều đã bị tiêu diệt — kể cả Vua Chuột. Con tàu thở phào nhẹ nhõm.
+        Tất cả thủy thủ được thưởng 1000 XP.
+
+    action:
+      - type: flag
+        flag_name: global.bilge_cleared
+        flag_value: "1"
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: narrate
+        channel: storyboard
+        title: "Hầm Tàu Im Lặng"
+        text: |
+          Ánh sáng bình minh xám xịt lọt qua lưới chắn hầm tàu, và lần đầu tiên kể từ khi chuyến hành trình bắt đầu, âm thanh duy nhất còn lại chỉ là tiếng gỗ đưa võng và sóng biển vỗ mạn.
+
+          Đàn chuột đã bị tiêu diệt. Từng con một — cả Vua Chuột cầm quyền vương quốc hôi thối của chúng trong bóng tối phía dưới.
+
+          Những thủy thủ đã quen với tiếng cào cấu và rí rí trong đêm nay bỗng dưng cảm thấy bị giật mình bởi sự im lặng. Một vài người tụ tập bên miệng hầm, nhìn xuống bóng tối phía dưới, hầu như không dám tin vào mắt mình.
+
+          Hầm tàu yên tĩnh.
+
+          Tin tức lan ra nhanh chóng khắp các boong: nạn dịch đã chấm dứt. Thủy thủ bước nhẹ hơn, ngủ sâu hơn. Tàu HMS Divine thở phào.
+
+          *Tất cả những ai đã chiến đấu trong bóng tối được thưởng 1000 XP.*
+
+  # Bootstrap narration for the undead bilge arc (set is_active: true to trigger).
+  - id: bilge-ecosystem-bootstrap
+    name: "Bilge Ecosystem Bootstrap Narrate"
+    event_type: system
+    is_active: false
+
+    action:
+      - type: narrate
+        channel: storyboard
+        text: |
+          Sau khi đánh bại Rat King và quét sạch tầng hầm, mọi người trên tàu đã có thể ngủ ngon hơn. Đó là điều tất cả mọi người nghĩ. Sự yên tĩnh không kéo dài được bao lâu. Bầu không khí ngột ngạt. Những nỗi sợ không rõ ràng xâm chiếm giấc ngủ của bạn. Hành khách trên tàu kháo nhau về tiếng động lạ dưới hầm tàu.
+
+          *Tốc độ hồi phục hp và stamina của mọi người bị giảm xuống.*

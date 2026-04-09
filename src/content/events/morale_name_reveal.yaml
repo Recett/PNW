@@ -358,6 +358,9 @@
       - id: "reach-out"
         text: "Đưa tay lại gần"
         next: "morale-pet-1"
+      - id: "leave-quietly"
+        text: "Để cô ấy nghỉ"
+        next: null
 
   - id: "morale-pet-1"
     name: "Morale — Pet 1"
@@ -377,6 +380,9 @@
       - id: "pet-again-2"
         text: "Vuốt tiếp"
         next: "morale-pet-2"
+      - id: "stop-petting-1"
+        text: "Để cô ấy nghỉ"
+        next: null
 
   - id: "morale-pet-2"
     name: "Morale — Pet 2"
@@ -396,6 +402,9 @@
       - id: "pet-again-3"
         text: "Vuốt thêm lần nữa"
         next: "morale-pet-3"
+      - id: "stop-petting-2"
+        text: "Để cô ấy nghỉ"
+        next: null
 
   - id: "morale-pet-3"
     name: "Morale — Pet 3"

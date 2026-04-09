@@ -5,14 +5,26 @@ const { execSync } = require('child_process');
 const https = require('https');
 const http = require('http');
 
+/** URL-keyed cache for avatar image buffers. Same URL = same image; evicted only when URL changes or cache exceeds 200 entries. */
+const _avatarCache = new Map();
+const _AVATAR_CACHE_MAX = 200;
+
 /**
  * Fetch an image URL as a Buffer, sending browser-like headers so that
  * hotlink-protected hosts (e.g. Pinterest CDN) return the image correctly.
- * Follows up to 5 redirects.
+ * Follows up to 5 redirects. Results are cached permanently by URL.
  * @param {string} url
  * @returns {Promise<Buffer>}
  */
 function fetchImageAsBuffer(url, _redirects = 0) {
+	// Only cache on the initial call (not recursive redirect calls)
+	if (_redirects === 0) {
+		const cached = _avatarCache.get(url);
+		if (cached) {
+			console.log(`[Avatar] Cache hit for ${new URL(url).hostname}`);
+			return Promise.resolve(cached);
+		}
+	}
 	return new Promise((resolve, reject) => {
 		if (_redirects > 5) return reject(new Error('Too many redirects'));
 		let parsedUrl;
@@ -48,6 +60,13 @@ function fetchImageAsBuffer(url, _redirects = 0) {
 			res.on('end', () => {
 				const buf = Buffer.concat(chunks);
 				console.log(`[Avatar] Downloaded ${buf.length} bytes from ${parsedUrl.hostname}`);
+				if (_redirects === 0) {
+					if (_avatarCache.size >= _AVATAR_CACHE_MAX) {
+						// Evict the oldest entry
+						_avatarCache.delete(_avatarCache.keys().next().value);
+					}
+					_avatarCache.set(url, buf);
+				}
 				resolve(buf);
 			});
 			res.on('error', (err) => {

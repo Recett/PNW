@@ -7,10 +7,41 @@ module.exports = {
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 		// client.developerMode = (await client.util.config()).developerMode;
 
+		// Clean up orphan TradeItem rows left behind by previously failed trade executions
+		await cleanupOrphanTradeItems();
+
 		// Restart spawn timers for any active raids
 		await restartActiveRaidTimers(client);
 	},
 };
+
+/**
+ * Remove TradeItem rows for cancelled/completed trades.
+ * These are left behind when executeTrade fails mid-transaction — the rollback
+ * restores the rows but the old catch block only cancelled the trade without
+ * deleting the items, leaving them as orphans that cause FK violations on future trades.
+ */
+async function cleanupOrphanTradeItems() {
+	try {
+		const { Trade, TradeItem } = require('../dbObject');
+		const allItems = await TradeItem.findAll();
+		if (allItems.length === 0) return;
+
+		const tradeIds = [...new Set(allItems.map(ti => ti.trade_id))];
+		let cleaned = 0;
+		for (const tradeId of tradeIds) {
+			const trade = await Trade.findByPk(tradeId);
+			if (!trade || trade.status === 'cancelled' || trade.status === 'completed') {
+				await TradeItem.destroy({ where: { trade_id: tradeId } });
+				cleaned++;
+			}
+		}
+		if (cleaned > 0) console.log(`[Ready] Cleaned up orphan TradeItems for ${cleaned} finished trade(s).`);
+	}
+	catch (error) {
+		console.error('[Ready] Error cleaning up orphan trade items:', error);
+	}
+}
 
 /**
  * Restart spawn timers for all active raids on bot startup
