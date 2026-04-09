@@ -3435,8 +3435,8 @@ module.exports = {
 			flags: { local: {}, character: {}, global: {} },
 			variables: {},
 			messages: [],
-			pendingCharacterFlags: {},
-			pendingGlobalFlags: {},
+			pendingCharacterFlags: new Map(),
+			pendingGlobalFlags: new Map(),
 			npc: null,
 		};
 		await eventProcessor.executeActionsByTrigger(eventId, session, TRIGGER_CONDITION.IMMEDIATE);
