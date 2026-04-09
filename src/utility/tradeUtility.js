@@ -260,19 +260,30 @@ async function executeTrade(tradeId) {
 
 		const tradeItems = await TradeItem.findAll({ where: { trade_id: tradeId }, transaction });
 
+		// Snapshot the data we need from each trade item before clearing FK references
+		const transfers = [];
 		for (const tradeItem of tradeItems) {
 			const charItem = await CharacterItem.findByPk(tradeItem.character_item_id, { transaction });
 			if (!charItem) {
 				throw new Error('Item no longer exists.');
 			}
-
-			// Verify quantity still available
 			if (charItem.amount < tradeItem.quantity) {
 				throw new Error(`Insufficient quantity for item ${charItem.item_id}.`);
 			}
+			transfers.push({
+				charItem,
+				quantity: tradeItem.quantity,
+				owner_id: tradeItem.owner_id,
+			});
+		}
 
+		// Destroy TradeItem rows first so the FK reference to character_items is removed
+		// before we destroy/modify those rows (SQLite FK checks are ON)
+		await TradeItem.destroy({ where: { trade_id: tradeId }, transaction });
+
+		for (const { charItem, quantity, owner_id } of transfers) {
 			// Determine the other player
-			const newOwnerId = tradeItem.owner_id === trade.initiator_id
+			const newOwnerId = owner_id === trade.initiator_id
 				? trade.recipient_id
 				: trade.initiator_id;
 
@@ -284,7 +295,7 @@ async function executeTrade(tradeId) {
 
 			if (existingItem) {
 				// Add to existing stack
-				existingItem.amount += tradeItem.quantity;
+				existingItem.amount += quantity;
 				await existingItem.save({ transaction });
 			}
 			else {
@@ -292,23 +303,20 @@ async function executeTrade(tradeId) {
 				await CharacterItem.create({
 					character_id: newOwnerId,
 					item_id: charItem.item_id,
-					amount: tradeItem.quantity,
+					amount: quantity,
 					equipped: false,
 				}, { transaction });
 			}
 
 			// Remove from original owner
-			if (charItem.amount === tradeItem.quantity) {
+			if (charItem.amount === quantity) {
 				await charItem.destroy({ transaction });
 			}
 			else {
-				charItem.amount -= tradeItem.quantity;
+				charItem.amount -= quantity;
 				await charItem.save({ transaction });
 			}
 		}
-
-		// Clean up trade items (status already set to 'completed' above)
-		await TradeItem.destroy({ where: { trade_id: tradeId }, transaction });
 
 		await transaction.commit();
 

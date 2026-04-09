@@ -25,9 +25,9 @@ function pickEncounterEvent(depth, ratKingSlain) {
 //   ghoulTickets  = floor(depth / 3) — rare, grows with depth
 function pickEncounterEventUndead(ratCount, depth, ratKingSlain) {
 	const ratTickets = ratCount;
-	const kingTickets = ratKingSlain ? 0 : Math.floor(depth / 2);
+	const kingTickets = ratKingSlain ? 0 : 1 + depth;
 	const miasmaTickets = 3;
-	const ghoulTickets = Math.floor(depth / 3);
+	const ghoulTickets = 1 + Math.floor(depth / 3);
 	const total = ratTickets + kingTickets + miasmaTickets + ghoulTickets;
 	if (total <= 0) return null;
 	const roll = Math.random() * total;
@@ -37,7 +37,7 @@ function pickEncounterEventUndead(ratCount, depth, ratKingSlain) {
 	cursor += miasmaTickets;
 	if (roll < cursor) return 'bilge-encounter-miasma';
 	cursor += ghoulTickets;
-	if (ghoulTickets > 0 && roll < cursor) return 'bilge-encounter-rat-ghoul';
+	if (roll < cursor) return 'bilge-encounter-rat-ghoul';
 	return Math.random() < 0.5 ? 'bilge-encounter-rat-undead' : 'bilge-encounter-rat-adult-undead';
 }
 

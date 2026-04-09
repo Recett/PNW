@@ -41,7 +41,6 @@ other_items:
       - cooking_ingredient
       - base_ingredient
       - fish
-      - cooking_trait_oily
     metadata:
       stackable: true
       tradeable: true
@@ -57,7 +56,6 @@ other_items:
       - cooking_ingredient
       - base_ingredient
       - fish
-      - cooking_trait_tender
     metadata:
       stackable: true
       tradeable: true
@@ -73,7 +71,6 @@ other_items:
       - cooking_ingredient
       - base_ingredient
       - crustacean
-      - cooking_trait_smooth
     metadata:
       stackable: true
       tradeable: true
@@ -89,7 +86,6 @@ other_items:
       - cooking_ingredient
       - base_ingredient
       - fish
-      - cooking_trait_stringy
     metadata:
       stackable: true
       tradeable: true
