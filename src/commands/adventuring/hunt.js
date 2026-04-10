@@ -27,7 +27,7 @@ function pickEncounterEventUndead(ratCount, depth, ratKingSlain) {
 	const ratTickets = ratCount;
 	const kingTickets = ratKingSlain ? 0 : 1 + depth;
 	const miasmaTickets = 3;
-	const ghoulTickets = 1 + Math.floor(depth / 3);
+	const ghoulTickets = 1 + depth;
 	const total = ratTickets + kingTickets + miasmaTickets + ghoulTickets;
 	if (total <= 0) return null;
 	const roll = Math.random() * total;

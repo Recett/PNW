@@ -33,11 +33,11 @@
       text: |
         Người đàn ông sau chiếc bàn ngẩng đầu lên khỏi cuốn sổ cái trông như chứa nhiều mục hơn mức có thể Ông không có vẻ ngạc nhiên khi thấy ${2p}.
 
-        "${npc_1p} hy vọng ${2p} có chuyến đi thuận lợi? Từ sau xung đột với Arbrance, kiểm soát an ninh đã được thắt chặt hơn nhiều. Mời ${2p} ngồi đi."
+        "À! Mong là ${2p} đã có chuyến đi thuận lợi! Từ sau vụ xung đột với Arbrance kiểm soát an ninh đã được thắt chặt lên gấp nhiều lần. Mời ${2p} ngồi đi."
 
-        Ông đặt cuốn sổ sang một bên với sự cẩn thận gọn gàng của người chưa bao giờ để thất lạc bất cứ thứ gì trong đời.
+        Ông đặt cuốn sổ ngay ngắn sang một bên với tất cả sự cẩn thận của người chưa từng để thất lạc bất cứ một thứ gì trong đời.
 
-        "${npc_1p} là York Waylan —cứ gọi ${npc_1p} là York thôi. ${npc_1p} quản lý mọi thứ trên tàu này ngoại trừ việc lái nó —và một phần không nhỏ của cả việc lái nữa. Nếu ${2p} cần gì, ${npc_1p} là người đúng để hỏi. Nếu ${npc_1p} không có, thứ đó không tồn tại."
+        "${npc_1p} là York Waylan —cứ gọi ${npc_1p} là York thôi. ${npc_1p} lo liệu mọi thứ trên tàu —trừ việc cầm lái. Mà nói vậy chứ, cả việc cầm lái ${npc_1p} cũng phải nhúng tay không ít. Cần món hàng gì thì cứ hỏi ${npc_1p}."
 
     action:
       - type: flag
@@ -54,7 +54,7 @@
     message:
       npc_speaker: quartermaster-york
       message_type: dialogue
-      text: "York đang ngồi sau bàn làm việc. Một cuốn sổ cái đang mở Hai cuốn khác đang chờ"
+      text: "York ngồi sau bàn làm việc. Trước mặt là một cuốn sổ cái mở sẵn, hai cuốn khác đặt bên cạnh đang chờ xử lý."
 
     option:
       - id: how-things
@@ -140,7 +140,7 @@
     message:
       npc_speaker: quartermaster-york
       message_type: dialogue
-      text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một số quân dụng có thểbán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
+      text: "York kéo ra một ngăn kéo phía sau và đặt lên bàn một cuốn danh sách hàng hóa dày cộm. \"Hải quân có một số quân dụng có thể bán ra. Vũ khí, áo giáp —chất lượng vừa phải, giá hợp lý. Mua nhanh kẻo hết.\""
 
     action:
       - type: shop
@@ -155,7 +155,7 @@
     message:
       npc_speaker: quartermaster-york
       message_type: dialogue
-      text: "\"Còn việc gì không?\""
+      text: "\"Còn việc gì nữa không?\""
 
     option:
       - id: how-things
@@ -164,7 +164,7 @@
         display_order: 0
 
       - id: work
-        text: "Công việc của ${npc_2p} cụ thểlà gì?"
+        text: "Công việc của ${npc_2p} cụ thể là gì?"
         next: york-work
         display_order: 1
 
@@ -197,7 +197,7 @@
               is_global_flag: false
 
       - id: morale-update
-        text: "VềTrung úy Morale..."
+        text: "Về Trung úy Morale..."
         next: york-morale-pregnant
         display_order: 5
         hidden_check:
@@ -233,7 +233,7 @@
       npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
-        "Tạm ổn. Đó là câu trả lời tốt nhất ${npc_1p} thường nói được, và thực lòng đó cũng là mức ${npc_1p} đang nhắm đến. Nếu ${2p} muốn câu trả lời thú vị hơn, hãy hỏi ${npc_1p} điều gì cụ thể"
+        "Ổn. ${npc_1p} luôn trả lời như vậy — và thường thì như thế đã là quá đủ rồi. Nếu ${2p} muốn nghe điều gì hay ho hơn thì hãy hỏi cho cụ thể nhé."
 
   - id: york-work
     name: "York —Công Việc"
@@ -244,9 +244,9 @@
       npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
-        "Tất cả những gì giữ cho con tàu vận hành mà không phải là việc lái nó. Lương thực, kiểm kê trang thiết bị, hồ sơ thủy thủ, xác minh hàng hóa, tiếp tế, giải quyết khiếu nại —Đô đốc lo việc biển. ${npc_1p} lo tất cả những gì biển không quan tâm nhưng người ta thì có."
+        "Tất cả những gì giữ cho con tàu vận hành mà không phải là việc lái nó. Lương thực, kiểm kê trang thiết bị, hồ sơ thủy thủ, xác minh hàng hóa, tiếp tế, giải quyết khiếu nại —Nói chung thuyền trưởng lo chuyện ngoài biển. Còn ${npc_1p} gánh vác toàn bộ phần còn lại."
 
-        "Danh sách rất dài."
+        "Để mà kể tường tận thì dài lắm."
 
   - id: york-food
     name: "York —Lương Thực"
@@ -257,11 +257,11 @@
       npc_speaker: quartermaster-york
       message_type: dialogue
       text: |
-        "Tạm đủ. May có cá vớt thêm —nhưng kho dự trữ vẫn đang cạn nhanh hơn ${npc_1p} muốn, chuyến vượt biển dài nào cũng vậy. Chuột là thứ ${npc_1p} không muốn tính đến. ${npc_1p} đã ghi lại số lượng hiện tại. ${npc_1p} thích con số đó nhiều hơn."
+        "Tạm đủ. May có cá vớt thêm —nhưng kho dự trữ vẫn đang cạn nhanh hơn ${npc_1p} muốn, chuyến vượt biển dài nào cũng vậy. Đám chuột nhắt là thứ ${npc_1p} không muốn phải tính đến. Số lượng hiện tại của chúng đã được ghi lại… và thú thật là ${npc_1p} muốn con số đó vơi bớt."
 
         Ông liếc nhìn cuốn sổ như thể nó có thể đã tự cập nhật.
 
-        "Nếu ${2p} có thời gian rảnh, hầm tàu là nơi đáng để dành thời gian đó."
+        "Nếu rảnh, đáy tàu là nơi ${2p} nên cân nhắc ghé qua đó."
 
     action:
       - type: flag
@@ -282,9 +282,9 @@
       text: |
         "Điều xảy ra là: chúng ta tự lập chỗ đứng. Đó là lệnh của Vương miện —cũng là định nghĩa của ${npc_1p} về thành công, nói thực tế mà. Mọi thứ sau đó là câu hỏi về những quyết định tập thể—định cư ở đâu, tổ chức ra sao, ưu tiên cái gì. Những quyết định đó sẽ có hậu quả mà ${npc_1p} có thể dự đoán nhưng không thể quyết định."
 
-        Ông nhìn ${2p} với sự chú ý bằng phẳng của người đã nghĩ vềđiều này nhiều hơn ${2p}.
+        Ông nhìn ${2p} với sự chú ý bằng phẳng của người đã nghĩ về điều này nhiều hơn ${2p}.
 
-        "${npc_1p} sẽ là người tổ chức quá trình đó. ${npc_1p} khuyên ${2p} nên suy nghĩ về nó trước khi chúng ta đến nơi."
+        "${npc_1p} sẽ là người gánh vác cũng như tổ chức toàn bộ quá trình đó. Và ${npc_1p} khuyên ${2p} cũng nên bắt đầu để tâm suy nghĩ về nó trước khi chúng ta cập bến."
 
 
   # ============================================================
@@ -324,11 +324,11 @@
 
         Ông quay lại với tấm hải đồ, rồi dường như đổi ý, quay lại hẳn.
 
-        "${npc_1p} có ba quy tắc —không chạm vào bánh lái, không chạm vào hải đồ của ${npc_1p}, và đừng rơi xuống biển. Hai điều đầu ${npc_1p} sẽ thực thi. Điều thứ ba là lời khuyên cá nhân mạnh mẽ."
+        "${npc_1p} có ba quy tắc đơn giản: đừng chạm vào bánh lái, đừng chạm vào hải đồ của ${npc_1p}, và tuyệt đối đừng rơi xuống biển. Hai quy tắc đầu ${npc_1p} sẽ trực tiếp đảm bảo, không để cho nó xảy ra. Còn quy tắc thứ ba… thì nó giống một lời khuyên cá nhân đáng lưu tâm hơn."
 
         Ông không mỉm cười, nhưng có gì đó trong cách nói cho thấy ông đã dùng câu này nhiều lần và vẫn cho rằng nó đủ dùng.
 
-        "Aldric Vorne. ${npc_1p} chỉhuy con tàu này."
+        "Aldric Vorne. ${npc_1p} chỉ huy con tàu này."
 
     action:
       - type: flag
@@ -382,7 +382,7 @@
               is_global_flag: false
 
       - id: leave
-        text: "Để${npc_2p} làm việc."
+        text: "Để ${npc_2p} làm việc."
         display_order: 4
 
   - id: vorne-continue
@@ -392,7 +392,7 @@
     message:
       npc_speaker: captain-vorne
       message_type: dialogue
-      text: "\"Gì nữa?\""
+      text: "\"Lại gì nữa đây?\""
 
     option:
       - id: journey
@@ -441,7 +441,7 @@
       npc_speaker: captain-vorne
       message_type: dialogue
       text: |
-        "HMS Divine là một con tàu tốt. Đủ già để đã chứng minh bản thân, chưa đủ già để trở thành rủi ro. ${npc_1p} đã chỉ huy tàu tệ hơn trong hoàn cảnh tốt hơn, và tàu tốt hơn trong hoàn cảnh tệ hơn. Con tàu này sẽ đưa chúng ta đến nơi."
+        "HMS Divine là một con tàu tốt. Nó đã tồn tại đủ lâu để chứng minh giá trị bản thân, nhưng chưa lâu đến mức để phải xếp ngang với một đống gỗ vụn. ${npc_1p} đã chỉ huy tàu tệ hơn trong hoàn cảnh tốt hơn, và tàu tốt hơn trong hoàn cảnh tệ hơn. Tin ${2p} đi, Nhất định con tàu này sẽ đưa chúng ta tới nơi cần đến."
 
   - id: vorne-journey-ahead
     name: "Vorne —Chuyến Đi Phía Trước"
@@ -451,11 +451,11 @@
       npc_speaker: captain-vorne
       message_type: dialogue
       text: |
-        "Nửa đầu không có gì đáng ngại. Biển Antica —tên cũ của vùng này —vềcơ bản là biển bình thường. Gió đoán được, dòng chảy ổn định."
+        "Nửa đầu không có gì đáng ngại. Biển Antica —tên cũ của vùng này —về cơ bản là biển bình thường. Gió mây thì dễ đoán, dòng chảy lại ổn định."
 
         Ông nhìn ra chân trời.
 
-        "Đến khoảng giữa đường, ${2p} sẽ thấy mây sẫm lại ở phía xa. Dòng chảy bắt đầu thất thường. Gió đổi chiều không theo quy luật. Đó là ranh giới."
+        "Tuy vậy, đi hết nửa đầu, ${2p} sẽ thấy mây sẫm lại ở đằng xa. Dòng chảy bắt đầu thất thường. Gió đổi chiều không theo quy luật. Đó là ranh giới."
 
         "Từ đó trở đi là Biển Hỗn Loạn."
 
@@ -481,13 +481,13 @@
       text: |
         "Bên trong đó, dòng chảy và gió trở nên vô lý. La bàn thông thường chết hoàn toàn. Giữ một hướng thẳng cũng không được —dòng nước và gió sẽ buộc tàu xoay theo những góc không thể đoán trước."
 
-        "Chỉ có La Bàn Konrad hoạt động được ềEđó. Nó không chỉ đường như la bàn thông thường —nó chỉ cho ${2p} biết khi nào cần rẽ, và rẽ thế nào, để tàu đi đúng hướng giữa dòng chảy điên loạn. Không có nó, ${2p} không biết mình đang ở đâu, không kiểm soát được tàu, và đôi khi có kiểm soát được cũng không biết phải đi về phía nào."
+        "Chỉ duy nhất La Bàn Konrad là hoạt động được ở đó. Tuy không có khả năng chỉ phương hướng như la bàn thường, nhưng nó lại có thể cho ${2p} biết được khi nào cần rẽ, và phải rẽ thế nào để giữ tàu đúng hướng giữa dòng chảy điên loạn của biển cả. Không có nó, ${2p} không biết mình đang ở đâu, không kiểm soát được tàu, và đôi khi có kiểm soát được cũng không biết phải đi về phía nào."
 
-        "Đó là lý do tàu thường không trở về từ đó."
+        "Đó là lý do phần lớn tàu luôn một đi không trở lại."
 
-        "Biển Hỗn Loạn thực ra có hai phần. Phần đầu là Biển Hiểm —dòng chảy và gió loạn như ${npc_1p} vừa mô tả. Vượt qua đó là Biển Sương —dòng chảy ổn định hơn, nhưng sương mù dày đặc, mặt trời không xuyên qua được. ${2p} hầu như không thấy gì phía trước. Đôi khi thấy —nhưng không phải lúc nào cũng là thật."
+        "Mà Biển Hỗn Loạn thực ra gồm hai khúc. Khúc đầu là Biển Hiểm —dòng chảy và gió loạn như ${npc_1p} vừa mô tả. Vượt qua khúc đó là Biển Sương —dòng chảy ổn định hơn, nhưng sương mù dày đặc, mặt trời không xuyên qua được. ${2p} hầu như không thấy gì phía trước. Đôi khi thấy —nhưng không phải lúc nào cũng là thật."
 
-        "Có lẽ đã có những con tàu vượt qua cả hai phần đó trong quá khứ. Nhưng họ không thể quay về để kể lại."
+        "Có thể đã từng có những con tàu vượt qua cả hai khúc đó. Nhưng khổ nỗi, chúng ta lại chẳng có nhân chứng sống nào cả."
 
   - id: vorne-how-long
     name: "Vorne —Bao Lâu Rồi"
@@ -498,7 +498,7 @@
       npc_speaker: captain-vorne
       message_type: dialogue
       text: |
-        "Bảy năm. Đủ lâu để thủy thủ đoàn biết ${npc_1p} trông đợi gì và ${npc_1p} biết họ có khả năng làm gì. Đó là tất cả những gì của việc chỉ huy, nếu rút gọn đến cùng —biết điều gì có thể yêu cầu, và của ai."
+        "Bảy năm. Đủ lâu để thủy thủ đoàn biết ${npc_1p} trông đợi gì và ${npc_1p} biết họ có khả năng làm gì. Đó là cốt lõi của việc chỉ huy. Nói cho gọn thì đó là biết mình có thể đòi hỏi điều gì, và đòi hỏi điều ấy từ ai."
 
 
   # ============================================================
@@ -534,11 +534,11 @@
       text: |
         Bộ áo lễ của ông mỏng và sờn cũ theo kiểu của người đi đường dài. Ông đang đọc sách —hoặc có vẻ vậy; ông khép sách lại khi ${2p} đến và dành cho ${2p} sự chú ý đầy đủ.
 
-        "À. Một gương mặt mới. Chào mừng. ${npc_1p} là Linh mục Ian McBetha —${npc_1p} phục vụ với tư cách mục vụ, nghĩa là ${npc_1p} ở đây để hữu ích cho mọi người theo cách không cần đến đại bác."
+        "À. Một gương mặt mới. Chào mừng. ${npc_1p} là Linh mục Ian McBetha —${npc_1p} phục vụ với tư cách mục vụ, nghĩa là ${npc_1p} ở đây để giúp đỡ mọi người theo những cách mà không cần đến dao kiếm hay bạo lực."
 
         Một nụ cười rất nhẹ.
 
-        "${npc_1p} thấy biển tốt cho việc suy ngẫm. Biển không cãi lại. Cô Vane thì tiếc là có. ${2p} có hay cãi không?"
+        "${npc_1p} thấy biển tốt cho việc suy ngẫm. Biển không cãi lại. Cô Vane thì tiếc là có. ${2p} có phải một con người thường xuyên lời qua tiếng lại với người khác không?"
 
     action:
       - type: flag
@@ -602,7 +602,7 @@
     message:
       npc_speaker: ian-mcbetha
       message_type: dialogue
-      text: "\"Còn điều gì muốn hỏi không?\""
+      text: "\"Con còn điều gì trăn trở không?\""
 
     option:
       - id: worry
@@ -651,7 +651,7 @@
       npc_speaker: ian-mcbetha
       message_type: dialogue
       text: |
-        "${npc_1p} lo lắng về cách chúng ta sẽ hành xử khi tìm thấy. Việc tìm ra thì dễ. Còn làm gì sau đó —liệu chúng ta có xứng với cuộc gặp gỡ đó không —đó mới là điều khiến ${npc_1p} trăn trở. Lục địa kia không cần ${npc_1p} lo lắng. Những người trên con tàu này thì có thể cần."
+        "${npc_1p} lo lắng về cách chúng ta sẽ hành xử khi tìm thấy. Việc tìm ra thì dễ. Còn làm gì sau đó —liệu chúng ta có xứng với cuộc gặp gỡ đó không —đó mới là điều khiến ${npc_1p} trăn trở. Lục địa kia có thể không cần ${npc_1p} lo. Nhưng những người trên con tàu này… thì có."
 
   - id: mcbetha-pastoral
     name: "McBetha —Công Việc Mục Vụ"
@@ -662,11 +662,11 @@
       npc_speaker: ian-mcbetha
       message_type: dialogue
       text: |
-        "Chủ yếu là lắng nghe. Người ta ở trên biển lâu thường nghĩ về những điều họ bình thường không nghĩ đến —cái chết, mục đích, nơi họ đang đi đến và lý do. ${npc_1p} ở đây để những suy nghĩ đó có chỗ đến —mà không phải là đáy cốc."
+        "Chủ yếu là lắng nghe. Người ta ở trên biển lâu thường nghĩ về những điều họ bình thường không nghĩ đến —cái chết, mục đích, nơi họ đang đi đến và lý do. ${npc_1p} ở đây để họ có thể nói ra những điều ấy —thay vì giữ trong lòng, hoặc tìm đến rượu."
 
         Ông dừng lại.
 
-        "Chiếc cốc đôi khi cũng cần thiết. ${npc_1p} không phán xét."
+        "Dù vậy, đôi khi tìm đến rượu cũng là một lựa chọn đúng đắn. ${npc_1p} không phán xét hay gì đâu."
 
   - id: mcbetha-book
     name: "McBetha —Cuốn Sách"
@@ -677,11 +677,11 @@
       npc_speaker: ian-mcbetha
       message_type: dialogue
       text: |
-        "Một khảo sát về hồ sơ thực vật học ven biển từ các chuyến thám hiểm phía nam. Đọc khô khan với hầu hết mọi người. ${npc_1p} thấy hữu ích khi biết những gì đã được ghi chép trước —giúp nhận ra những gì chưa được ghi."
+        "Một khảo sát về hồ sơ thực vật học ven biển từ các chuyến thám hiểm phía nam. Đọc khô khan với hầu hết mọi người, nhưng ${npc_1p} lại thấy thật hữu ích khi có thể dựa vào những gì đã được ghi chép để khám phá ra cái mới, những gì chưa tồn tại trong sách vở."
 
         Ông lật một trang.
 
-        "Cô Vane và ${npc_1p} có một thỏa thuận. Cô ấy cho ${npc_1p} biết những gì cô ấy thấy. ${npc_1p} cho cô ấy biết điều đó có nghĩa gì. Cả hai đều giả vờ người kia sai đủ lâu để học được điều gì đó."
+        "Cô Vane và ${npc_1p} có một thỏa thuận. Cô ấy cho ${npc_1p} biết những gì cô ấy thấy. ${npc_1p} giúp cô ấy tìm hiểu về ý nghĩa của chúng. Cả hai cứ giả vờ người kia sai, đủ lâu để học thêm được điều gì đó mới mẻ."
 
 
   # ============================================================
@@ -717,11 +717,11 @@
       text: |
         Người đàn ông đứng gần mạn tàu, quan sát thủy thủ làm việc trên boong.
 
-        "Người mới à? Trông ${2p} chưa quen đứng trên tàu, nhưng như thế cũng bình thường. Phần lớn người lần đầu ra biển đều cần vài ngày để quen với nhịp sóng và tiếng ồn liên tục."
+        "Người mới à? Trông ${2p} có vẻ chưa quen với việc đứng ở trên tàu —chuyện thường ở huyện ấy mà. Phần lớn người lần đầu ra biển đều cần vài ngày để quen với nhịp sóng và tiếng ồn liên tục."
 
         "${npc_1p} là Lawrence Hensbane, đội trưởng Claw Company. Đơn vị của ${npc_1p} được thuê đi theo chuyến này để đảm bảo an ninh và huấn luyện chiến đấu cho những người cần. Nếu ${2p} muốn học cách tự bảo vệ mình trước khi chúng ta cập bến, ${npc_1p} là người ${2p} nên tìm."
 
-        "${npc_1p} không biến người ta thành lính chuyên nghiệp trong vài tuần, nhưng ${npc_1p} có thểgiúp họ đủ bình tĩnh để không hoảng loạn khi gặp rắc rối. Như vậy thường đã đủ rồi."
+        "${npc_1p} không biến người ta thành lính chuyên nghiệp trong vài tuần, nhưng ${npc_1p} có thể giúp họ đủ bình tĩnh để không hoảng loạn khi gặp rắc rối. Như vậy thường đã đủ rồi."
 
     action:
       - type: flag
@@ -1268,11 +1268,11 @@
       npc_speaker: law-hensbane
       message_type: dialogue
       text: |
-        "Kết quả như vậy là tốt. ${2p} giữ được nhịp di chuyển và không hoảng khi bị ép, điều đó cho thấy phản xạ cơ bản đã ổn. Với nền tảng này, nếu luyện thêm vài buổi thì ${2p} có thể xử lý những tình huống đơn giản mà không gặp quá nhiều khó khăn."
+        "Kết quả như vậy là tốt. ${2p} đã có thể giữ nhịp di chuyển và không hoảng loạn trước sức ép. Phản xạ cơ bản thì ổn rồi. Cứ đà này thì luyện thêm vài buổi là ${2p} đã có thể xử lý những tình huống đơn giản."
 
         "Vẫn còn điểm cần chỉnh, đặc biệt là lực đánh và cách giữ khoảng cách, nhưng đó là chuyện bình thường với người mới. Không ai làm đúng hết ngay từ đầu."
 
-        "Nếu có thời gian, quay lại luyện thêm. Kỹ năng này chỉ tiến bộ khi được lặp lại đủ nhiều."
+        "Nếu có thời gian, hãy quay lại luyện thêm. Văn ôn võ luyện thì hẵng mong có kết quả."
 
   - id: hensbane-sparring-loss
     name: "Hensbane —Sparring Thua"
@@ -1292,9 +1292,9 @@
       text: |
         "Không vấn đề gì. Phản xạ ban đầu của ${2p} còn chậm và cách giữ trọng tâm chưa ổn, nên khi bị ép thì rất khó lấy lại thế chủ động. Đây là lỗi phổ biến với người chưa quen luyện tập, và hoàn toàn có thể sửa được."
 
-        "Quan trọng là ${2p} đã hiểu cảm giác khi bịáp lực trực tiếp, và đó là bước đầu cần thiết. Sau vài buổi luyện, cơ thể sẽ tự điều chỉnh nhanh hơn."
+        "Ít ra ${2p} đã biết cảm giác bị ép là thế nào. Thứ đó không học qua lời nói được đâu."
 
-        "Muốn thử lại thì cứ quay lại vào lúc khác, ${npc_1p} sẽ tiếp tục hướng dẫn."
+        "Muốn thử lại thì cứ nói. ${npc_1p} sẽ tiếp tục hướng dẫn."
 
   - id: hensbane-max-rank
     name: "Hensbane —Max Rank"
@@ -1317,11 +1317,11 @@
       npc_speaker: law-hensbane
       message_type: dialogue
       text: |
-        "Hôm nay vậy là đủ. Tập quá nhiều trong một lần thường không giúp tiến bộ nhanh hơn, chỉ khiến cơ thể mệt và phản xạ chậm đi."
+        "Hôm nay như vậy là quá đủ rồi. Tập quá nhiều trong một buổi thường không đem lại kết quả tốt đâu. Chỉ tổ khiến cho cơ thể mệt và phản xạ chậm đi thôi."
 
         "Khi nào muốn luyện tiếp thì cứ tìm ${npc_1p} trên boong. ${npc_1p} thường ở quanh khu vực này."
 
-        "Giữ sức cho hành trình phía trước."
+        "Nhớ phải giữ gìn sức khỏe cho hành trình phía trước nhé."
 
 
   # ============================================================
@@ -1399,7 +1399,7 @@
     message:
       message_type: dialogue
       text: |
-        Một ông lão mặc chiếc áo khoác bạc màu đứng bên mạn tàu, tay tựa lên lan can gỗ, nhìn ra mặt nước.
+        Một ông lão mặc chiếc áo khoác bạc màu đứng bên mạn tàu. Ánh mắt ông hướng ra mặt nước phẳng lặng, đôi tay tựa lên lan can gỗ một cách thong thả.
 
     option:
       - id: weather
@@ -1447,7 +1447,7 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Ừ, ra xa bờ gió mạnh hơn. ${2p} nên vào trong nếu không có áo dày, đứng lâu dễ cảm lạnh."
+        "Ừ, càng ra xa bờ gió thổi càng gắt. ${2p} nên vào trong nếu không có áo dày, đứng ngoài này dễ cảm lạnh lắm."
 
     action:
       - type: flag
@@ -1465,7 +1465,7 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Không có gì đặc biệt. Đứng một lát cho thoáng rồi xuống nghỉ"
+        "Cũng không có gì đặc biệt. Đứng đây một lát cho thoáng để tí nữa xuống khoang nằm cho dễ ngủ thôi."
 
     action:
       - type: flag
@@ -1483,7 +1483,8 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Đứng ngoài này dễchịu hơn dưới khoang."
+        Sau một lúc, ông khẽ nhích sang một bên để nhường chỗ trên lan can. Cả hai cùng đứng đó nhìn mặt nước sủi bọt trắng xóa bên mạn tàu.
+        "Đứng không thế này lại hay," ông lẩm bẩm. "Dưới khoang ồn ào quá."
 
     action:
       - type: flag
@@ -1501,30 +1502,23 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        Ông lão không còn nhìn ra biển. Ông đang ngồi trên một thùng gỗ sồi, cẩn thận dùng miếng vải tẩm dầu lau chùi một vật dài được quấn kín trong nhiều lớp da thú rách bươm.
-
-        "Gió biển mang theo muối mặn. Nó ăn mòn sắt thép và cả xương cốt. ${2p} không bảo dưỡng đểđạc, chúng sẽ phản bội ${2p} khi ${2p} cần đến nhất."
+        Ông lão vẫn đứng ở vị trí cũ, tay gõ nhịp nhẹ lên lan can gỗ. Thấy ${2p}, ông khẽ gật đầu chào.
 
     option:
       - id: curious
-        text: "Vật ${npc_2p} đang cầm là gì vậy?"
+        text: "Kể tên quê nhà."
         next: galeby-hometown
         display_order: 0
 
-      - id: treasured
-        text: "${npc_2p} có vẻ rất quý trọng nó."
+      - id: nomadic
+        text: "Bốn bể là nhà."
         next: galeby-many-places
         display_order: 1
-
-      - id: silence
-        text: "(Im lặng gật đầu đồng ý)"
-        next: galeby-visit-1-end
-        display_order: 2
 
       - id: bilge-key
         text: "Chìa khóa hầm tàu —${npc_2p} có biết không?"
         next: galeby-bilge-key
-        display_order: 3
+        display_order: 2
         hidden_check:
           - type: flag
             flag_data:
@@ -1541,17 +1535,19 @@
 
       - id: leave
         text: "Thôi, để ${npc_2p} yên."
-        display_order: 4
+        display_order: 3
 
   - id: galeby-hometown
-    name: "Galeby —Lần 1 / Tò Mò"
+    name: "Galeby —Lần 1 / Quê Nhà"
     event_type: dialogue
 
     message:
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Một món nợ cũ. ${npc_1p} đã giữ thói quen lau chùi nó suốt hai mươi năm qua. Chuyến này là chuyến cuối, hy vọng ${npc_1p} sẽ tìm được người để trả lại trước khi nghỉ ngơi."
+        Ông nhắc lại tên, vẻ như đang nhớ lại.
+
+        "${npc_1p} biết tên đó." Ông gật đầu nhẹ. "Sao ${2p} lại rời nơi đó mà đi?"
 
     action:
       - type: flag
@@ -1561,15 +1557,32 @@
         flag_type: character
         silent: true
 
+    option:
+      - id: world
+        text: "Muốn xem thế giới."
+        next: galeby-visit-1-end
+        display_order: 0
+
+      - id: nothing-left
+        text: "Không còn gì để ở lại."
+        next: galeby-visit-1-end
+        display_order: 1
+
+      - id: dont-know
+        text: "Không biết nữa."
+        next: galeby-visit-1-end
+        display_order: 2
+
   - id: galeby-many-places
-    name: "Galeby —Lần 1 / Quan Sát"
+    name: "Galeby —Lần 1 / Bốn Bể Là Nhà"
     event_type: dialogue
+    next: galeby-visit-1-end
 
     message:
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Nó từng cứu mạng ${npc_1p} một lần ở bờ biển lục địa mới. Giữ nó bên người nhắc ${npc_1p} nhớ về cái giá của việc sống sót. Cập bến lần này, ${npc_1p} hy vọng có thể để nó lại."
+        "${npc_1p} hiểu." Ông gật đầu chậm rãi. "Hồi trẻ ${npc_1p} cũng vậy. Cứ đi mãi, đi mãi... đến lúc ngoảnh lại thì chẳng còn nhớ nổi đất quê mình có mùi ra sao nữa."
 
     action:
       - type: flag
@@ -1580,14 +1593,16 @@
         silent: true
 
   - id: galeby-visit-1-end
-    name: "Galeby —Lần 1 / Im Lặng"
+    name: "Galeby —Lần 1 / Kết"
     event_type: dialogue
 
     message:
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "${2p} hiểu nguyên tắc đấy. Vũ khí hay con người, đến một lúc nào đó cũng phải hao mòn. Chuyến này là chuyến cuối của ${npc_1p}. Cập bến rồi ${npc_1p} sẽ buông bỏ nó."
+        Ông nhìn ra biển một lúc lâu.
+
+        "Chuyến này chắc hẳn là chuyến cuối của ${npc_1p}. Cập bến xong, ${npc_1p} sẽ tìm một góc nào đó nghỉ ngơi. Hơn hai mươi năm lênh đênh, sương gió cũng nếm đủ rồi." Ông ngoảnh mặt bước đi.
 
     action:
       - type: flag
@@ -1622,7 +1637,7 @@
         display_order: 0
 
       - id: concerned
-        text: "Trông ${npc_2p} có vẻ bận tâm."
+        text: "Biển hôm nay có vẻ động."
         next: galeby-thoughts-concerned
         display_order: 1
 
@@ -1656,13 +1671,11 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        Ông ngẩng đầu, vẻ chợt nhớ ra điều gì đó.
+        Ông ngẩng đầu nhìn ra mặt nước.
 
-        "À, không có gì. Chỉ là nhớ lại chuyện cũ. Hai mươi năm trước ${npc_1p} trôi dạt vào bờ một bộ tộc nhỏ, họ giữ ${npc_1p} lại một thời gian, chữa vết thương rồi để${npc_1p} đi. Ban ngày họđi săn, thịt mang vềnấu chung, cả làng ăn cùng nhau, mỗi tối đám thợ săn kể lại chuyến đi trong ngày, ai săn được nhiều thì nói nhiều hơn."
+        "Cái màu nước xanh này làm ${npc_1p} nhớ tới vùng biển phía Đông. Hai mươi năm trước, tàu của ${npc_1p} bị đắm ở chỗ đó. Mười bảy người trôi dạt lên một bãi cát trắng. Suốt mấy ngày trời chẳng có gì bỏ bụng ngoài mấy con ốc nhỏ tí."
 
-        Ông dừng lại.
-
-        "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
+        "${npc_1p} vẫn hay tự hỏi không biết chốn ấy giờ ra sao... Hay là sóng biển đã xóa sạch mọi dấu vết của tụi ${npc_1p} năm đó rồi."
 
     action:
       - type: flag
@@ -1680,13 +1693,11 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        Ông lắc đầu nhẹ.
+        Ông nhìn ra mặt nước, khẽ lắc đầu.
 
-        "Không sao, chỉ là nhớ lại chuyện cũ. Hai mươi năm trước ${npc_1p} trôi dạt vào bờ một bộ tộc nhỏ, họ giữ ${npc_1p} lại một thời gian, chữa vết thương rồi để${npc_1p} đi. Ban ngày họđi săn, thịt mang vềnấu chung, cả làng ăn cùng nhau, mỗi tối đám thợ săn kể lại chuyến đi trong ngày, ai săn được nhiều thì nói nhiều hơn."
+        "Không có gì, chỉ là nhớ lại chuyện cũ. Cái màu nước xanh này làm ${npc_1p} nhớ tới vùng biển phía Đông. Hai mươi năm trước, tàu của ${npc_1p} bị đắm ở chỗ đó. Mười bảy người trôi dạt lên một bãi cát trắng. Suốt mấy ngày trời chẳng có gì bỏ bụng ngoài mấy con ốc nhỏ tí."
 
-        Ông dừng lại.
-
-        "Có một người phụ nữ tên Aela, cô ấy chăm vết thương cho ${npc_1p}. ${npc_1p} vẫn nhớ chỗ đó."
+        "${npc_1p} vẫn hay tự hỏi không biết chốn ấy giờ ra sao... Hay là sóng biển đã xóa sạch mọi dấu vết của tụi ${npc_1p} năm đó rồi."
 
     action:
       - type: flag
@@ -1704,7 +1715,7 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        Khi thấy ${2p} đến gần, Galeby đứng thẳng người dậy. Đôi vai ông hơi chùng xuống, vẻ mặt hiện rõ sự trăn trở
+        Khi thấy ${2p} đến gần, Galeby đứng thẳng người dậy. Đôi vai ông hơi chùng xuống, vẻ mặt nặng trĩu suy tư
 
     option:
       - id: tired
@@ -1730,7 +1741,9 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Nếu sau này ${2p} có đi về phía lục địa mới, thấy ai mang hình xăm sói trên tay, để ý giúp ${npc_1p} xem có người phụ nữ nào tên Aela không. Biết cô ấy vẫn ổn là được."
+        "${npc_1p} không mệt, chỉ là dạo này cứ nhắm mắt lại là thấy họ. Những người ở bộ tộc năm đó... Nếu không nhờ họ cưu mang thì ${npc_1p} đã chìm xác ở cái xó xỉnh nào rồi. Nợ ơn cứu mạng mà chẳng biết đường nào quay lại để trả."
+
+        "${npc_1p} giờ đã không còn sức... Sau này nếu ${2p}... thấy ai mang hình xăm sói... để ý giúp... Chỉ cần biết cô ấy vẫn bình yên là đủ."
 
     action:
       - type: flag
@@ -1784,9 +1797,9 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Cái này là của họ. ${npc_1p} giữ nó hai mươi năm rồi, nếu có ngày gặp lại họ thì trả giúp ${npc_1p}."
+        "Cái này vốn là của họ. ${npc_1p} mang theo nó suốt hai mươi năm qua như một kỷ vật."
 
-        Ông đặt ngọn thương vào tay ${2p} rồi khẽ gật đầu bước đi.
+        "Nếu sau này ${2p} tìm thấy họ, hãy trả nó về đúng chỗ giúp ${npc_1p}. Kỷ vật thì nên tìm đường về đúng nhà của nó." Ông bước đi.
 
     action:
       - type: flag
@@ -1809,7 +1822,7 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Cầm lấy đi. Theo ${npc_1p} lâu rồi, giờ giữ cũng không làm gì, ${2p} giữ đi."
+        "Cầm lấy đi. Thanh kiếm này theo ${npc_1p} cũng lâu rồi, giờ cầm thấy nặng tay quá. Để nó cạnh một lão già đã gần đất xa trời thì chỉ tổ phí hoài. Hãy dùng nó vào việc có ích hơn đi."
 
         Ông đặt thanh rapier lên lan can rồi khẽ gật đầu bước đi.
 
@@ -1834,7 +1847,7 @@
       npc_speaker: john-galeby
       message_type: dialogue
       text: |
-        "Cảm ơn ${2p} đã nghe. Nhớ giúp chuyện đó là được."
+        "Cảm ơn ${2p} đã nghe ${npc_1p} lải nhải chuyện xưa. Chỉ cần nhớ giúp cái tên đó là đủ rồi."
 
         Ông khẽ gật đầu rồi bước đi.
 

@@ -14,6 +14,25 @@ const AMBIENT_EFFECTS = {
 	},
 };
 
+// Parry perk Pmax table — En Garde unlocks the mechanic; each Parry tier raises the ceiling
+const PARRY_PMAX_BY_PERK = {
+	'rapier-en-garde': 0.40,
+	'rapier-parry-1': 0.44,
+	'rapier-parry-2': 0.48,
+	'rapier-parry-3': 0.52,
+	'rapier-parry-4': 0.56,
+	'rapier-parry-5': 0.60,
+};
+
+// Riposte perk counter-attack multipliers (applied to highest rapier attack value)
+const RIPOSTE_MULT_BY_PERK = {
+	'rapier-riposte-1': 0.50,
+	'rapier-riposte-2': 0.70,
+	'rapier-riposte-3': 0.90,
+	'rapier-riposte-4': 1.20,
+	'rapier-riposte-5': 1.50,
+};
+
 // Discord embed description character limit
 const DISCORD_MESSAGE_LIMIT = 4000;
 
@@ -148,6 +167,9 @@ async function runInitTracker(actors, options = {}) {
 				let shieldGranted = 0;
 				let shieldAbsorbed = 0;
 				let isShieldAction = tracker.isShield || false;
+				let parryTier = null;
+				let parryReduced = 0;
+				let riposteDamage = 0;
 				
 				if (hitResult) {
 					// Check if this is a shield attack - grants shield instead of dealing damage
@@ -210,6 +232,38 @@ async function runInitTracker(actors, options = {}) {
 							}
 						}
 						
+						// === Parry mechanics (rapier) ===
+						if (damage > 0 && target.parryEnabled && target.parryPower > 0) {
+							const ratio = Math.max(1, damage / (target.parryPower * 2));
+							const rawChance = Math.pow(0.6, ratio);
+							const parryChance = Math.min(target.parryPmax, rawChance);
+							const parryRoll = Math.random();
+							let reductionFraction = 0;
+							if (parryRoll < parryChance * 0.10) {
+								parryTier = 'perfect';
+								reductionFraction = 1.0;
+							}
+							else if (parryRoll < parryChance * 0.40) {
+								parryTier = 'good';
+								reductionFraction = 0.75;
+							}
+							else if (parryRoll < parryChance) {
+								parryTier = 'basic';
+								reductionFraction = 0.50;
+							}
+							if (parryTier) {
+								parryReduced = Math.floor(damage * reductionFraction);
+								damage -= parryReduced;
+								if (target.riposteMultiplier > 0) {
+									const rapierAtks = target.attacks.filter(a => a.isRapier).map(a => a.attack);
+									const rapierAtk = rapierAtks.length > 0 ? Math.max(...rapierAtks) : 0;
+									riposteDamage = Math.max(0, Math.floor(rapierAtk * target.riposteMultiplier) - attacker.defense);
+								}
+							}
+							// Degrade ParryPower on every incoming hit regardless of outcome
+							target.parryPower = Math.floor(target.parryPower * 0.3);
+						}
+
 						// Protected user: HP cannot drop below 1 in combat
 						const hpFloor = target.userId === '275992469764833280' ? 1 : 0;
 						target.hp = Math.max(hpFloor, target.hp - damage);
@@ -247,9 +301,26 @@ async function runInitTracker(actors, options = {}) {
 					isShieldAction,
 					shieldGranted,
 					shieldAbsorbed,
+					parryTier,
+					parryReduced,
 					attackerShield: attacker.shieldStrength || 0,
 					targetShield: target.shieldStrength || 0,
 				});
+				// Apply riposte counter-attack if a parry triggered one
+				if (riposteDamage > 0) {
+					attacker.hp = Math.max(0, attacker.hp - riposteDamage);
+					combatLog.push({
+						tick,
+						type: 'riposte',
+						attacker: target.name || target.id,
+						attackerId: target.id,
+						target: attacker.name || attacker.id,
+						targetId: attacker.id,
+						damage: riposteDamage,
+						targetHp: attacker.hp,
+					});
+					if (attacker.hp <= 0) break;
+				}
 				tracker.initiative -= tracker.cooldown;
 				if (target.hp <= 0) break;
 			}
@@ -347,6 +418,24 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	// Get player's agility/speed from combat stats
 	const playerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
 
+	// === Load rapier parry perk data ===
+	const { CharacterPerk, CharacterSkill } = require('@root/dbObject.js');
+	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
+	const rapierPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('rapier-')).map(p => p.perk_id));
+	const rapierSkillRow = await CharacterSkill.findOne({ where: { character_id: playerId, skill_id: 'rapier' } });
+	const rapierSkillLevel = rapierSkillRow ? (rapierSkillRow.lv || 0) : 0;
+	const hasEnGarde = rapierPerkIds.has('rapier-en-garde');
+	// Resolve Pmax from parry tree — highest tier equipped wins
+	let parryPmax = 0;
+	for (const [id, pmax] of Object.entries(PARRY_PMAX_BY_PERK)) {
+		if (rapierPerkIds.has(id) && pmax > parryPmax) parryPmax = pmax;
+	}
+	// Resolve riposte multiplier — highest tier equipped wins
+	let riposteMultiplier = 0;
+	for (const [id, mult] of Object.entries(RIPOSTE_MULT_BY_PERK)) {
+		if (rapierPerkIds.has(id) && mult > riposteMultiplier) riposteMultiplier = mult;
+	}
+
 	const player = {
 		id: 'player',
 		name: playerBase.name || 'Player',
@@ -368,6 +457,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 			let isShield = false;
 			let isGreatshield = false;
 			let isLongbow = false;
+			let isRapier = false;
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
@@ -385,6 +475,10 @@ async function mainCombat(playerId, enemyId, options = {}) {
 					// Check if weapon is a longbow
 					else if (subtype === 'longbow') {
 						isLongbow = true;
+					}
+					// Check if weapon is a rapier
+					else if (subtype === 'rapier') {
+						isRapier = true;
 					}
 				}
 			}
@@ -404,11 +498,32 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				crit: atk.critical || 0,
 				isShield: isShield,
 				isGreatshield: isGreatshield,
+				isRapier: isRapier,
 				// Longbow: 8× Dex added to starting initiative (fires First Strike before normal rhythm)
 				initBonus: isLongbow ? 8 * (playerBase.dex || 0) : 0,
 			};
 		})),
 	};
+
+	// === Compute rapier parry state from attacks and equipped perks ===
+	const rapierAttackEntries = player.attacks.filter(a => a.isRapier);
+	const hasRapierEquipped = rapierAttackEntries.length > 0;
+	player.parryEnabled = hasEnGarde && hasRapierEquipped;
+	if (player.parryEnabled) {
+		let maxParryPower = Math.floor((playerBase.dex || 0) * (1 + rapierSkillLevel * 0.04));
+		// Dual-rapier penalty: halve ParryPower (mirrors the accuracy dual-wield penalty)
+		if (rapierAttackEntries.length >= 2) maxParryPower = Math.floor(maxParryPower / 2);
+		player.maxParryPower = maxParryPower;
+		player.parryPower = maxParryPower;
+		player.parryPmax = parryPmax > 0 ? parryPmax : 0.40;
+		player.riposteMultiplier = riposteMultiplier;
+	}
+	else {
+		player.maxParryPower = 0;
+		player.parryPower = 0;
+		player.parryPmax = 0;
+		player.riposteMultiplier = 0;
+	}
 
 	const enemy = {
 		id: 'enemy',
@@ -548,10 +663,12 @@ async function handleCombatBeginSkills(actors) {
  * @param {Object} options - Combat options
  */
 async function handleBeforeAttackSkills(attacker, defender, attack) {
-	// Implement skill logic here
-	// Using parameters to avoid lint warning
-	if (attacker && defender && attack) {
-		// Future skill implementation goes here
+	// Reset ParryPower when the rapier wielder swings — swinging resets parry stance
+	if (attacker && attacker.parryEnabled) {
+		attacker.parryPower = attacker.maxParryPower;
+	}
+	if (defender && attack) {
+		// Future skill implementations go here
 	}
 }
 
@@ -987,6 +1104,15 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			groupedLogs.push({ type: 'ambient', log });
 			continue;
 		}
+		// Riposte entries are never grouped — flush current group and insert standalone
+		if (log.type === 'riposte') {
+			if (currentGroup) {
+				groupedLogs.push(currentGroup);
+				currentGroup = null;
+			}
+			groupedLogs.push({ type: 'riposte', log });
+			continue;
+		}
 		if (currentGroup &&
 			currentGroup.attacker === log.attacker &&
 			currentGroup.target === log.target &&
@@ -1003,6 +1129,8 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				isShieldAction: log.isShieldAction,
 				shieldGranted: log.shieldGranted,
 				shieldAbsorbed: log.shieldAbsorbed,
+				parryTier: log.parryTier,
+				parryReduced: log.parryReduced,
 				attackerShield: log.attackerShield,
 			});
 		}
@@ -1024,6 +1152,8 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					isShieldAction: log.isShieldAction,
 					shieldGranted: log.shieldGranted,
 					shieldAbsorbed: log.shieldAbsorbed,
+					parryTier: log.parryTier,
+					parryReduced: log.parryReduced,
 					attackerShield: log.attackerShield,
 				}],
 			};
@@ -1054,6 +1184,14 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					actionLines.push(`└─ ${log.label}: Stacks: ${log.stacks} → ${newStacks} | HP: ${log.targetHp}`);
 				}
 			}
+			lastAttacker = null;
+			continue;
+		}
+
+		// Render riposte counter-attack lines
+		if (group.type === 'riposte') {
+			const { log } = group;
+			actionLines.push(`└─ ↩️ **Riposte!** ${log.attacker} retaliates for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
 			lastAttacker = null;
 			continue;
 		}
@@ -1106,6 +1244,10 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				if (h.shieldAbsorbed > 0) {
 					attackText += ` (🛡️ ${h.shieldAbsorbed} absorbed)`;
 				}
+				if (h.parryReduced > 0) {
+					const parryIcon = h.parryTier === 'perfect' ? '✨' : h.parryTier === 'good' ? '⚡' : '⚔️';
+					attackText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
+				}
 				attackText += ` dealing ${h.damage} damage!`;
 				actionLines.push(attackText);
 				actionLines.push(`└─ ${group.target} HP: ${h.targetHp}`);
@@ -1134,6 +1276,10 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					}
 					if (h.shieldAbsorbed > 0) {
 						hitText += ` (🛡️ ${h.shieldAbsorbed} absorbed)`;
+					}
+					if (h.parryReduced > 0) {
+						const parryIcon = h.parryTier === 'perfect' ? '✨' : h.parryTier === 'good' ? '⚡' : '⚔️';
+						hitText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
 					}
 					actionLines.push(hitText);
 				}

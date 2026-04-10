@@ -35,14 +35,74 @@ perks:
       - core
       - sword
       - stance
+  - id: rapier-en-garde
+    name: En Garde
+    category: combat
+    skill: rapier
+    skill_level_required: 1
+    power: 0.40
+    cost: 5
+    timing: battle_start
+    tag:
+      - core
+      - rapier
+      - parry
   - id: rapier-parry-1
     name: Parry I
     category: combat
     skill: rapier
-    skill_level_required: 1
-    power: 0
-    cost: 0
-    timing: before_turn
+    skill_level_required: 6
+    power: 0.44
+    cost: 10
+    timing: battle_start
+    tag:
+      - core
+      - rapier
+      - parry
+  - id: rapier-parry-2
+    name: Parry II
+    category: combat
+    skill: rapier
+    skill_level_required: 20
+    power: 0.48
+    cost: 15
+    timing: battle_start
+    tag:
+      - core
+      - rapier
+      - parry
+  - id: rapier-parry-3
+    name: Parry III
+    category: combat
+    skill: rapier
+    skill_level_required: 36
+    power: 0.52
+    cost: 22
+    timing: battle_start
+    tag:
+      - core
+      - rapier
+      - parry
+  - id: rapier-parry-4
+    name: Parry IV
+    category: combat
+    skill: rapier
+    skill_level_required: 50
+    power: 0.56
+    cost: 30
+    timing: battle_start
+    tag:
+      - core
+      - rapier
+      - parry
+  - id: rapier-parry-5
+    name: Parry V
+    category: combat
+    skill: rapier
+    skill_level_required: 58
+    power: 0.60
+    cost: 50
+    timing: battle_start
     tag:
       - core
       - rapier
@@ -51,9 +111,57 @@ perks:
     name: Riposte I
     category: combat
     skill: rapier
-    skill_level_required: 1
-    power: 0
-    cost: 0
+    skill_level_required: 12
+    power: 0.50
+    cost: 10
+    timing: after_turn
+    tag:
+      - core
+      - rapier
+      - riposte
+  - id: rapier-riposte-2
+    name: Riposte II
+    category: combat
+    skill: rapier
+    skill_level_required: 28
+    power: 0.70
+    cost: 15
+    timing: after_turn
+    tag:
+      - core
+      - rapier
+      - riposte
+  - id: rapier-riposte-3
+    name: Riposte III
+    category: combat
+    skill: rapier
+    skill_level_required: 44
+    power: 0.90
+    cost: 22
+    timing: after_turn
+    tag:
+      - core
+      - rapier
+      - riposte
+  - id: rapier-riposte-4
+    name: Riposte IV
+    category: combat
+    skill: rapier
+    skill_level_required: 54
+    power: 1.20
+    cost: 30
+    timing: after_turn
+    tag:
+      - core
+      - rapier
+      - riposte
+  - id: rapier-riposte-5
+    name: Riposte V
+    category: combat
+    skill: rapier
+    skill_level_required: 60
+    power: 1.50
+    cost: 50
     timing: after_turn
     tag:
       - core
