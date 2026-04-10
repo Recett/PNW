@@ -65,7 +65,11 @@ const characterUtil = require('@utility/characterUtility.js');  // Utilities
 
 ## Debugging State Changes
 
+- Treat stored application/database state as ground truth during debugging. The data is not to be blamed by default.
 - When reviewing or debugging a code problem, treat database/application state as evidence first, not as something to change to make a hypothesis pass.
+- If code behavior and stored state disagree, assume the code path or your understanding is wrong first; do not frame the data as wrong unless you explicitly tell the user you believe that and why.
+- If code, content, or a script is intended to run only once, mark it explicitly as one-time in code/comments/docs so it is not later mistaken for an active runtime path.
+- Do not use an orphaned initializer or missing setup row as evidence that the system should be re-initialized. If runtime has already advanced past initialization, reason from the current phase/state instead.
 - Do not remove or weaken a state check just because current data makes that check fail.
 - Do not modify database rows, flags, counters, or other runtime state as part of a proposed fix unless the user explicitly asks for that state change or confirms it after you propose it.
 - If a potential fix depends on changing state rather than fixing code, stop and ask for confirmation before making that change.
