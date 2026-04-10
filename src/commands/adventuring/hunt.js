@@ -61,6 +61,11 @@ module.exports = {
 
 			// If the undead system is active, route to it entirely and skip the original system.
 			const undeadRatCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
+			const undeadRatKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+			const undeadClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
+			const undeadRatKingHpRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_undead_hp' } });
+			const hasUndeadProgress = Boolean(undeadRatKingSlainRecord || undeadClearedRecord || undeadRatKingHpRecord);
+
 			if (undeadRatCountRecord) {
 				const locationUtil = interaction.client.locationUtil;
 				const channel = interaction.channel;
@@ -94,7 +99,6 @@ module.exports = {
 				const depth = character.depth || 0;
 				const eventUtil = interaction.client.eventUtil;
 
-				const undeadClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
 				if (undeadClearedRecord && parseInt(undeadClearedRecord.value) === 1) {
 					return await interaction.reply({
 						content: 'The bilge has been cleared. There is nothing left to hunt.',
@@ -103,8 +107,7 @@ module.exports = {
 				}
 
 				const ratCount = parseInt(undeadRatCountRecord.value) || 0;
-				const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
-				const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
+				const ratKingSlain = undeadRatKingSlainRecord ? parseInt(undeadRatKingSlainRecord.value) || 0 : 0;
 
 				const eventId = pickEncounterEventUndead(ratCount, depth, ratKingSlain);
 				if (!eventId) {
@@ -124,6 +127,14 @@ module.exports = {
 				await CharacterBase.update({ depth: newDepth }, { where: { id: userId } });
 				await eventUtil.processEvent(eventId, interaction, userId, { ephemeral: false });
 				return;
+			}
+
+			if (hasUndeadProgress) {
+				console.error('[Hunt] Undead bilge progress exists but global.undead_rat_count is missing. Refusing to fall back to the original bilge system.');
+				return await interaction.reply({
+					content: 'Something is wrong in the bilge. The hunt cannot proceed right now.',
+					flags: MessageFlags.Ephemeral,
+				});
 			}
 
 			// ── Original system (unchanged) ──────────────────────────────────────

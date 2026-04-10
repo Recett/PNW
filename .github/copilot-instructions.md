@@ -69,6 +69,9 @@ const characterUtil = require('@utility/characterUtility.js');  // Utilities
 - Do not remove or weaken a state check just because current data makes that check fail.
 - Do not modify database rows, flags, counters, or other runtime state as part of a proposed fix unless the user explicitly asks for that state change or confirms it after you propose it.
 - If a potential fix depends on changing state rather than fixing code, stop and ask for confirmation before making that change.
+- Do not treat "the DB might not be initialized" as justification for runtime self-healing writes, implicit bootstrap rows, default counters, or auto-created flags in normal command flow.
+- Preserve database integrity: if required state is missing, prefer tracing where it should have been created, adding explicit setup/migration logic, or surfacing an error path instead of synthesizing live data ad hoc.
+- Do not turn the database into a cache of guessed values. Missing or inconsistent rows are a bug signal, not permission to invent state.
 
 ## Common Workflows
 
