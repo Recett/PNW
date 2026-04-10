@@ -59,19 +59,9 @@ module.exports = {
 				});
 			}
 
-			// Route to the undead system once the original bilge arc is complete or any undead-specific
-			// progress exists. The undead rat counter is not reliably bootstrapped elsewhere.
+			// If the undead system is active, route to it entirely and skip the original system.
 			const undeadRatCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-			const undeadRatKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
-			const undeadClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
-			const undeadRatKingHpRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_undead_hp' } });
-			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
-			const originalBilgeCleared = bilgeClearedRecord ? parseInt(bilgeClearedRecord.value) || 0 : 0;
-			const undeadSystemActive = Boolean(
-				undeadRatCountRecord || undeadRatKingSlainRecord || undeadClearedRecord || undeadRatKingHpRecord || originalBilgeCleared,
-			);
-
-			if (undeadSystemActive) {
+			if (undeadRatCountRecord) {
 				const locationUtil = interaction.client.locationUtil;
 				const channel = interaction.channel;
 				const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
@@ -104,27 +94,17 @@ module.exports = {
 				const depth = character.depth || 0;
 				const eventUtil = interaction.client.eventUtil;
 
-				const ratKingSlain = undeadRatKingSlainRecord ? parseInt(undeadRatKingSlainRecord.value) || 0 : 0;
-
-				const undeadBilgeCleared = undeadClearedRecord ? parseInt(undeadClearedRecord.value) || 0 : 0;
-				if (undeadBilgeCleared && !ratKingSlain) {
-					await undeadClearedRecord.update({ value: 0 });
-				}
-				else if (undeadBilgeCleared && ratKingSlain) {
+				const undeadClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
+				if (undeadClearedRecord && parseInt(undeadClearedRecord.value) === 1) {
 					return await interaction.reply({
 						content: 'The bilge has been cleared. There is nothing left to hunt.',
 						flags: MessageFlags.Ephemeral,
 					});
 				}
 
-				let ratCount = undeadRatCountRecord ? parseInt(undeadRatCountRecord.value) || 0 : null;
-				if (ratCount === null && !ratKingSlain) {
-					ratCount = 50;
-					await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: String(ratCount) });
-				}
-				if (ratCount === null) {
-					ratCount = 0;
-				}
+				const ratCount = parseInt(undeadRatCountRecord.value) || 0;
+				const ratKingSlainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+				const ratKingSlain = ratKingSlainRecord ? parseInt(ratKingSlainRecord.value) || 0 : 0;
 
 				const eventId = pickEncounterEventUndead(ratCount, depth, ratKingSlain);
 				if (!eventId) {
@@ -148,7 +128,8 @@ module.exports = {
 
 			// ── Original system (unchanged) ──────────────────────────────────────
 
-			if (originalBilgeCleared) {
+			const bilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
+			if (bilgeClearedRecord && parseInt(bilgeClearedRecord.value) === 1) {
 				return await interaction.reply({
 					content: 'The bilge has been cleared. There is nothing left to hunt.',
 					flags: MessageFlags.Ephemeral,

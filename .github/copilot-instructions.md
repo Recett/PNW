@@ -63,6 +63,13 @@ const characterUtil = require('@utility/characterUtility.js');  // Utilities
 3. **Do not double down** — never defend or iterate on a rejected approach
 4. A complaint is always an implicit undo request
 
+## Debugging State Changes
+
+- When reviewing or debugging a code problem, treat database/application state as evidence first, not as something to change to make a hypothesis pass.
+- Do not remove or weaken a state check just because current data makes that check fail.
+- Do not modify database rows, flags, counters, or other runtime state as part of a proposed fix unless the user explicitly asks for that state change or confirms it after you propose it.
+- If a potential fix depends on changing state rather than fixing code, stop and ask for confirmation before making that change.
+
 ## Common Workflows
 
 **Add new slash command:**

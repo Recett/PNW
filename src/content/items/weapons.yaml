@@ -131,7 +131,7 @@ weapons:
       slot: mainhand
       subtype: rapier
       base_damage: 7
-      scaling: 0.3
+      scaling: 0.35
       hit_mod: 0.6
       cooldown: 85
 
@@ -147,7 +147,7 @@ weapons:
       slot: mainhand
       subtype: rapier
       base_damage: 10
-      scaling: 0.3
+      scaling: 0.35
       hit_mod: 0.6
       cooldown: 85
 
@@ -211,7 +211,7 @@ weapons:
       slot: mainhand
       subtype: spear
       base_damage: 8
-      scaling: 0.55
+      scaling: 0.5
       hit_mod: 0.8
       cooldown: 120
 
