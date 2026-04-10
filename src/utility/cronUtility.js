@@ -336,33 +336,48 @@ async function performBilgeEcosystemDailyCycle() {
 	const RAT_COUNT = 50;
 	const KING_MAX_HP = 400; // matches rat_king_undead stat.health
 	const KING_HP_REGEN = 200;
+	const KING_HP_FLAG = 'global.rat_king_undead_hp';
+
+	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
+	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
+	const originalBilgeClearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.bilge_cleared' } });
+	const originalBilgeCleared = originalBilgeClearedRecord ? parseInt(originalBilgeClearedRecord.value) || 0 : 0;
 
 	// Skip entirely if the undead event has already been cleared
 	const clearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
 	const isCleared = clearedRecord ? parseInt(clearedRecord.value) || 0 : 0;
-	if (isCleared) {
+	if (isCleared && !isSlain && clearedRecord) {
+		await clearedRecord.update({ value: 0 });
+		console.warn('[BilgeEcosystem] Found stale undead_bilge_cleared flag while Rat King is alive. Resetting flag.');
+	}
+	if (isCleared && isSlain) {
 		console.log('[BilgeEcosystem] Undead event already cleared — skipping daily cycle.');
 		return;
 	}
 
-	// Skip if the event has never been activated (no undead_rat_count row)
+	const kingHpRecord = await GlobalFlag.findOne({ where: { flag: KING_HP_FLAG } });
+
+	// Skip if the original bilge arc is not complete and there is no undead progress yet.
 	const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-	if (!ratCountRecord) {
+	const hasUndeadProgress = Boolean(ratCountRecord || kingHpRecord || slainRecord || clearedRecord || originalBilgeCleared);
+	if (!hasUndeadProgress) {
 		console.log('[BilgeEcosystem] Undead event not yet active — skipping daily cycle.');
 		return;
+	}
+
+	if (!ratCountRecord && !isSlain) {
+		await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: String(RAT_COUNT) });
+		console.log('[BilgeEcosystem] Bootstrapped undead rat pool.');
 	}
 
 	// Reset the undead rat pool every midnight
 	await GlobalFlag.upsert({ flag: 'global.undead_rat_count', value: String(RAT_COUNT) });
 
 	// Rat King does NOT respawn once slain — only regenerate HP if still alive
-	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
-	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
 	if (!isSlain) {
-		const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_hp' } });
-		const currentHp = hpRecord ? parseInt(hpRecord.value) || KING_MAX_HP : KING_MAX_HP;
+		const currentHp = kingHpRecord ? parseInt(kingHpRecord.value) || KING_MAX_HP : KING_MAX_HP;
 		const newHp = Math.min(KING_MAX_HP, currentHp + KING_HP_REGEN);
-		await GlobalFlag.upsert({ flag: 'global.undead_rat_king_hp', value: String(newHp) });
+		await GlobalFlag.upsert({ flag: KING_HP_FLAG, value: String(newHp) });
 		console.log(`[BilgeEcosystem] Undead Rat King HP regen: ${currentHp} -> ${newHp} (max ${KING_MAX_HP})`);
 	}
 
