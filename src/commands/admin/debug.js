@@ -149,6 +149,10 @@ module.exports = {
 								.setDescription('Player (character flag). Omit for global flag.')),
 				),
 		)
+		.addSubcommand(sub =>
+			sub.setName('catscores')
+				.setDescription('Show Lt. Morale cook high score and total score for all players.'),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('status')
 				.setDescription('View or remove character status effects.')
@@ -197,6 +201,7 @@ module.exports = {
 		if (sub === 'unstick') return handleUnstick(interaction);
 		if (sub === 'statcheck') return handleStatCheck(interaction);
 		if (sub === 'restocknpc') return handleRestockNpc(interaction);
+		if (sub === 'catscores') return handleCatScores(interaction);
 	},
 };
 
@@ -680,7 +685,49 @@ async function handleFlagSet(interaction) {
 		});
 	}
 }
+// ─── Cat Scores ──────────────────────────────────────────────────────────────
 
+async function handleCatScores(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const highScoreRows = await CharacterFlag.findAll({ where: { flag: 'lt_morale_cook_high_score' } });
+	const accumRows = await CharacterFlag.findAll({ where: { flag: 'lt_morale_cook_accumulated' } });
+
+	const highMap = Object.fromEntries(highScoreRows.map(r => [r.character_id, parseInt(r.value) || 0]));
+	const accumMap = Object.fromEntries(accumRows.map(r => [r.character_id, parseInt(r.value) || 0]));
+
+	const allIds = [...new Set([...Object.keys(highMap), ...Object.keys(accumMap)])];
+
+	if (allIds.length === 0) {
+		return interaction.editReply({ content: `${EMOJI.WARNING} No cat event scores found yet.` });
+	}
+
+	const characters = await CharacterBase.findAll({ where: { id: allIds } });
+	const nameMap = Object.fromEntries(characters.map(c => [c.id, c.name]));
+
+	const rows = allIds.map(id => ({
+		name: nameMap[id] ?? `(unknown: ${id})`,
+		high: highMap[id] ?? 0,
+		total: accumMap[id] ?? 0,
+	}));
+
+	rows.sort((a, b) => b.high - a.high || b.total - a.total);
+
+	const lines = rows.map((r, i) =>
+		`**${i + 1}.** ${r.name} — High: \`${r.high}\` | Total: \`${r.total}\``,
+	);
+
+	const header = `**Lt. Morale Cook Scores** (${rows.length} player(s)) — sorted by high score\n`;
+	const body = lines.join('\n');
+	const full = header + body;
+
+	if (full.length > 1900) {
+		const truncated = full.slice(0, 1900) + '\n*(truncated)*';
+		return interaction.editReply({ content: truncated });
+	}
+
+	return interaction.editReply({ content: full });
+}
 // ─── Status List ───────────────────────────────────────────────────────────────
 
 async function handleStatusList(interaction) {
