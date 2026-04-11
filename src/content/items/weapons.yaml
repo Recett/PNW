@@ -350,8 +350,8 @@ weapons:
       slot: mainhand
       subtype: dagger
       base_damage: 10
-      scaling: 0.3
-      hit_mod: 0.65
+      scaling: 0.25
+      hit_mod: 0.60
       cooldown: 60
 
   - id: galeby-wolf-spear
