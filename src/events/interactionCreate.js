@@ -509,6 +509,15 @@ module.exports = {
 			return;
 		}
 
+		if (interaction.isAutocomplete()) {
+			const command = interaction.client.commands.get(interaction.commandName);
+			if (command?.autocomplete) {
+				try { await command.autocomplete(interaction); }
+				catch (err) { console.error(err); }
+			}
+			return;
+		}
+
 		if (!interaction.isChatInputCommand()) return;
 
 		// Check developer mode

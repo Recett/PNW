@@ -292,6 +292,11 @@ async function performHourlyTasks() {
 	}
 }
 
+async function resetNpcStockPurchases(npcId = null) {
+	const where = npcId ? { npc_id: String(npcId) } : {};
+	return NpcPurchase.destroy({ where });
+}
+
 async function performWeeklyStockReset() {
 	const jobName = 'weekly_stock_reset';
 	try {
@@ -302,7 +307,7 @@ async function performWeeklyStockReset() {
 		});
 
 		// Clear all NPC purchase records — restocks all shops to YAML max
-		const deleted = await NpcPurchase.destroy({ where: {} });
+		const deleted = await resetNpcStockPurchases();
 		console.log(`[WeeklyStockReset] Cleared ${deleted} purchase record(s).`);
 
 		// Process weekly YAML tasks
@@ -345,9 +350,9 @@ async function performBilgeEcosystemDailyCycle() {
 		return;
 	}
 
-	// Skip if the event has never been activated (no undead_rat_count row)
-	const ratCountRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_count' } });
-	if (!ratCountRecord) {
+	// The undead phase is active while the undead Rat King is still alive.
+	const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.rat_king_undead_hp' } });
+	if (!hpRecord) {
 		console.log('[BilgeEcosystem] Undead event not yet active — skipping daily cycle.');
 		return;
 	}
@@ -359,10 +364,9 @@ async function performBilgeEcosystemDailyCycle() {
 	const slainRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_slain' } });
 	const isSlain = slainRecord ? parseInt(slainRecord.value) || 0 : 0;
 	if (!isSlain) {
-		const hpRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_rat_king_hp' } });
 		const currentHp = hpRecord ? parseInt(hpRecord.value) || KING_MAX_HP : KING_MAX_HP;
 		const newHp = Math.min(KING_MAX_HP, currentHp + KING_HP_REGEN);
-		await GlobalFlag.upsert({ flag: 'global.undead_rat_king_hp', value: String(newHp) });
+		await GlobalFlag.upsert({ flag: 'global.rat_king_undead_hp', value: String(newHp) });
 		console.log(`[BilgeEcosystem] Undead Rat King HP regen: ${currentHp} -> ${newHp} (max ${KING_MAX_HP})`);
 	}
 
@@ -713,5 +717,6 @@ module.exports = {
 	dailyTaskJob,
 	healthMonitorJob,
 	startCronJob,
+	resetNpcStockPurchases,
 	performHealthCheck,
 };

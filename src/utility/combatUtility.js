@@ -631,12 +631,23 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	// Generate battle report with appropriate format
 	const battleReportResult = writeBattleReport(combatLog, actors, lootResults, combatLogSetting);
 
+	// Generate enemy-specific narrative flavor text if the enemy's YAML defines a `narrative` block.
+	// This is strictly opt-in — enemies without a `narrative` field are completely unaffected.
+	const playerAlive = actors.player ? actors.player.hp > 0 : false;
+	const enemyAlive = actors.enemy ? actors.enemy.hp > 0 : false;
+	let combatOutcome;
+	if (playerAlive && !enemyAlive) combatOutcome = 'victory';
+	else if (!playerAlive && enemyAlive) combatOutcome = 'defeat';
+	else combatOutcome = 'draw';
+	const narrativeText = generateCombatNarrative(enemyBase, combatLog, actors, combatOutcome);
+
 	return {
 		combatLog,
 		finalState: actors,
 		battleReport: battleReportResult.pages ? battleReportResult.pages[0] : battleReportResult,
 		battleReportPages: battleReportResult.pages || [battleReportResult],
 		lootResults,
+		narrativeText, // null unless enemy YAML defines a `narrative` block
 	};
 }
 
@@ -1496,6 +1507,168 @@ function truncateBattleReport(header, actionLines, footer) {
 	}
 
 	return report;
+}
+
+/**
+ * Derive a flat stats object from a completed combat log and final actors state.
+ * Used by generateCombatNarrative to evaluate narrative conditions.
+ * @param {Array} combatLog - Raw combat log entries
+ * @param {Object} actors - Final actors state (keyed by id)
+ * @returns {Object} combatStats
+ */
+function deriveCombatStats(combatLog, actors) {
+	const playerActor = actors.player || Object.values(actors).find(a => a.id !== 'enemy');
+	const enemyActor = actors.enemy || Object.values(actors).find(a => a.id === 'enemy');
+
+	const playerId = playerActor?.id || 'player';
+	const enemyId = enemyActor?.id || 'enemy';
+	const playerMaxHp = playerActor?.maxHp || 1;
+	const enemyMaxHp = enemyActor?.maxHp || 1;
+
+	let playerMinHp = playerActor?.hp ?? playerMaxHp;
+	let enemyMinHp = enemyActor?.hp ?? enemyMaxHp;
+	let playerEvadeCount = 0;
+	let playerCritCount = 0;
+	let playerHitCount = 0;
+	let enemyEvadeCount = 0;
+	let enemyCritCount = 0;
+	let riposteCount = 0;
+	let perfectParryCount = 0;
+	let totalActions = 0;
+	let killingBlowCrit = 0;
+	let lastEnemyKillingEntry = null;
+
+	for (const log of combatLog) {
+		totalActions++;
+
+		if (log.type === 'riposte') {
+			riposteCount++;
+			continue;
+		}
+		if (log.type === 'ambient') continue;
+
+		const attackerIsPlayer = log.attackerId === playerId || log.attacker === (playerActor?.name);
+		const attackerIsEnemy = log.attackerId === enemyId || log.attacker === (enemyActor?.name);
+
+		if (attackerIsPlayer) {
+			if (log.hit) {
+				playerHitCount++;
+				if (log.crit) playerCritCount++;
+				// Track killing blow on enemy
+				if (log.targetId === enemyId || log.target === (enemyActor?.name)) {
+					lastEnemyKillingEntry = log;
+				}
+			}
+		}
+		else if (attackerIsEnemy) {
+			if (!log.hit) {
+				playerEvadeCount++;
+			}
+			if (log.hit && log.crit) enemyCritCount++;
+			// Track player's minimum HP
+			if (log.targetId === playerId || log.target === (playerActor?.name)) {
+				if (log.targetHp < playerMinHp) playerMinHp = log.targetHp;
+			}
+		}
+
+		// Track enemy's minimum HP
+		if (attackerIsPlayer && (log.targetId === enemyId || log.target === (enemyActor?.name))) {
+			if (log.targetHp < enemyMinHp) enemyMinHp = log.targetHp;
+		}
+
+		// Track enemy evades (when player attacks and misses)
+		if (attackerIsPlayer && !log.hit) {
+			enemyEvadeCount++;
+		}
+
+		// Perfect parry count
+		if (log.parryTier === 'perfect') perfectParryCount++;
+	}
+
+	if (lastEnemyKillingEntry?.crit) killingBlowCrit = 1;
+
+	return {
+		player_min_hp_pct:    Math.round((playerMinHp / playerMaxHp) * 100),
+		player_final_hp_pct:  Math.round(((playerActor?.hp ?? 0) / playerMaxHp) * 100),
+		player_evade_count:   playerEvadeCount,
+		player_crit_count:    playerCritCount,
+		player_hit_count:     playerHitCount,
+		enemy_evade_count:    enemyEvadeCount,
+		enemy_crit_count:     enemyCritCount,
+		enemy_min_hp_pct:     Math.round((enemyMinHp / enemyMaxHp) * 100),
+		riposte_count:        riposteCount,
+		perfect_parry_count:  perfectParryCount,
+		total_actions:        totalActions,
+		killing_blow_crit:    killingBlowCrit,
+	};
+}
+
+/**
+ * Evaluate a single narrative entry's conditions array (AND logic).
+ * @param {Array} conditions - Array of condition objects from enemy YAML
+ * @param {Object} combatStats - Derived stats from deriveCombatStats()
+ * @returns {boolean}
+ */
+function evaluateNarrativeConditions(conditions, combatStats) {
+	if (!conditions || conditions.length === 0) return true;
+
+	for (const cond of conditions) {
+		if (cond.type === 'random') {
+			const chance = Number(cond.value) || 0;
+			if (Math.random() * 100 > chance) return false;
+			continue;
+		}
+
+		if (cond.type === 'combat_stat') {
+			const statValue = combatStats[cond.stat];
+			if (statValue === undefined) return false;
+			const threshold = Number(cond.value);
+			switch (cond.comparison) {
+				case 'greater_than':    if (!(statValue > threshold)) return false; break;
+				case 'less_than':       if (!(statValue < threshold)) return false; break;
+				case 'equal':           if (!(statValue === threshold)) return false; break;
+				case 'greater_equal':   if (!(statValue >= threshold)) return false; break;
+				case 'less_equal':      if (!(statValue <= threshold)) return false; break;
+				default: return false;
+			}
+			continue;
+		}
+
+		// Unknown condition type — fail safely
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Generate a narrative text string for a combat result based on enemy-specific narrative config.
+ * Returns null if the enemy has no narrative defined or no entry matches.
+ * @param {Object} enemyBase - The enemy's full YAML data (from contentStore)
+ * @param {Array} combatLog - Raw combat log entries
+ * @param {Object} actors - Final actors state
+ * @param {string} outcome - 'victory' | 'defeat' | 'draw'
+ * @returns {string|null}
+ */
+function generateCombatNarrative(enemyBase, combatLog, actors, outcome) {
+	if (!enemyBase?.narrative || !Array.isArray(enemyBase.narrative) || enemyBase.narrative.length === 0) {
+		return null;
+	}
+
+	const combatStats = deriveCombatStats(combatLog, actors);
+
+	const candidates = enemyBase.narrative.filter(entry => {
+		const entryOutcome = entry.outcome || 'any';
+		return entryOutcome === 'any' || entryOutcome === outcome;
+	});
+
+	for (const entry of candidates) {
+		if (evaluateNarrativeConditions(entry.conditions, combatStats)) {
+			return entry.text || null;
+		}
+	}
+
+	return null;
 }
 
 module.exports = {

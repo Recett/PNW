@@ -330,6 +330,8 @@ const store = {
 	/** @type {ContentCollection} */
 	events: null,
 	/** @type {ContentCollection} */
+	narrations: null,
+	/** @type {ContentCollection} */
 	npcs: null,
 	/** @type {ContentCollection} */
 	objects: null,
@@ -402,6 +404,7 @@ const store = {
 			...loadDirectory('events', 'events', loadOptions),
 			...loadDirectory('explore_event', 'events', loadOptions),
 		]);
+		this.narrations = new ContentCollection('narrations', loadDirectory('narrations', 'narrations', loadOptions));
 		this.npcs = new ContentCollection('npcs', loadDirectory('npcs', 'npcs', loadOptions));
 		this.skills = new ContentCollection('skills', loadDirectory('skills', 'skills', loadOptions));
 		this.perks = new ContentCollection('perks', loadDirectory('perks', 'perks', loadOptions));
@@ -437,6 +440,7 @@ const store = {
 			`${this.items.size} items, ` +
 			`${this.enemies.size} enemies, ` +
 			`${this.events.size} events, ` +
+			`${this.narrations.size} narrations, ` +
 			`${this.npcs.size} npcs, ` +
 			`${this.objects?.size ?? 'lazy'} objects, ` +
 			`${this.specials?.size ?? 'lazy'} specials, ` +
@@ -481,9 +485,10 @@ const store = {
 		this.items = new ContentCollection('items', allItems);
 
 		// Load critical collections in parallel
-		const [enemies, events, npcs, skills, perks, quests, resourceNodes, projects, tasks] = await Promise.all([
+		const [enemies, events, narrations, npcs, skills, perks, quests, resourceNodes, projects, tasks] = await Promise.all([
 			loadDirectory('enemies', 'enemies', loadOptions),
 			loadDirectory('events', 'events', loadOptions),
+			loadDirectory('narrations', 'narrations', loadOptions),
 			loadDirectory('npcs', 'npcs', loadOptions),
 			loadDirectory('skills', 'skills', loadOptions),
 			loadDirectory('perks', 'perks', loadOptions),
@@ -495,6 +500,7 @@ const store = {
 
 		this.enemies = new ContentCollection('enemies', enemies);
 		this.events = new ContentCollection('events', events);
+		this.narrations = new ContentCollection('narrations', narrations);
 		this.npcs = new ContentCollection('npcs', npcs);
 		this.skills = new ContentCollection('skills', skills);
 		this.perks = new ContentCollection('perks', perks);
@@ -536,6 +542,7 @@ const store = {
 			`${this.items.size} items, ` +
 			`${this.enemies.size} enemies, ` +
 			`${this.events.size} events, ` +
+			`${this.narrations.size} narrations, ` +
 			`${this.npcs.size} npcs, ` +
 			`${this.objects?.size ?? 'lazy'} objects, ` +
 			`${this.specials?.size ?? 'lazy'} specials, ` +
@@ -665,6 +672,7 @@ const store = {
 				items: this.items?.size ?? 0,
 				enemies: this.enemies?.size ?? 0,
 				events: this.events?.size ?? 0,
+				narrations: this.narrations?.size ?? 0,
 				npcs: this.npcs?.size ?? 0,
 				objects: this._objects === null ? 'lazy' : (this._objects?.size ?? 0),
 				specials: this._specials === null ? 'lazy' : (this._specials?.size ?? 0),
@@ -749,6 +757,7 @@ const store = {
 			{ name: 'items', desc: 'Weapons, armor, and other items' },
 			{ name: 'enemies', desc: 'Combat encounters and enemy definitions' },
 			{ name: 'events', desc: 'Story events, dialogues, and interactions' },
+			{ name: 'narrations', desc: 'Prepared narration presets for admin broadcast use' },
 			{ name: 'npcs', desc: 'Non-player characters' },
 			{ name: 'skills', desc: 'Character skills and abilities' },
 			{ name: 'perks', desc: 'Character perks and bonuses' },

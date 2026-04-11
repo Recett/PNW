@@ -2,6 +2,7 @@ const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFla
 const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, CharacterCombatStat, CharacterAttackStat, CharacterStatus } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
+const { resetNpcStockPurchases } = require('@utility/cronUtility.js');
 const contentStore = require('../../contentStore.js');
 const eventUtil = require('@utility/eventUtility.js');
 const { EMOJI } = require('../../enums');
@@ -110,6 +111,14 @@ module.exports = {
 						.setDescription('Target player.')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('restocknpc')
+				.setDescription('Force-restock a single NPC shop by clearing its purchase records.')
+				.addStringOption(opt =>
+					opt.setName('npc_id')
+						.setDescription('NPC YAML ID to restock.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
 				.setDescription('Read or modify flags.')
@@ -187,8 +196,33 @@ module.exports = {
 		if (sub === 'charinfo') return handleCharInfo(interaction);
 		if (sub === 'unstick') return handleUnstick(interaction);
 		if (sub === 'statcheck') return handleStatCheck(interaction);
+		if (sub === 'restocknpc') return handleRestockNpc(interaction);
 	},
 };
+
+async function handleRestockNpc(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const npcId = interaction.options.getString('npc_id');
+	const npc = contentStore.npcs.findByPk(npcId);
+
+	if (!npc) {
+		return interaction.editReply({
+			content: `${EMOJI.FAILURE} NPC \`${npcId}\` was not found in the content store.`,
+		});
+	}
+
+	if (!Array.isArray(npc.stock) || npc.stock.length === 0) {
+		return interaction.editReply({
+			content: `${EMOJI.WARNING} **${npc.name}** (\`${npc.id}\`) has no item shop stock configured. Nothing to restock.`,
+		});
+	}
+
+	const deleted = await resetNpcStockPurchases(npc.id);
+	return interaction.editReply({
+		content: `${EMOJI.SUCCESS} Restocked **${npc.name}** (\`${npc.id}\`). Cleared ${deleted} purchase record(s); item stock is back to YAML max values.`,
+	});
+}
 
 // ─── Stat Check ──────────────────────────────────────────────────────────────
 

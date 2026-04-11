@@ -456,6 +456,7 @@ class EventProcessor {
 				combatLog: combatResult.combatLog,
 				battleReport: combatResult.battleReport,
 				battleReportPages: combatResult.battleReportPages,
+				narrativeText: combatResult.narrativeText || null, // null for enemies without a `narrative` block
 			};
 		}
 		catch (error) {
@@ -2298,11 +2299,17 @@ class EventProcessor {
 		const color = combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00;
 		const pages = combatResult.battleReportPages || [combatResult.battleReport || 'No combat details available.'];
 
+		// Prepend enemy narrative flavor text if present — only fires for enemies with a `narrative` block in their YAML.
+		// Falls through unchanged for all existing enemies.
+		const firstPageContent = combatResult.narrativeText
+			? `*${combatResult.narrativeText}*\n\n${pages[0]}`
+			: pages[0];
+
 		// Send the first page by editing the deferred reply
 		const firstEmbed = new Discord.EmbedBuilder()
 			.setTitle(`${EMOJI.SWORD} Combat Log`)
 			.setColor(color)
-			.setDescription(pages[0]);
+			.setDescription(firstPageContent);
 		await interaction.editReply({ embeds: [firstEmbed] });
 
 		// Send remaining pages as follow-up messages

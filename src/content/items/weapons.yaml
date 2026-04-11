@@ -66,10 +66,10 @@ weapons:
     weapon:
       slot: twohand
       subtype: longbow
-      base_damage: 7
-      scaling: 0.45
+      base_damage: 12
+      scaling: 0.65
       hit_mod: 0.55
-      cooldown: 140
+      cooldown: 160
 
   - id: longbow_2
     name: Yew Longbow
@@ -82,10 +82,10 @@ weapons:
     weapon:
       slot: twohand
       subtype: longbow
-      base_damage: 12
-      scaling: 0.45
+      base_damage: 18
+      scaling: 0.65
       hit_mod: 0.55
-      cooldown: 140
+      cooldown: 160
 
   - id: "3"
     name: Nick Dagger
@@ -100,7 +100,7 @@ weapons:
       subtype: dagger
       base_damage: 6
       scaling: 0.25
-      hit_mod: 0.65
+      hit_mod: 0.6
       cooldown: 60
 
   - id: dagger_2
@@ -116,7 +116,7 @@ weapons:
       subtype: dagger
       base_damage: 8
       scaling: 0.25
-      hit_mod: 0.65
+      hit_mod: 0.6
       cooldown: 60
 
   - id: "4"
@@ -132,7 +132,7 @@ weapons:
       subtype: rapier
       base_damage: 7
       scaling: 0.35
-      hit_mod: 0.6
+      hit_mod: 0.65
       cooldown: 85
 
   - id: rapier_2
@@ -148,7 +148,7 @@ weapons:
       subtype: rapier
       base_damage: 10
       scaling: 0.35
-      hit_mod: 0.6
+      hit_mod: 0.65
       cooldown: 85
 
   - id: "5"
@@ -195,7 +195,7 @@ weapons:
       slot: mainhand
       subtype: spear
       base_damage: 5
-      scaling: 0.5
+      scaling: 0.45
       hit_mod: 0.8
       cooldown: 120
 
@@ -211,7 +211,7 @@ weapons:
       slot: mainhand
       subtype: spear
       base_damage: 8
-      scaling: 0.5
+      scaling: 0.45
       hit_mod: 0.8
       cooldown: 120
 

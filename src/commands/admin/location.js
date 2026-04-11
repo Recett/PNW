@@ -165,12 +165,12 @@ module.exports = {
 				.addStringOption(option =>
 					option
 						.setName('to_location')
-						.setDescription('Target location ID or name')
+						.setDescription('Target location channel ID')
 						.setRequired(true))
 				.addStringOption(option =>
 					option
 						.setName('from_location')
-						.setDescription('Source location ID or name (defaults to current channel)')
+						.setDescription('Source location channel ID (defaults to current channel)')
 						.setRequired(false))
 				.addBooleanOption(option =>
 					option
@@ -184,12 +184,12 @@ module.exports = {
 				.addStringOption(option =>
 					option
 						.setName('to_location')
-						.setDescription('Target location ID or name')
+						.setDescription('Target location channel ID')
 						.setRequired(true))
 				.addStringOption(option =>
 					option
 						.setName('from_location')
-						.setDescription('Source location ID or name (defaults to current channel)')
+						.setDescription('Source location channel ID (defaults to current channel)')
 						.setRequired(false))
 				.addBooleanOption(option =>
 					option
@@ -280,6 +280,16 @@ module.exports = {
 				return byName || null;
 			}
 			return loc;
+		}
+		return await locationUtil.getLocationByChannel(interaction.channel.id);
+	},
+
+	/**
+	 * Resolve location by channel ID, or fall back to the current channel's location.
+	 */
+	async _resolveLocationByChannel(interaction, channelIdInput) {
+		if (channelIdInput) {
+			return await locationUtil.getLocationByChannel(channelIdInput);
 		}
 		return await locationUtil.getLocationByChannel(interaction.channel.id);
 	},
@@ -833,18 +843,18 @@ module.exports = {
 	async handleLink(interaction) {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		try {
-			const fromInput = interaction.options.getString('from_location');
-			const toInput = interaction.options.getString('to_location');
+			const fromChannelId = interaction.options.getString('from_location');
+			const toChannelId = interaction.options.getString('to_location');
 			const bidirectional = interaction.options.getBoolean('bidirectional') ?? true;
 
-			const fromLocation = await this._resolveLocation(interaction, fromInput);
+			const fromLocation = await this._resolveLocationByChannel(interaction, fromChannelId);
 			if (!fromLocation) {
-				return interaction.editReply({ content: 'Source location not found.' });
+				return interaction.editReply({ content: 'Source location not found for that channel ID.' });
 			}
 
-			const toLocation = await this._resolveLocation(interaction, toInput);
+			const toLocation = await this._resolveLocationByChannel(interaction, toChannelId);
 			if (!toLocation) {
-				return interaction.editReply({ content: 'Target location not found.' });
+				return interaction.editReply({ content: 'Target location not found for that channel ID.' });
 			}
 
 			if (fromLocation.id === toLocation.id) {
@@ -880,18 +890,18 @@ module.exports = {
 	async handleUnlink(interaction) {
 		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 		try {
-			const fromInput = interaction.options.getString('from_location');
-			const toInput = interaction.options.getString('to_location');
+			const fromChannelId = interaction.options.getString('from_location');
+			const toChannelId = interaction.options.getString('to_location');
 			const bidirectional = interaction.options.getBoolean('bidirectional') ?? true;
 
-			const fromLocation = await this._resolveLocation(interaction, fromInput);
+			const fromLocation = await this._resolveLocationByChannel(interaction, fromChannelId);
 			if (!fromLocation) {
-				return interaction.editReply({ content: 'Source location not found.' });
+				return interaction.editReply({ content: 'Source location not found for that channel ID.' });
 			}
 
-			const toLocation = await this._resolveLocation(interaction, toInput);
+			const toLocation = await this._resolveLocationByChannel(interaction, toChannelId);
 			if (!toLocation) {
-				return interaction.editReply({ content: 'Target location not found.' });
+				return interaction.editReply({ content: 'Target location not found for that channel ID.' });
 			}
 
 			const lines = [];
