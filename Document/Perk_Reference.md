@@ -308,42 +308,44 @@ Defensive modifier. Absorbs incoming hits when primed. Core trees scale absorpti
 
 ## Shortbow
 
-Evasion stacking. Each hit builds evasion. Stacks consumed when enemy attacks or evades. Build perks deepen evasion survival or convert consumed stacks into offense.
+Evasion stacking. Each hit builds 1 evasion stack. All stacks consumed when enemy attacks or evades. Stacks grant evasion and attack speed — core trees scale each independently. Build perks deepen evasion survival, exploit the zero-stack window, or commit to an extreme specialisation.
 
 ### Core — Evasion Stack
 
 | Perk | Effect |
 |------|--------|
-| Evasion Stack I | Max evasion stacks +1. Each hit builds 1 evasion stack. |
-| Evasion Stack II | Max evasion stacks +1. Stack evasion value +X%. |
-| Evasion Stack III | Max evasion stacks +1. Stack evasion value +X%. |
-| Evasion Stack IV | Max evasion stacks +1. Stack evasion value +X%. |
-| Evasion Stack V | Max evasion stacks +1. Stack evasion value +X%. |
+| Evasion Stack I | Each hit builds 1 evasion stack. Each stack: +5% evade. |
+| Evasion Stack II | Per-stack evade bonus: +8%. |
+| Evasion Stack III | Per-stack evade bonus: +11%. |
+| Evasion Stack IV | Per-stack evade bonus: +14%. |
+| Evasion Stack V | Per-stack evade bonus: +17%. |
 
 ### Core — Momentum
 
 | Perk | Effect |
 |------|--------|
-| Momentum I | On stack consumed: gain bonus damage for X ticks. |
-| Momentum II | On stack consumed: bonus damage increased. |
-| Momentum III | On stack consumed: bonus damage increased. |
-| Momentum IV | On stack consumed: bonus damage increased. |
-| Momentum V | On stack consumed: bonus damage increased. |
+| Momentum I | Each stack: +3% attack speed. |
+| Momentum II | Each stack: +5% attack speed. |
+| Momentum III | Each stack: +7% attack speed. |
+| Momentum IV | Each stack: +9% attack speed. |
+| Momentum V | Each stack: +11% attack speed. |
 
 ### Build Perks
 
 | Perk | Cluster | Timing | Effect |
 |------|---------|--------|--------|
-| Fluid Motion | A | after_turn | Hitting twice in a row builds a bonus evasion stack. |
-| Ghost Step | A | before_turn | Evasion stacks have a chance not to be consumed when enemy attacks. |
-| Blur | A | before_turn | At maximum stacks, gain a flat evasion bonus on top of stack-based evasion. |
-| Untouchable | A | before_turn | Evasion has a minimum floor — cannot drop below this value regardless of enemy accuracy. |
-| Counter Draw | B | after_turn | When a stack is consumed by enemy attack, trigger an immediate counter shot. |
-| Punish The Miss | B | after_turn | When a stack is consumed by enemy evasion, next hit deals bonus damage. |
-| Burning Momentum | B | after_turn | Each stack consumed increases attack speed for X ticks. |
-| Rebound | B | after_turn | When all stacks are consumed at once, deal greatly increased damage on next hit. |
-| Perfect Storm | B | before_turn | While any evasion stacks remain, all hits have elevated crit chance. |
-| Ghost Barrage | B | after_turn | At maximum investment in both trees, each evasion stack consumed fires a free shot. |
+| Fluid Motion I | A | after_turn | Every 5 consecutive hits, build 1 bonus stack. |
+| Fluid Motion II | A | after_turn | Every 4 consecutive hits, build 1 bonus stack. |
+| Fluid Motion III | A | after_turn | Every 3 consecutive hits, build 1 bonus stack. |
+| Fluid Motion IV | A | after_turn | Every 2 consecutive hits, build 1 bonus stack. |
+| Ghost Step | A | after_turn | When enemy misses, lose half stacks instead of all. |
+| Blur | A | after_turn | When a connecting hit would wipe all stacks, retain 1 instead. |
+| Counter Draw | B | after_turn | While 3+ stacks active, enemy misses trigger an immediate counter shot. |
+| Double Draw | B | after_turn | At 0 stacks, attacks fire a second arrow at reduced damage. |
+| Burning Momentum | B | after_turn | Each stack consumed grants +20% attack speed for 4 ticks. |
+| Speed Extreme | B | on_equip | Each stack grants ×2 Momentum attack speed bonus. Each stack also reduces evade by the Momentum per-stack value. |
+| Evasion Extreme | B | on_equip | Each stack grants ×2 evade bonus. Each stack also reduces attack speed by the Evasion Stack per-stack value. |
+| Crit Focus | B | on_equip | Stacks grant +X% crit chance per stack instead of attack speed. |
 
 ---
 
