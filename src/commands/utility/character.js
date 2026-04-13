@@ -37,6 +37,23 @@ const { setCharacterSetting, getCharacterSetting } = require('@utility/character
 const contentStore = require('@root/contentStore.js');
 const { generateStatCard } = require('@utility/imageGenerator.js');
 
+/**
+ * Returns true if the URL is a Discord CDN attachment URL whose signed expiry has passed.
+ * @param {string|null|undefined} url
+ * @returns {boolean}
+ */
+function isExpiredDiscordCdnUrl(url) {
+	if (!url || !url.includes('cdn.discordapp.com/attachments/')) return false;
+	try {
+		const ex = new URL(url).searchParams.get('ex');
+		if (!ex) return false;
+		return Math.floor(Date.now() / 1000) > parseInt(ex, 16);
+	}
+	catch {
+		return false;
+	}
+}
+
 const STAT_LABELS = {
 	str: 'Strength (STR)',
 	dex: 'Dexterity (DEX)',
@@ -286,7 +303,9 @@ async function handleStat(interaction, userId) {
 	const attack = await characterUtil.getCharacterAttackStat(targetId);
 	const equipment = await characterUtil.getCharacterEquippedItems(targetId);
 	const settingsAvatar = await getCharacterSetting(targetId, 'avatar');
-	const resolvedAvatar = settingsAvatar || character.avatar || null;
+	const rawAvatar = settingsAvatar || character.avatar || null;
+	const resolvedAvatar = isExpiredDiscordCdnUrl(rawAvatar) ? null : rawAvatar;
+	if (rawAvatar && !resolvedAvatar) console.log(`[Stat] Stored avatar URL is expired for ${targetId}, falling back to Discord avatar.`);
 	const avatarUrl = resolvedAvatar || displayUser.displayAvatarURL({ forceStatic: false });
 	// Canvas requires a reliable PNG URL; WebP/GIF Discord CDN URLs can fail in @napi-rs/canvas
 	const canvasAvatarUrl = resolvedAvatar || displayUser.displayAvatarURL({ forceStatic: true, extension: 'png', size: 256 });

@@ -339,8 +339,9 @@ async function performWeeklyStockReset() {
 
 async function performBilgeEcosystemDailyCycle() {
 	const RAT_COUNT = 50;
-	const KING_MAX_HP = 400; // matches rat_king_undead stat.health
-	const KING_HP_REGEN = 200;
+	const ratKingEnemy = contentStore.enemies.findByPk('rat_king_undead');
+	const KING_MAX_HP = ratKingEnemy?.stat?.health ?? 1000;
+	const KING_HP_REGEN = ratKingEnemy?.regen_per_day ?? 200;
 
 	// Skip entirely if the undead event has already been cleared
 	const clearedRecord = await GlobalFlag.findOne({ where: { flag: 'global.undead_bilge_cleared' } });
