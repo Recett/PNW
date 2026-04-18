@@ -151,39 +151,39 @@ Bleed application and crit scaling. Build perks deepen bleed payoff or crit expr
 
 ## Spear
 
-Tank identity. Passive damage mitigation scaling with Con. Counter-attack on taking a hit, scaling with Str and damage received — can miss. Three stats involved: Con (mitigation), Str (counter power), Dex (counter accuracy). AGI irrelevant.
+Reactive identity. When the player has a spear equipped and holds **Brace**, taking a hit charges a counter-attack that fires automatically when charge reaches 3. Counter base damage uses a harmonic mean of the player's best spear attack and the enemy's attack value, so it scales with both offensive and defensive investment. **Thorn** amplifies the counter multiplier; **Steady** absorbs a fraction of incoming damage (reducing it) while also dampening the counter multiplier.
 
-### Core — Reduction
+**Counter Multiplier (M):** `max(0, 1.0 + sumThornM - sumSteadyM)` — starts at 1.0, each Thorn level adds +0.20, each Steady level subtracts 0.20.
+**Absorption (S):** `sumSteadyS` — each Steady level adds 0.10 (10% of incoming hit absorbed before the counter harmonic base is computed).
+**Charge:** Starts pre-charged at 3. Increments +1 (max 3) each time the player lands a hit. Resets to 0 when the counter fires, requiring 3 more player hits before it can fire again.
 
-| Perk | Effect |
-|------|--------|
-| Reduction I | Incoming damage reduced by X% scaling with Con. Unlocks Cluster A build perks. |
-| Reduction II | Damage reduction increased. |
-| Reduction III | Damage reduction increased. |
-| Reduction IV | Damage reduction increased. |
-| Reduction V | Damage reduction increased. Unlocks Tier 2 Cluster A. |
+### Gate
 
-### Core — Counter
+| Perk | ID | Skill Level | Cost | Effect |
+|------|----|-------------|------|--------|
+| Brace | `spear-brace` | 1 | 5 | Enables the spear counter system. Must have a spear equipped. Required for Thorn and Steady trees. |
 
-| Perk | Effect |
-|------|--------|
-| Counter I | On taking a hit, fire a counter-attack. Base damage scales with Str + damage received. Can miss. Unlocks Cluster B build perks. |
-| Counter II | Counter damage increased. |
-| Counter III | Counter damage increased. |
-| Counter IV | Counter damage increased. |
-| Counter V | Counter damage increased. Unlocks Tier 2 Cluster B. |
+### Core — Thorn (Counter Multiplier)
 
-### Build Perks
+| Perk | ID | Skill Level | Cost | Effect |
+|------|----|-------------|------|--------|
+| Thorn I | `spear-thorn-1` | 6 | 10 | Counter multiplier M +0.20 (total 1.20). |
+| Thorn II | `spear-thorn-2` | 20 | 15 | Counter multiplier M +0.20 (total 1.40 at max Thorn). |
+| Thorn III | `spear-thorn-3` | 36 | 22 | Counter multiplier M +0.20. |
+| Thorn IV | `spear-thorn-4` | 50 | 30 | Counter multiplier M +0.20. |
+| Thorn V | `spear-thorn-5` | 58 | 50 | Counter multiplier M +0.20 (total 2.00 at full Thorn stack). |
 
-| Perk | Cluster | Timing | Effect |
-|------|---------|--------|--------|
-| Threshold | A | before_turn | Hits below a damage threshold are reduced dramatically more. Rewards fighting swarms of weak enemies. |
-| Fortify | A | after_turn | After taking X hits without dying, damage reduction increases for the rest of combat. |
-| Iron Skin | A | on_equip | At maximum Reduction investment, a portion of damage reduction converts into flat defense. |
-| Punishing Reach | B | after_turn | Counter hits apply initiative reduction to the enemy. |
-| Measured Response | B | after_turn | Counter damage bonus scales higher the harder the triggering hit was. |
-| Defiant | B | before_turn | While below 40% HP, counter damage significantly increased. |
-| Wall | B | after_turn | At maximum investment in both trees, each successful counter temporarily increases damage reduction. Defense and offense reinforce each other. |
+### Core — Steady (Absorption + Multiplier Reduction)
+
+| Perk | ID | Skill Level | Cost | Effect |
+|------|----|-------------|------|--------|
+| Steady I | `spear-steady-1` | 12 | 10 | Absorbs 10% of incoming hit damage. Counter M −0.20. |
+| Steady II | `spear-steady-2` | 28 | 15 | Absorbs additional 10% (20% total). Counter M −0.20. |
+| Steady III | `spear-steady-3` | 44 | 22 | Absorbs additional 10% (30% total). Counter M −0.20. |
+| Steady IV | `spear-steady-4` | 54 | 30 | Absorbs additional 10% (40% total). Counter M −0.20. |
+| Steady V | `spear-steady-5` | 60 | 50 | Absorbs additional 10% (50% total). Counter M −0.20. |
+
+> **Balance note:** Full Thorn (M +1.00) + Full Steady (M −1.00) cancels out to M = 1.00 with 50% damage absorption. Mixing partial stacks trades counter power for survivability.
 
 ---
 

@@ -1727,6 +1727,7 @@ class EventProcessor {
 		const shopData = {
 			npcId: npc_id,
 			npcName: npc.name,
+			npcAvatar: npc.avatar || null,
 			shopType: shop_type,
 			items: [],
 			perks: [],
@@ -1772,13 +1773,40 @@ class EventProcessor {
 				const currentLevel = buildingLevels[p.required_building_id] || 0;
 				return currentLevel >= (p.required_building_level || 1);
 			});
-			shopData.perks = filteredPerks.map(p => ({
-				perkId: p.perk,
-				name: p.perkData?.name || 'Unknown Perk',
-				description: p.perkData?.description || '',
-				staminaCost: p.stamina_cost,
-				category: p.perkData?.category || '',
-			}));
+			// Filter perks by tier prerequisite (must own previous tier first)
+			const { CharacterPerk: CharPerkForShop } = require('@root/dbObject.js');
+			const ownedPerks = await CharPerkForShop.findAll({ where: { character_id: session.characterId } });
+			const ownedPerkIds = new Set(
+				ownedPerks
+					.filter(cp => cp.status === 'available' || cp.status === 'equipped')
+					.map(cp => String(cp.perk_id)),
+			);
+			const prereqFilteredPerks = filteredPerks.filter(p => {
+				// Hide already-learned perks
+				if (ownedPerkIds.has(String(p.perk))) return false;
+				const tier = p.perkData?.tier;
+				if (tier == null || tier <= 1) return true;
+				const group = p.perkData?.group;
+				if (!group) return true;
+				return ownedPerks.some(cp =>
+					(cp.status === 'available' || cp.status === 'equipped') &&
+					contentStore.perks.findByPk(String(cp.perk_id))?.group === group &&
+					contentStore.perks.findByPk(String(cp.perk_id))?.tier === tier - 1,
+				);
+			});
+			shopData.perks = prereqFilteredPerks.map(p => {
+				const charPerkRecord = ownedPerks.find(cp => String(cp.perk_id) === String(p.perk));
+				return {
+					perkId: p.perk,
+					name: p.perkData?.name || 'Unknown Perk',
+					description: p.perkData?.description || '',
+					staminaCost: p.stamina_cost,
+					goldCost: p.gold_cost || 0,
+					staminaSpent: charPerkRecord ? (charPerkRecord.stamina_spent || 0) : 0,
+					category: p.perkData?.category || '',
+					npcLine: p.npc_line || null,
+				};
+			});
 		}
 
 		// Store shop data in session for later display
@@ -2349,7 +2377,7 @@ class EventProcessor {
 		if (shopData.perks && shopData.perks.length > 0) {
 			const perkOptions = shopData.perks.slice(0, 25).map(perk => ({
 				label: perk.name,
-				description: `${perk.staminaCost} stamina to learn${perk.category ? ` (${perk.category})` : ''}`.substring(0, 100),
+				description: `${perk.goldCost ?? 0} gold (${perk.staminaSpent ?? 0}/${perk.staminaCost} stamina)`.substring(0, 100),
 				value: `shop_learn_${perk.perkId}`,
 			}));
 
@@ -2362,7 +2390,7 @@ class EventProcessor {
 		}
 
 		// Add Leave Shop button if no other navigation options
-		if (!hasOtherOptions && components.length > 0) {
+		if (!hasOtherOptions) {
 			const leaveButton = new Discord.ButtonBuilder()
 				.setCustomId('shop_leave')
 				.setLabel('R\u1EDDi c\u1EEDa h\u00E0ng')
@@ -2597,18 +2625,8 @@ class EventProcessor {
 							await this.showShopItemPreview(componentInteraction, session, selectedValue);
 						}
 						else {
-							// Perk: show quantity modal directly and await submission
-							await this.showShopQuantityModal(componentInteraction, session, selectedValue);
-							try {
-								const modalSubmit = await componentInteraction.awaitModalSubmit({
-									filter: i => i.customId === `shop_modal_${selectedValue}` && i.user.id === componentInteraction.user.id,
-									time: 60_000,
-								});
-								await this.handleShopModalSubmit(modalSubmit, session);
-							}
-							catch (e) {
-								// User cancelled or timed out — no action needed
-							}
+							// Perk: show preview (with optional NPC line) before modal
+							await this.showShopPerkPreview(componentInteraction, session, selectedValue);
 						}
 						return; // Don't proceed to next event
 					}
@@ -2807,6 +2825,35 @@ class EventProcessor {
 						catch (e) {
 							// User cancelled or timed out — no action needed
 						}
+						return;
+					}
+					// Handle perk preview confirm — show stamina modal and await submission
+					if (componentInteraction.customId === 'shop_perk_preview_confirm') {
+						const previewValue = session.shopPreviewValue;
+						await this.showShopQuantityModal(componentInteraction, session, previewValue);
+						try {
+							const modalSubmit = await componentInteraction.awaitModalSubmit({
+								filter: i => i.customId === `shop_modal_${previewValue}` && i.user.id === componentInteraction.user.id,
+								time: 60_000,
+							});
+							await this.handleShopModalSubmit(modalSubmit, session);
+						}
+						catch (e) {
+							// User cancelled or timed out — no action needed
+						}
+						return;
+					}
+					// Handle perk preview back — restore shop display
+					if (componentInteraction.customId === 'shop_perk_preview_back') {
+						const snapshot = session.shopMessageSnapshot;
+						const shopComponents = this.buildShopComponents(session);
+						await componentInteraction.update({
+							content: snapshot?.content || '',
+							embeds: snapshot?.embeds || [],
+							components: shopComponents,
+						});
+						session.shopPreviewValue = null;
+						session.shopMessageSnapshot = null;
 						return;
 					}
 					// Handle item preview back — restore shop display
@@ -3014,8 +3061,8 @@ class EventProcessor {
 			}
 			else if (selectedValue.startsWith('shop_learn_')) {
 				// Perk learning
-				const perkId = parseInt(selectedValue.replace('shop_learn_', ''));
-				const shopPerk = session.shopData.perks.find(p => p.perkId === perkId || p.perkId === String(perkId));
+				const perkId = selectedValue.replace('shop_learn_', '');
+				const shopPerk = session.shopData.perks.find(p => String(p.perkId) === perkId);
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
@@ -3023,6 +3070,28 @@ class EventProcessor {
 						ephemeral: true,
 					});
 					return;
+				}
+
+				// Server-side tier prerequisite check
+				const perkDataForCheck = contentStore.perks.findByPk(perkId);
+				const perkTier = perkDataForCheck?.tier;
+				const perkGroup = perkDataForCheck?.group;
+				if (perkTier != null && perkTier > 1 && perkGroup) {
+					const allOwned = await CharacterPerk.findAll({ where: { character_id: session.characterId } });
+					const hasPrevTier = allOwned.some(cp => {
+						if (cp.status !== 'available' && cp.status !== 'equipped') return false;
+						const d = contentStore.perks.findByPk(String(cp.perk_id));
+						return d?.group === perkGroup && d?.tier === perkTier - 1;
+					});
+					if (!hasPrevTier) {
+						const allPerks = contentStore.perks.findAll();
+						const prevPerkData = allPerks.find(p => p.group === perkGroup && p.tier === perkTier - 1);
+						await componentInteraction.reply({
+							content: `${EMOJI.FAILURE} You must learn **${prevPerkData?.name ?? `tier ${perkTier - 1}`}** first.`,
+							ephemeral: true,
+						});
+						return;
+					}
 				}
 
 				// Check if already learning or completed this perk
@@ -3097,6 +3166,77 @@ class EventProcessor {
 	/**
 	 * Show item preview embed with Confirm/Back buttons before quantity modal
 	 */
+	async showShopPerkPreview(componentInteraction, session, selectedValue) {
+		const perkId = selectedValue.replace('shop_learn_', '');
+		const shopPerk = session.shopData.perks.find(p => String(p.perkId) === perkId);
+
+		if (!shopPerk) {
+			await componentInteraction.reply({
+				content: `${EMOJI.FAILURE} Perk not found in shop.`,
+				ephemeral: true,
+			});
+			return;
+		}
+
+		// Store for confirm button
+		session.shopPreviewValue = selectedValue;
+
+		// Snapshot original message to restore on Back
+		const origMsg = componentInteraction.message;
+		session.shopMessageSnapshot = {
+			content: origMsg.content,
+			embeds: origMsg.embeds,
+		};
+
+		const embed = new Discord.EmbedBuilder()
+			.setTitle(shopPerk.name)
+			.setColor(0x5865F2);
+
+		let desc = '';
+		if (shopPerk.npcLine) {
+			desc += `*"${shopPerk.npcLine}"*\n\n`;
+		}
+		if (shopPerk.description) {
+			desc += shopPerk.description;
+		}
+		if (desc) embed.setDescription(desc);
+
+		const fields = [];
+		if (shopPerk.goldCost > 0) {
+			fields.push({ name: 'Chi ph\u00ed', value: `${shopPerk.goldCost} ${EMOJI.GOLD}`, inline: true });
+		}
+		fields.push({ name: 'Stamina c\u1ea7n', value: `${shopPerk.staminaSpent ?? 0}/${shopPerk.staminaCost}`, inline: true });
+		if (shopPerk.category) {
+			fields.push({ name: 'Lo\u1ea1i', value: shopPerk.category, inline: true });
+		}
+		embed.addFields(fields);
+
+		if (session.shopData.npcAvatar) {
+			embed.setAuthor({ name: session.shopData.npcName, iconURL: session.shopData.npcAvatar });
+		}
+		else {
+			embed.setAuthor({ name: session.shopData.npcName });
+		}
+
+		const confirmButton = new Discord.ButtonBuilder()
+			.setCustomId('shop_perk_preview_confirm')
+			.setLabel('Luy\u1ec7n t\u1eadp')
+			.setStyle(Discord.ButtonStyle.Success);
+
+		const backButton = new Discord.ButtonBuilder()
+			.setCustomId('shop_perk_preview_back')
+			.setLabel('Quay l\u1ea1i')
+			.setStyle(Discord.ButtonStyle.Secondary);
+
+		const row = new Discord.ActionRowBuilder().addComponents(confirmButton, backButton);
+
+		await componentInteraction.update({
+			content: '',
+			embeds: [embed],
+			components: [row],
+		});
+	}
+
 	async showShopItemPreview(componentInteraction, session, selectedValue) {
 		const itemId = selectedValue.replace('shop_buy_', '');
 		const shopItem = session.shopData.items.find(i => String(i.itemId) === itemId);
@@ -3270,8 +3410,8 @@ class EventProcessor {
 			}
 			else if (originalValue.startsWith('shop_learn_')) {
 				// Perk training with quantity (stamina spent)
-				const perkId = parseInt(originalValue.replace('shop_learn_', ''));
-				const shopPerk = session.shopData.perks.find(p => p.perkId === perkId || p.perkId === String(perkId));
+				const perkId = originalValue.replace('shop_learn_', '');
+				const shopPerk = session.shopData.perks.find(p => String(p.perkId) === perkId);
 
 				if (!shopPerk) {
 					await componentInteraction.reply({
@@ -3279,6 +3419,28 @@ class EventProcessor {
 						ephemeral: true,
 					});
 					return;
+				}
+
+				// Server-side tier prerequisite check
+				const perkDataForCheck = contentStore.perks.findByPk(perkId);
+				const perkTier = perkDataForCheck?.tier;
+				const perkGroup = perkDataForCheck?.group;
+				if (perkTier != null && perkTier > 1 && perkGroup) {
+					const allOwned = await CharacterPerk.findAll({ where: { character_id: session.characterId } });
+					const hasPrevTier = allOwned.some(cp => {
+						if (cp.status !== 'available' && cp.status !== 'equipped') return false;
+						const d = contentStore.perks.findByPk(String(cp.perk_id));
+						return d?.group === perkGroup && d?.tier === perkTier - 1;
+					});
+					if (!hasPrevTier) {
+						const allPerks = contentStore.perks.findAll();
+						const prevPerkData = allPerks.find(p => p.group === perkGroup && p.tier === perkTier - 1);
+						await componentInteraction.reply({
+							content: `${EMOJI.FAILURE} You must learn **${prevPerkData?.name ?? `tier ${perkTier - 1}`}** first.`,
+							ephemeral: true,
+						});
+						return;
+					}
 				}
 
 				// Check if already learning or completed
@@ -3295,6 +3457,17 @@ class EventProcessor {
 				}
 
 				if (!charPerk) {
+					// First-time enrollment: check and deduct gold
+					if (shopPerk.goldCost > 0) {
+						if (character.gold < shopPerk.goldCost) {
+							await componentInteraction.reply({
+								content: `${EMOJI.FAILURE} Not enough gold. You need ${shopPerk.goldCost} gold to begin training **${shopPerk.name}**.`,
+								ephemeral: true,
+							});
+							return;
+						}
+						await character.update({ gold: character.gold - shopPerk.goldCost });
+					}
 					charPerk = await CharacterPerk.create({
 						character_id: session.characterId,
 						perk_id: perkId,

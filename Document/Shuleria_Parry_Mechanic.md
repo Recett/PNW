@@ -9,10 +9,12 @@ Parry is the Rapier's core defensive mechanic. It is not damage negation — it 
 ## ParryPower
 
 ```
-ParryPower = Equipment base stat + (DEX × scaling) + (Rapier skill level × 4%)
+ParryPower = DEX × parry_rating × (1 + Rapier skill level × 0.04)
 ```
 
-Rapier skill contribution drops to 1% per level when a Rapier is unequipped.
+`parry_rating` is a per-weapon stat defined in the weapon's YAML entry. All current rapiers have `parry_rating: 0.5`.
+
+For dual-wielded rapiers, ParryPower is halved (mirrors the accuracy dual-wield penalty). The highest `parry_rating` across equipped rapiers is used.
 
 ---
 
@@ -85,6 +87,4 @@ This produces two distinct natural counters without explicit statement:
 
 ## Open Items
 
-- Exact DEX scaling value (the multiplier in ParryPower formula) — not yet set.
-- Exact equipment base stat range — not yet set.
 - Riposte counter-attack interaction with the pre-mitigation parry result (Follow Through perk implies this matters).

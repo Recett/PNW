@@ -134,6 +134,7 @@ weapons:
       scaling: 0.35
       hit_mod: 0.65
       cooldown: 85
+      parry_rating: 0.5
 
   - id: rapier_2
     name: Side Rapier
@@ -150,6 +151,7 @@ weapons:
       scaling: 0.35
       hit_mod: 0.65
       cooldown: 85
+      parry_rating: 0.5
 
   - id: "5"
     name: Plain Shortsword
@@ -383,6 +385,7 @@ weapons:
       scaling: 0.3
       hit_mod: 0.7
       cooldown: 85
+      parry_rating: 0.5
 
   - id: claw-company-greatsword
     name: "Claw Company Greatsword"

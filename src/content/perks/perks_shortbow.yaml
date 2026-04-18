@@ -1,0 +1,121 @@
+﻿perks:
+  - id: sbow-focus
+    name: Focus
+    description: "Unlocks the Evasion Stack system. Each hit you land builds 1 evasion stack, granting bonus evasion and attack speed. All stacks are consumed when you are struck or evade an incoming attack. Required for Evasion and Momentum tree perks."
+    category: combat
+    skill: shortbow
+    skill_level_required: 1
+    power: 0
+    cost: 5
+    timing: battle_start
+  - id: sbow-evasion-1
+    name: Basic Evasion
+    description: "Each evasion stack grants +5% evade chance. Stacks build on hit and flush when you take damage or dodge. Scales with how consistently you land attacks."
+    category: combat
+    skill: shortbow
+    skill_level_required: 6
+    power: 0.08
+    cost: 10
+    tier: 1
+    group: sbow-evasion
+    timing: before_turn
+  - id: sbow-evasion-2
+    name: Intermediate Evasion
+    description: "Each evasion stack grants +8% evade chance."
+    category: combat
+    skill: shortbow
+    skill_level_required: 20
+    power: 0.11
+    cost: 15
+    tier: 2
+    group: sbow-evasion
+    timing: before_turn
+  - id: sbow-evasion-3
+    name: Advanced Evasion
+    description: "Each evasion stack grants +11% evade chance."
+    category: combat
+    skill: shortbow
+    skill_level_required: 36
+    power: 0.14
+    cost: 22
+    tier: 3
+    group: sbow-evasion
+    timing: before_turn
+  - id: sbow-evasion-4
+    name: Expert Evasion
+    description: "Each evasion stack grants +14% evade chance."
+    category: combat
+    skill: shortbow
+    skill_level_required: 50
+    power: 0.17
+    cost: 30
+    tier: 4
+    group: sbow-evasion
+    timing: before_turn
+  - id: sbow-evasion-5
+    name: Master Evasion
+    description: "Each evasion stack grants +17% evade chance."
+    category: combat
+    skill: shortbow
+    skill_level_required: 58
+    power: 0.20
+    cost: 50
+    tier: 5
+    group: sbow-evasion
+    timing: before_turn
+  - id: sbow-momentum-1
+    name: Basic Momentum
+    description: "Each evasion stack also grants +3% attack speed. Higher stack counts accelerate your attack cycle, compounding with evasion bonuses from the same stacks."
+    category: combat
+    skill: shortbow
+    skill_level_required: 12
+    power: 0.05
+    cost: 10
+    tier: 1
+    group: sbow-momentum
+    timing: after_turn
+  - id: sbow-momentum-2
+    name: Intermediate Momentum
+    description: "Each evasion stack grants +5% attack speed."
+    category: combat
+    skill: shortbow
+    skill_level_required: 28
+    power: 0.07
+    cost: 15
+    tier: 2
+    group: sbow-momentum
+    timing: after_turn
+  - id: sbow-momentum-3
+    name: Advanced Momentum
+    description: "Each evasion stack grants +7% attack speed."
+    category: combat
+    skill: shortbow
+    skill_level_required: 44
+    power: 0.09
+    cost: 22
+    tier: 3
+    group: sbow-momentum
+    timing: after_turn
+  - id: sbow-momentum-4
+    name: Expert Momentum
+    description: "Each evasion stack grants +9% attack speed."
+    category: combat
+    skill: shortbow
+    skill_level_required: 54
+    power: 0.11
+    cost: 30
+    tier: 4
+    group: sbow-momentum
+    timing: after_turn
+  - id: sbow-momentum-5
+    name: Master Momentum
+    description: "Each evasion stack grants +11% attack speed."
+    category: combat
+    skill: shortbow
+    skill_level_required: 60
+    power: 0.13
+    cost: 50
+    tier: 5
+    group: sbow-momentum
+    timing: after_turn
+

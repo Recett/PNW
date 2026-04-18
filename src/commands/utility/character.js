@@ -179,7 +179,7 @@ module.exports = {
 				const unregistered = await characterUtil.getCharacterFlag(userId, 'unregistered');
 				if (unregistered) return await interaction.editReply({ content: 'You must complete registration before managing perks.' });
 
-				if (sub === 'list') await handlePerkList(interaction, userId);
+				if (sub === 'list') await handlePerkList(interaction, userId, character);
 				else if (sub === 'activate') await handlePerkActivate(interaction, userId);
 				else if (sub === 'deactivate') await handlePerkDeactivate(interaction, userId);
 			}
@@ -684,7 +684,7 @@ function buildStatEmbed(character) {
 }
 
 // ─── Perk ─────────────────────────────────────────────────────────────────────
-async function handlePerkList(interaction, userId) {
+async function handlePerkList(interaction, userId, character) {
 	const charPerks = await CharacterPerk.findAll({ where: { character_id: userId } });
 	if (!charPerks || charPerks.length === 0) return await interaction.editReply({ content: 'You have no perks.' });
 
@@ -693,18 +693,20 @@ async function handlePerkList(interaction, userId) {
 		const perkData = getPerkData(cp.perk_id);
 		const name = perkData ? perkData.name : `Perk #${cp.perk_id}`;
 		const desc = perkData ? (perkData.description || '') : '';
-		const entry = { name, desc, cp };
+		const cost = perkData?.cost ?? 0;
+		const entry = { name, desc, cost, cp };
 		if (cp.status === 'equipped') equipped.push(entry);
 		else if (cp.status === 'available') available.push(entry);
 		else learning.push(entry);
 	}
 
-	const embed = new EmbedBuilder().setTitle('Your Perks').setColor(0x9b59b6);
+	const perkPoints = character?.perk_point ?? 0;
+	const embed = new EmbedBuilder().setTitle('Your Perks').setColor(0x9b59b6).setFooter({ text: `Perk Points: ${perkPoints}` });
 	if (equipped.length > 0) {
 		embed.addFields({ name: '🟢 Equipped (Active)', value: equipped.map(e => `**${e.name}**${e.desc ? `\n${e.desc}` : ''}`).join('\n\n') });
 	}
 	if (available.length > 0) {
-		embed.addFields({ name: '🟡 Available (Inactive)', value: available.map(e => `**${e.name}**${e.desc ? `\n${e.desc}` : ''}`).join('\n\n') });
+		embed.addFields({ name: '🟡 Available (Inactive)', value: available.map(e => `**${e.name}** — ${e.cost > 0 ? e.cost + ' pts to activate' : 'Free'}${e.desc ? `\n${e.desc}` : ''}`).join('\n\n') });
 	}
 	if (learning.length > 0) {
 		embed.addFields({ name: '🔵 Learning', value: learning.map(e => `**${e.name}** — ${e.cp.stamina_spent} stamina spent`).join('\n') });
@@ -719,8 +721,10 @@ async function handlePerkActivate(interaction, userId) {
 	const options = available.slice(0, 25).map(cp => {
 		const perkData = getPerkData(cp.perk_id);
 		const name = perkData ? perkData.name : `Perk #${cp.perk_id}`;
-		const desc = perkData ? (perkData.description || '') : '';
-		return { label: name.substring(0, 100), value: String(cp.perk_id), description: desc ? desc.substring(0, 100) : undefined };
+		const cost = perkData?.cost ?? 0;
+		const costLabel = cost > 0 ? `${cost} pts` : 'Free';
+		const desc = perkData?.description ? `${costLabel} — ${perkData.description}` : costLabel;
+		return { label: name.substring(0, 100), value: String(cp.perk_id), description: desc.substring(0, 100) };
 	});
 
 	const select = new StringSelectMenuBuilder()
@@ -739,13 +743,42 @@ async function handlePerkActivate(interaction, userId) {
 
 	collector.on('collect', async i => {
 		try {
-			const perkId = parseInt(i.values[0]);
+			const perkId = String(i.values[0]);
 			const cp = await CharacterPerk.findOne({ where: { character_id: userId, perk_id: perkId, status: 'available' } });
 			if (!cp) return await i.update({ content: 'That perk is no longer available to activate.', components: [] });
+			const perkData = getPerkData(perkId);
+			const cost = perkData?.cost ?? 0;
+			const freshCharacter = await characterUtil.getCharacterBase(userId);
+			const currentPoints = freshCharacter?.perk_point ?? 0;
+			if (cost > 0 && currentPoints < cost) {
+				return await i.update({ content: `Not enough perk points. **${perkData?.name ?? perkId}** costs ${cost} pts (you have ${currentPoints}).`, components: [] });
+			}
+			// Auto-deactivate any other equipped perk in the same talent group
+			let totalRefund = 0;
+			const autoDeactivatedNames = [];
+			if (perkData?.group) {
+				const equippedPerks = await CharacterPerk.findAll({ where: { character_id: userId, status: 'equipped' } });
+				for (const other of equippedPerks) {
+					if (String(other.perk_id) !== perkId && getPerkData(other.perk_id)?.group === perkData.group) {
+						const otherData = getPerkData(other.perk_id);
+						totalRefund += otherData?.cost ?? 0;
+						autoDeactivatedNames.push(otherData?.name ?? String(other.perk_id));
+						other.status = 'available';
+						await other.save();
+					}
+				}
+			}
+			const netChange = totalRefund - cost;
+			if (netChange !== 0) await characterUtil.modifyCharacterStat(userId, 'perk_point', netChange);
 			cp.status = 'equipped';
 			await cp.save();
-			const name = getPerkData(perkId)?.name ?? `Perk #${perkId}`;
-			await i.update({ content: `✅ **${name}** is now active.`, components: [] });
+			const name = perkData?.name ?? perkId;
+			const newPoints = currentPoints + netChange;
+			let msg = `\u2705 **${name}** is now active.`;
+			if (cost > 0) msg += ` (${cost} perk pts spent)`;
+			if (autoDeactivatedNames.length > 0) msg += `\n\uD83D\uDD04 Replaced: ${autoDeactivatedNames.join(', ')} (refunded)`;
+			msg += `\nPerk Points: **${newPoints}**`;
+			await i.update({ content: msg, components: [] });
 		}
 		catch (err) { console.error('perk activate error:', err); }
 	});
@@ -784,13 +817,21 @@ async function handlePerkDeactivate(interaction, userId) {
 
 	collector.on('collect', async i => {
 		try {
-			const perkId = parseInt(i.values[0]);
+			const perkId = String(i.values[0]);
 			const cp = await CharacterPerk.findOne({ where: { character_id: userId, perk_id: perkId, status: 'equipped' } });
 			if (!cp) return await i.update({ content: 'That perk is no longer equipped.', components: [] });
+			const perkData = getPerkData(perkId);
+			const cost = perkData?.cost ?? 0;
 			cp.status = 'available';
 			await cp.save();
-			const name = getPerkData(perkId)?.name ?? `Perk #${perkId}`;
-			await i.update({ content: `🟡 **${name}** has been deactivated.`, components: [] });
+			if (cost > 0) await characterUtil.modifyCharacterStat(userId, 'perk_point', cost);
+			const freshCharacter = await characterUtil.getCharacterBase(userId);
+			const newPoints = freshCharacter?.perk_point ?? 0;
+			const name = perkData?.name ?? perkId;
+			let msg = `\uD83D\uDFE1 **${name}** has been deactivated.`;
+			if (cost > 0) msg += ` (${cost} perk pts refunded)`;
+			msg += `\nPerk Points: **${newPoints}**`;
+			await i.update({ content: msg, components: [] });
 		}
 		catch (err) { console.error('perk deactivate error:', err); }
 	});

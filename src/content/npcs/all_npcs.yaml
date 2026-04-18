@@ -96,6 +96,8 @@ npcs:
   - id: "quartermaster-york"
     name: "Quân nhu trưởng York"
     fullname: "Quân nhu trưởng York Waylan"
+    avatar: >-
+      https://static.wikia.nocookie.net/fireemblem/images/f/f2/Portrait_Glen_Heroes.png/revision/latest?cb=20240716044328
     npc_type: "merchant"
     status: "active"
     age: 38
@@ -107,6 +109,19 @@ npcs:
     # No pronoun overrides — defaults are correct.
     # Post-prologue: Becomes settlement manager — permanent conduit between
     # players and game master announcements.
+    perks:
+      - perk: "rapier-prise-de-fer"
+        stamina_cost: 100
+        gold_cost: 30
+        npc_line: "Nghĩa của nó là 'chiếm lấy lưỡi kiếm.' Trường phái kiếm thuật cổ điển thay vì chặn lực, làm chệch hướng nó. "
+      - perk: "rapier-parry-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Đây là kĩ thuật phòng thủ cơ bản nhất của trường phái này, nhưng phải rèn luyện nhiều mới thành thạo được."
+      - perk: "rapier-riposte-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Riposte, có nghĩa là đáp trả ngay lập tức. Lấy phòng thủ làm tấn công, cách phòng thủ tốt nhất chính là phản công cùng lúc."
     stock:
       - item: shortbow_2
         amount: 2
@@ -145,6 +160,8 @@ npcs:
     name: "Hensbane"
     fullname: "Lawrence Hensbane"
     unknown_name: "Người lính đánh thuê"
+    avatar: >-
+      https://static.wikia.nocookie.net/fireemblem/images/f/f2/Portrait_Glen_Heroes.png/revision/latest?cb=20240716044328
     npc_type: "guard"
     status: "active"
     age: 43
@@ -156,6 +173,31 @@ npcs:
     # No pronoun overrides — defaults are correct.
     # Post-prologue: Unlocks advanced training for players who sparred 3+
     # times AND signaled him during the Privateer Officer chaos event.
+    perks:
+      - perk: "sbow-focus"
+        stamina_cost: 100
+        gold_cost: 30
+        npc_line: "Cung ngắn sống nhờ tốc độ, không phải sức. Mỗi phát bắn chuẩn xác sẽ giúp xây dựng nhịp điệu chiến đấu."
+      - perk: "sbow-evasion-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Di chuyển theo nhịp độ sẽ giúp bạn né đòn tốt hơn."
+      - perk: "sbow-momentum-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Bắn đều tay, nhịp nhàng để đạt được tốc độ cao hơn."
+      - perk: "spear-brace"
+        stamina_cost: 100
+        gold_cost: 30
+        npc_line: "Muốn sử dụng giáo cần phải học cách giữ vững tư thế."
+      - perk: "spear-thorn-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Linh hoạt, và bắt những kẻ tấn công phải trả giá bằng mũi nhọn của giáo."
+      - perk: "spear-steady-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Giữ vững tư thế, sử dụng cây giáo để chuyển sức mạnh của địch xuống đất."
 
   - id: "ian-mcbetha"
     name: "Linh mục Ian"

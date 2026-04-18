@@ -1,0 +1,21 @@
+narrations:
+
+  # Prepared narration presets for /narrate preset:<id>
+  # channel is optional. If omitted, the preset posts in the channel where /narrate was run.
+  # If channel is set, it must match a key from src/config/channels.js.
+
+  - id: captain-weather-warning
+    title: Storm Warning
+    channel: storyboard
+    color: 16744192
+    text: |
+      Dark clouds gather on the horizon, and the sea has started to turn.
+
+      The officers order every hand to secure loose cargo and prepare for rough water.
+
+  - id: quarterdeck-muster
+    title: Crew Muster
+    text: |
+      All available crew are to report to the quarterdeck immediately.
+
+      Further instructions will be given once everyone is assembled.

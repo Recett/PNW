@@ -1,0 +1,153 @@
+perks:
+  - id: sword-tempo-1
+    name: Tempo I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: sword-art-1
+    name: Art I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: sword-stance-1
+    name: Stance I
+    category: combat
+    skill: sword
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: dagger-bleed-1
+    name: Bleed I
+    category: combat
+    skill: dagger
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: dagger-lethality-1
+    name: Lethality I
+    category: combat
+    skill: dagger
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+  - id: axe-fury-1
+    name: Fury I
+    category: combat
+    skill: axe
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: axe-wrath-1
+    name: Wrath I
+    category: combat
+    skill: axe
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: mace-charge-1
+    name: Charge I
+    category: combat
+    skill: mace
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: mace-impact-1
+    name: Impact I
+    category: combat
+    skill: mace
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: shield-reactive-1
+    name: Reactive I
+    category: combat
+    skill: shield
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+  - id: shield-aggressive-1
+    name: Aggressive I
+    category: combat
+    skill: shield
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: larmor-evasion-1
+    name: Evasion I
+    category: combat
+    skill: light-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: larmor-counter-1
+    name: Counter I
+    category: combat
+    skill: light-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: after_turn
+  - id: marmor-critres-1
+    name: Crit Resistance I
+    category: combat
+    skill: medium-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: before_turn
+  - id: marmor-statres-1
+    name: Status Resistance I
+    category: combat
+    skill: medium-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: harmor-wm-1
+    name: Weight Management I
+    category: combat
+    skill: heavy-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: harmor-fort-1
+    name: Fortification I
+    category: combat
+    skill: heavy-armor
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: on_equip
+  - id: lbow-sniper-1
+    name: Sniper I
+    category: combat
+    skill: longbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: battle_start
+  - id: lbow-marksman-1
+    name: Marksman I
+    category: combat
+    skill: longbow
+    skill_level_required: 1
+    power: 0
+    cost: 0
+    timing: battle_start

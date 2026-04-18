@@ -124,14 +124,39 @@
         next: york-shop
         display_order: 6
 
+      - id: rapier-training
+        text: "${npc_2p} có thể dạy ${1p} cách sử dụng rapier không?"
+        next: york-rapier-training
+        display_order: 7
+        required_check:
+          - type: skill
+            skill_data:
+              skill_id: rapier
+              required_level: 1
+
       - id: turnin
         text: "Tôi có thức ăn cho kho dự trữ."
         next: york-turnin-menu
-        display_order: 7
+        display_order: 8
 
       - id: leave
         text: "Để ${npc_2p} làm việc tiếp."
-        display_order: 8
+        display_order: 9
+
+  - id: york-rapier-training
+    name: "York Waylan —Huấn Luyện Rapier"
+    event_type: dialogue
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: "York dừng viết, mở một ngăn kéo bên cạnh và lấy ra hai cuốn sách mỏng bìa cứng. 'Rapier là ${npc_1p} dạy — không phải kiếm phổ thông, không phải giáo. Môn này có lịch sử riêng, có trường phái riêng. ${2p} học ${npc_1p} thì học đúng bài.'"
+
+    action:
+      - type: shop
+        npc: quartermaster-york
+        shop_type: perk
+        trigger_condition: immediate
 
   - id: york-shop
     name: "York Waylan —Cửa Hàng"
@@ -766,10 +791,15 @@
         next: hensbane-combat-thoughts
         display_order: 4
 
+      - id: learn-skill
+        text: "Dạy ${1p} một kỹ năng."
+        next: hensbane-perk-shop
+        display_order: 5
+
       - id: training
         text: "${1p} muốn luyện tập. [Tốn 10 stamina]"
         next: hensbane-training-gate
-        display_order: 5
+        display_order: 6
         hidden_check:
           - type: flag
             flag_data:
@@ -781,7 +811,7 @@
       - id: bilge-key
         text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
         next: hensbane-bilge-key
-        display_order: 6
+        display_order: 7
         hidden_check:
           - type: flag
             flag_data:
@@ -798,9 +828,22 @@
 
       - id: leave
         text: "Để ${npc_2p} yên."
-        display_order: 7
+        display_order: 8
 
-  - id: hensbane-continue
+  - id: hensbane-perk-shop
+    name: "Hensbane —Huấn Luyện Kỹ Năng"
+    event_type: dialogue
+
+    message:
+      npc_speaker: law-hensbane
+      message_type: dialogue
+      text: "Hensbane gật đầu. \"${npc_1p} có thể dạy ${2p} một vài kỹ thuật cơ bản. Tốn thời gian và công sức —nhưng nếu ${2p} thực sự muốn học thì ${npc_1p} không từ chối.\""
+
+    action:
+      - type: shop
+        npc: law-hensbane
+        shop_type: perk
+        trigger_condition: immediate
     name: "Hensbane —Tiếp Tục"
     event_type: dialogue
 
@@ -835,10 +878,15 @@
         next: hensbane-combat-thoughts
         display_order: 4
 
+      - id: learn-skill
+        text: "${1p} muốn học một kỹ năng."
+        next: hensbane-perk-shop
+        display_order: 5
+
       - id: training
         text: "${1p} muốn luyện tập. [Tốn 10 stamina]"
         next: hensbane-training-gate
-        display_order: 5
+        display_order: 6
         hidden_check:
           - type: flag
             flag_data:
@@ -850,7 +898,7 @@
       - id: bilge-key
         text: "Chìa khóa hầm tàu —${npc_2p} biết ai có không?"
         next: hensbane-bilge-key
-        display_order: 6
+        display_order: 7
         hidden_check:
           - type: flag
             flag_data:
@@ -867,7 +915,7 @@
 
       - id: leave
         text: "Thôi."
-        display_order: 7
+        display_order: 8
 
   - id: hensbane-available
     name: "Hensbane —Có Rảnh Không"

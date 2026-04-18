@@ -1,0 +1,120 @@
+perks:
+  - id: spear-brace
+    name: Brace
+    description: "Unlocks the spear counter system. Taking hits charges a counter-attack that fires automatically at 3 charges. Counter damage uses a harmonic mean of your best spear attack and the enemy's attack, scaling with both offense and defense. Required for Thorn and Steady tree perks."
+    category: combat
+    skill: spear
+    skill_level_required: 1
+    power: 0
+    cost: 5
+    timing: battle_start
+  - id: spear-thorn-1
+    name: Basic Thorn
+    description: "Counter multiplier +0.20 (total 1.20). Each Thorn tier amplifies the counter-attack's damage output. Stacks additively with further Thorn investment."
+    category: combat
+    skill: spear
+    skill_level_required: 6
+    power: 0
+    cost: 10
+    tier: 1
+    group: spear-thorn
+    timing: after_turn
+  - id: spear-thorn-2
+    name: Intermediate Thorn
+    description: "Counter multiplier +0.20 (total 1.40 with Thorn I-II)."
+    category: combat
+    skill: spear
+    skill_level_required: 20
+    power: 0
+    cost: 15
+    tier: 2
+    group: spear-thorn
+    timing: after_turn
+  - id: spear-thorn-3
+    name: Advanced Thorn
+    description: "Counter multiplier +0.20 (total 1.60 with Thorn I-III)."
+    category: combat
+    skill: spear
+    skill_level_required: 36
+    power: 0
+    cost: 22
+    tier: 3
+    group: spear-thorn
+    timing: after_turn
+  - id: spear-thorn-4
+    name: Expert Thorn
+    description: "Counter multiplier +0.20 (total 1.80 with Thorn I-IV)."
+    category: combat
+    skill: spear
+    skill_level_required: 50
+    power: 0
+    cost: 30
+    tier: 4
+    group: spear-thorn
+    timing: after_turn
+  - id: spear-thorn-5
+    name: Master Thorn
+    description: "Counter multiplier +0.20 (total 2.00 at full Thorn investment)."
+    category: combat
+    skill: spear
+    skill_level_required: 58
+    power: 0
+    cost: 50
+    tier: 5
+    group: spear-thorn
+    timing: after_turn
+  - id: spear-steady-1
+    name: Basic Steady
+    description: "Absorbs 10% of each incoming hit before damage is dealt. Counter multiplier −0.20 (total 0.80). Trading counter output for survivability — each Steady tier absorbs more but reduces how hard the counter hits."
+    category: combat
+    skill: spear
+    skill_level_required: 12
+    power: 0
+    cost: 10
+    tier: 1
+    group: spear-steady
+    timing: before_turn
+  - id: spear-steady-2
+    name: Intermediate Steady
+    description: "Absorbs additional 10% of incoming hits (20% total with Steady I-II). Counter multiplier -0.20."
+    category: combat
+    skill: spear
+    skill_level_required: 28
+    power: 0
+    cost: 15
+    tier: 2
+    group: spear-steady
+    timing: before_turn
+  - id: spear-steady-3
+    name: Advanced Steady
+    description: "Absorbs additional 10% of incoming hits (30% total with Steady I-III). Counter multiplier -0.20."
+    category: combat
+    skill: spear
+    skill_level_required: 44
+    power: 0
+    cost: 22
+    tier: 3
+    group: spear-steady
+    timing: before_turn
+  - id: spear-steady-4
+    name: Expert Steady
+    description: "Absorbs additional 10% of incoming hits (40% total with Steady I-IV). Counter multiplier -0.20."
+    category: combat
+    skill: spear
+    skill_level_required: 54
+    power: 0
+    cost: 30
+    tier: 4
+    group: spear-steady
+    timing: before_turn
+  - id: spear-steady-5
+    name: Master Steady
+    description: "Absorbs additional 10% of incoming hits (50% total with Steady I-V). Counter multiplier -0.20. At full Steady investment without Thorn, counter is fully suppressed."
+    category: combat
+    skill: spear
+    skill_level_required: 60
+    power: 0
+    cost: 50
+    tier: 5
+    group: spear-steady
+    timing: before_turn

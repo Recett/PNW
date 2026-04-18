@@ -49,6 +49,11 @@ function buildItemEmbed(item, inventoryEntry = null) {
 				{ name: 'Special', value: `${item.weapon.special} (${item.weapon.special_value || 0})`, inline: false },
 			);
 		}
+		if (item.weapon.parry_rating) {
+			embed.fields.push(
+				{ name: 'Parry Rating', value: String(item.weapon.parry_rating), inline: true },
+			);
+		}
 	}
 	// Add armor-specific stats
 	else if (item.item_type === 'armor' && item.armor) {
