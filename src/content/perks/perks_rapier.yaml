@@ -1,7 +1,6 @@
 perks:
   - id: rapier-prise-de-fer
     name: Prise de Fer
-    description: "Unlocks the Parry mechanic. Named after the classical French fencing technique — prise de fer means 'seizure of the blade,' redirecting force rather than absorbing it. When struck, there is a chance to deflect and reduce incoming damage. Base parry chance ceiling: 40%. Required for all Parry tree perks."
     category: combat
     skill: rapier
     skill_level_required: 1
@@ -9,19 +8,17 @@ perks:
     cost: 5
     timing: battle_start
   - id: rapier-parry-1
-    name: Basic Parry
-    description: "Raises parry chance ceiling to 44%. Each point invested in the Parry tree increases how often deflections occur under pressure."
+    name: Parry I
     category: combat
     skill: rapier
-    skill_level_required: 6
+    skill_level_required: 12
     power: 0.44
     cost: 10
     tier: 1
     group: rapier-parry
     timing: battle_start
   - id: rapier-parry-2
-    name: Intermediate Parry
-    description: "Raises parry chance ceiling to 48%."
+    name: Parry II
     category: combat
     skill: rapier
     skill_level_required: 20
@@ -31,8 +28,7 @@ perks:
     group: rapier-parry
     timing: battle_start
   - id: rapier-parry-3
-    name: Advanced Parry
-    description: "Raises parry chance ceiling to 52%."
+    name: Parry III
     category: combat
     skill: rapier
     skill_level_required: 36
@@ -42,8 +38,7 @@ perks:
     group: rapier-parry
     timing: battle_start
   - id: rapier-parry-4
-    name: Expert Parry
-    description: "Raises parry chance ceiling to 56%."
+    name: Parry IV
     category: combat
     skill: rapier
     skill_level_required: 50
@@ -53,8 +48,7 @@ perks:
     group: rapier-parry
     timing: battle_start
   - id: rapier-parry-5
-    name: Master Parry
-    description: "Raises parry chance ceiling to 60%."
+    name: Parry V
     category: combat
     skill: rapier
     skill_level_required: 58
@@ -64,19 +58,17 @@ perks:
     group: rapier-parry
     timing: battle_start
   - id: rapier-riposte-1
-    name: Basic Riposte
-    description: "Enables the counter-attack on a successful parry. The counter deals damage equal to 50% of your normal attack, calculated after the parry resolves."
+    name: Riposte I
     category: combat
     skill: rapier
-    skill_level_required: 12
+    skill_level_required: 6
     power: 0.50
     cost: 10
     tier: 1
     group: rapier-riposte
     timing: after_turn
   - id: rapier-riposte-2
-    name: Intermediate Riposte
-    description: "Counter-attack on successful parry deals 70% of normal attack damage."
+    name: Riposte II
     category: combat
     skill: rapier
     skill_level_required: 28
@@ -86,8 +78,7 @@ perks:
     group: rapier-riposte
     timing: after_turn
   - id: rapier-riposte-3
-    name: Advanced Riposte
-    description: "Counter-attack on successful parry deals 90% of normal attack damage."
+    name: Riposte III
     category: combat
     skill: rapier
     skill_level_required: 44
@@ -97,8 +88,7 @@ perks:
     group: rapier-riposte
     timing: after_turn
   - id: rapier-riposte-4
-    name: Expert Riposte
-    description: "Counter-attack on successful parry deals 120% of normal attack damage."
+    name: Riposte IV
     category: combat
     skill: rapier
     skill_level_required: 54
@@ -108,8 +98,7 @@ perks:
     group: rapier-riposte
     timing: after_turn
   - id: rapier-riposte-5
-    name: Master Riposte
-    description: "Counter-attack on successful parry deals 150% of normal attack damage."
+    name: Riposte V
     category: combat
     skill: rapier
     skill_level_required: 60

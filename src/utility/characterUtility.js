@@ -842,6 +842,8 @@ let addCharacterExperience = async (characterId, xpAmount) => {
 	};
 };
 
+const XP_PER_SKILL_LEVEL = 1000;
+
 let addCharacterSkillExperience = async (characterId, skillExpMap) => {
 	const { CharacterSkill } = getDbModels();
 
@@ -852,6 +854,12 @@ let addCharacterSkillExperience = async (characterId, skillExpMap) => {
 		});
 
 		skill.xp += expAmount;
+
+		while (skill.xp >= XP_PER_SKILL_LEVEL) {
+			skill.xp -= XP_PER_SKILL_LEVEL;
+			skill.lv += 1;
+		}
+
 		await skill.save();
 	}
 
@@ -982,5 +990,6 @@ module.exports = {
 	addCharacterSkillExperience,
 	applyVirtueStats,
 	XP_PER_LEVEL,
+	skillLevelThreshold,
 };
 

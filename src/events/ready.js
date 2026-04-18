@@ -10,6 +10,9 @@ module.exports = {
 		// Migrate character_skills.skill_id from legacy numeric IDs to subtype strings
 		await migrateSkillIds();
 
+		// One-time migration: convert lv0 skill XP values to correct lv/xp using new formula
+		await migrateSkillXpV1();
+
 		// Clean up orphan TradeItem rows left behind by previously failed trade executions
 		await cleanupOrphanTradeItems();
 
@@ -52,6 +55,55 @@ async function migrateSkillIds() {
 	}
 	catch (error) {
 		console.error('[Ready] Error migrating skill IDs:', error);
+	}
+}
+
+/**
+ * One-time migration: convert character_skills XP from the old log10 formula to the new
+ * formula (damage * 5 / ((lv+1) * 1.05^lv)). All characters are expected to be at lv 0
+ * with large raw XP values. Uses global_flags 'skill_xp_migration_v1' as a run-once guard.
+ */
+async function migrateSkillXpV1() {
+	const MIGRATION_FLAG = 'skill_xp_migration_v1';
+	const XP_PER_LEVEL = 1000;
+
+	function simulateLevels(rawXp) {
+		let remainingDamage = rawXp / 5;
+		let lv = 0;
+		while (true) {
+			const damageToLevel = Math.ceil((XP_PER_LEVEL * (lv + 1) * Math.pow(1.05, lv)) / 5);
+			if (remainingDamage >= damageToLevel) {
+				remainingDamage -= damageToLevel;
+				lv++;
+			}
+			else {
+				break;
+			}
+		}
+		const xp = Math.floor((remainingDamage * 5) / ((lv + 1) * Math.pow(1.05, lv)));
+		return { lv, xp };
+	}
+
+	try {
+		const { CharacterSkill, GlobalFlag } = require('../dbObject');
+		const existing = await GlobalFlag.findOne({ where: { flag_name: MIGRATION_FLAG } });
+		if (existing) return;
+
+		const allSkills = await CharacterSkill.findAll();
+		let updated = 0;
+		for (const row of allSkills) {
+			if ((row.lv || 0) > 0 || (row.xp || 0) <= 0) continue;
+			const { lv, xp } = simulateLevels(row.xp);
+			row.lv = lv;
+			row.xp = xp;
+			await row.save();
+			updated++;
+		}
+		await GlobalFlag.create({ flag_name: MIGRATION_FLAG, flag_value: 1 });
+		if (updated > 0) console.log(`[Ready] skill_xp_migration_v1: updated ${updated} skill row(s).`);
+	}
+	catch (error) {
+		console.error('[Ready] Error during skill XP migration:', error);
 	}
 }
 

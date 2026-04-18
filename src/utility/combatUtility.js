@@ -15,9 +15,9 @@ const AMBIENT_EFFECTS = {
 	},
 };
 
-// Parry perk Pmax table 窶・En Garde unlocks the mechanic; each Parry tier raises the ceiling
+// Parry perk Pmax table — Prise de Fer unlocks the mechanic; each Parry tier raises the ceiling
 const PARRY_PMAX_BY_PERK = {
-	'rapier-en-garde': 0.40,
+	'rapier-prise-de-fer': 0.40,
 	'rapier-parry-1': 0.44,
 	'rapier-parry-2': 0.48,
 	'rapier-parry-3': 0.52,
@@ -556,7 +556,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		? await CharacterSkill.findOne({ where: { character_id: playerId, skill_id: rapierSkillDef.id } })
 		: null;
 	const rapierSkillLevel = rapierSkillRow ? (rapierSkillRow.lv || 0) : 0;
-	const hasEnGarde = rapierPerkIds.has('rapier-en-garde');
+	const hasEnGarde = rapierPerkIds.has('rapier-prise-de-fer');
 	// Resolve Pmax from parry tree 窶・highest tier equipped wins
 	let parryPmax = 0;
 	for (const [id, pmax] of Object.entries(PARRY_PMAX_BY_PERK)) {
@@ -1061,7 +1061,7 @@ async function getEquippedArmorTypes(playerId) {
 
 /**
  * Apply armor skill XP based on damage dodged, reduced, and crit resisted
- * Formula: XP = (log10(Damage + 1) ﾃ・100) / (Level + 1) ﾃ・armorPieceCount
+ * Formula: XP = floor(log10(Damage + 1) * 100) * armorPieceCount
  * @param {string} playerId - The player's character ID
  * @param {Object} armorDamageStats - { damageDodged: number, damageReduced: number, critResistedTotal: number }
  * @param {Object} armorTypeCount - Map of armor_subtype -> { count: number, skillName: string }
@@ -1087,21 +1087,28 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 		
 		if (!skill) continue;
 		
-		// Get current skill level for the player
-		const characterSkill = await CharacterSkill.findOne({
+		// Find or create the skill record
+		const [skillRecord] = await CharacterSkill.findOrCreate({
 			where: { character_id: playerId, skill_id: skill.id },
+			defaults: { lv: 0, xp: 0, type: skill.type || 'armor', aptitude: 1 },
 		});
-		const currentLevel = characterSkill?.lv || 0;
 		
-		// Calculate base XP using formula: XP = (log10(Damage + 1) ﾃ・100) / (Level + 1)
-		const baseXp = Math.floor((Math.log10(totalDamageValue + 1) * 100) / (currentLevel + 1));
+		const currentLevel = skillRecord.lv || 0;
 		
-		// Multiply by number of armor pieces of this type
+		// Formula: floor(damage * 5 / ((level+1) * 1.05^level)) * armorPieceCount
+		const baseXp = Math.floor((totalDamageValue * 5) / ((currentLevel + 1) * Math.pow(1.05, currentLevel)));
 		const xpGained = baseXp * armorData.count;
 		
 		if (xpGained > 0) {
-			// Add XP to skill
-			await characterUtility.addCharacterSkillExperience(playerId, { [skill.id]: xpGained });
+			skillRecord.xp = (skillRecord.xp || 0) + xpGained;
+			
+			// One level gain per fight, excess XP discarded
+			if (skillRecord.xp >= 1000) {
+				skillRecord.lv = currentLevel + 1;
+				skillRecord.xp = 0;
+			}
+			
+			await skillRecord.save();
 			
 			// Track for return
 			if (!skillXpGained[skill.name]) {
@@ -1116,7 +1123,7 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 
 /**
  * Apply weapon skill XP based on damage dealt
- * Formula: XP = (log10(Damage + 1) ﾃ・100) / (Level + 1)
+ * Formula: XP = floor(log10(Damage + 1) * 100)
  * @param {string} playerId - The player's character ID
  * @param {Object} weaponDamageMap - Map of item_id -> { damage: number, attackName: string }
  * @returns {Object} Map of skill_name -> xp gained
@@ -1151,19 +1158,28 @@ async function applyWeaponSkillXp(playerId, weaponDamageMap) {
 		
 		if (!skill) continue;
 		
-		// Get current skill level for the player
-		const characterSkill = await CharacterSkill.findOne({
+		// Find or create the skill record
+		const [skillRecord] = await CharacterSkill.findOrCreate({
 			where: { character_id: playerId, skill_id: skill.id },
+			defaults: { lv: 0, xp: 0, type: skill.type || 'weapon', aptitude: 1 },
 		});
-		const currentLevel = characterSkill?.lv || 0;
 		
-		// Calculate XP using formula: XP = (log10(Damage + 1) ﾃ・100) / (Level + 1)
+		const currentLevel = skillRecord.lv || 0;
 		const damage = weaponData.damage;
-		const xpGained = Math.floor((Math.log10(damage + 1) * 100) / (currentLevel + 1));
+		
+		// Formula: floor(damage * 5 / ((level+1) * 1.05^level))
+		const xpGained = Math.floor((damage * 5) / ((currentLevel + 1) * Math.pow(1.05, currentLevel)));
 		
 		if (xpGained > 0) {
-			// Add XP to skill
-			await characterUtility.addCharacterSkillExperience(playerId, { [skill.id]: xpGained });
+			skillRecord.xp = (skillRecord.xp || 0) + xpGained;
+			
+			// One level gain per fight, excess XP discarded
+			if (skillRecord.xp >= 1000) {
+				skillRecord.lv = currentLevel + 1;
+				skillRecord.xp = 0;
+			}
+			
+			await skillRecord.save();
 			
 			// Track for return
 			if (!skillXpGained[skill.name]) {
@@ -1232,11 +1248,12 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		await characterUtility.modifyCharacterStat(playerId, 'gold', reward.gold);
 	}
 
-	// Handle experience reward (always given on victory, calculated from levels)
-	// XP Gained = max(1, [100 / 竏・player_level)] ﾃ・(mob_level / player_level)^1.2)
-	const baseXp = 100 / Math.sqrt(playerLevel);
-	const levelRatio = Math.pow(mobLevel / playerLevel, 1.2);
-	const calculatedXp = Math.max(1, Math.floor(baseXp * levelRatio));
+	// Handle experience reward
+	// XP = floor(reward.xp * max(0, 1 + (mobLevel - playerLevel) * 0.2))
+	// -5 level diff = 0 XP, each level above/below adds/removes 20%
+	const baseXp = reward.xp || 0;
+	const levelMultiplier = Math.max(0, 1 + (mobLevel - playerLevel) * 0.2);
+	const calculatedXp = Math.floor(baseXp * levelMultiplier);
 
 	lootResults.exp = calculatedXp;
 

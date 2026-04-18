@@ -81,6 +81,8 @@ npcs:
   - id: "captain-vorne"
     name: "Thuyền trưởng Vorne"
     fullname: "Aldric Vorne"
+    avatar: >-
+      https://static.wikia.nocookie.net/fireemblem/images/1/12/OlsonFE8.gif/revision/latest?cb=20120323005935
     unknown_name: "Sĩ quan"
     npc_type: "guard"
     status: "active"
@@ -161,7 +163,7 @@ npcs:
     fullname: "Lawrence Hensbane"
     unknown_name: "Người lính đánh thuê"
     avatar: >-
-      https://static.wikia.nocookie.net/fireemblem/images/f/f2/Portrait_Glen_Heroes.png/revision/latest?cb=20240716044328
+      https://static.wikia.nocookie.net/fireemblem/images/2/2a/KeseldaFE8.gif/revision/latest?cb=20120101031556
     npc_type: "guard"
     status: "active"
     age: 43
