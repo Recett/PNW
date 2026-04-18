@@ -86,7 +86,7 @@ async function migrateSkillXpV1() {
 
 	try {
 		const { CharacterSkill, GlobalFlag } = require('../dbObject');
-		const existing = await GlobalFlag.findOne({ where: { flag_name: MIGRATION_FLAG } });
+		const existing = await GlobalFlag.findOne({ where: { flag: MIGRATION_FLAG } });
 		if (existing) return;
 
 		const allSkills = await CharacterSkill.findAll();
@@ -99,7 +99,7 @@ async function migrateSkillXpV1() {
 			await row.save();
 			updated++;
 		}
-		await GlobalFlag.create({ flag_name: MIGRATION_FLAG, flag_value: 1 });
+		await GlobalFlag.create({ flag: MIGRATION_FLAG, value: 1 });
 		if (updated > 0) console.log(`[Ready] skill_xp_migration_v1: updated ${updated} skill row(s).`);
 	}
 	catch (error) {
