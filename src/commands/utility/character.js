@@ -132,6 +132,18 @@ module.exports = {
 						.setDescription('Deactivate an equipped perk.'),
 				),
 		)
+		.addSubcommandGroup(group =>
+			group.setName('skill')
+				.setDescription('View your character\'s skills.')
+				.addSubcommand(sub =>
+					sub.setName('list')
+						.setDescription('View all your learned skills and their levels.')
+						.addUserOption(option =>
+							option.setName('user')
+								.setDescription('(Admin only) User to view skills for')
+								.setRequired(false)),
+				),
+		)
 		.addSubcommand(sub =>
 			sub.setName('delete')
 				.setDescription('Delete your character and all associated data.')
@@ -182,6 +194,9 @@ module.exports = {
 				if (sub === 'list') await handlePerkList(interaction, userId, character);
 				else if (sub === 'activate') await handlePerkActivate(interaction, userId);
 				else if (sub === 'deactivate') await handlePerkDeactivate(interaction, userId);
+			}
+			else if (subGroup === 'skill') {
+				if (sub === 'list') await handleSkillList(interaction, userId);
 			}
 		}
 		catch (error) {
@@ -847,7 +862,57 @@ function getPerkData(perkId) {
 	return contentStore.perks.findByPk(perkId) || null;
 }
 
-// ─── Delete ───────────────────────────────────────────────────────────────────
+function getSkillData(skillId) {
+	return contentStore.skills.findByPk(skillId) || null;
+}
+
+// ─── Skill List ────────────────────────────────────────────────────────────────
+async function handleSkillList(interaction, userId) {
+	const targetUser = interaction.options.getUser('user');
+
+	if (targetUser && targetUser.id !== userId) {
+		const member = await interaction.guild.members.fetch(userId);
+		if (!member.permissions.has(PermissionFlagsBits.BanMembers)) {
+			return await interaction.editReply({ content: 'You need admin permissions to view other users\' skills.' });
+		}
+	}
+
+	const targetId = targetUser ? targetUser.id : userId;
+	const displayUser = targetUser || interaction.user;
+
+	const character = await characterUtil.getCharacterBase(targetId);
+	if (!character) {
+		const label = targetUser ? `${displayUser.username}'s character` : 'Character';
+		return await interaction.editReply({ content: `${label} not found.` });
+	}
+
+	const charSkills = await CharacterSkill.findAll({ where: { character_id: targetId } });
+	if (!charSkills || charSkills.length === 0) {
+		const label = targetUser ? `${displayUser.username} has` : 'You have';
+		return await interaction.editReply({ content: `${label} no learned skills.` });
+	}
+
+	const sorted = [...charSkills].sort((a, b) => {
+		const nameA = getSkillData(a.skill_id)?.name ?? a.skill_id;
+		const nameB = getSkillData(b.skill_id)?.name ?? b.skill_id;
+		return nameA.localeCompare(nameB);
+	});
+
+	const lines = sorted.map(cs => {
+		const skillData = getSkillData(cs.skill_id);
+		const name = skillData ? skillData.name : `Skill #${cs.skill_id}`;
+		const desc = skillData?.description ? ` — ${skillData.description}` : '';
+		return `**${name}** — Lv. ${cs.lv} (${cs.xp} XP)${desc}`;
+	});
+
+	const title = targetUser ? `${displayUser.username}'s Skills` : `${character.name}'s Skills`;
+	const embed = new EmbedBuilder()
+		.setTitle(title)
+		.setColor(0x3498db)
+		.setDescription(lines.join('\n'));
+
+	await interaction.editReply({ embeds: [embed] });
+}
 async function handleDelete(interaction, userId) {
 	const targetUser = interaction.options.getUser('user');
 	const targetId = targetUser ? targetUser.id : userId;

@@ -1411,10 +1411,10 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				actionLines.push('');
 				actionLines.push('*You feels hard to breathe.*');
 				if (log.damage > 0) {
-					actionLines.push(`笏披楳 ${log.label}: -${log.damage} HP | Stacks: ${log.stacks} 竊・${newStacks} | HP: ${log.targetHp}`);
+					actionLines.push(`${EMOJI.BULLET} ${log.label}: -${log.damage} HP | Stacks: ${log.stacks} ${EMOJI.ARROW}${newStacks} | HP: ${log.targetHp}`);
 				}
 				else {
-					actionLines.push(`笏披楳 ${log.label}: Stacks: ${log.stacks} 竊・${newStacks} | HP: ${log.targetHp}`);
+					actionLines.push(`${EMOJI.BULLET} ${log.label}: Stacks: ${log.stacks} ${EMOJI.ARROW}${newStacks} | HP: ${log.targetHp}`);
 				}
 			}
 			lastAttacker = null;
@@ -1424,7 +1424,7 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 		// Render riposte counter-attack lines
 		if (group.type === 'riposte') {
 			const { log } = group;
-			actionLines.push(`笏披楳 竊ｩ・・**Riposte!** ${log.attacker} retaliates for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
+				actionLines.push(`${EMOJI.BULLET} ${EMOJI.RIPOSTE} **Riposte!** ${log.attacker} retaliates for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
 			lastAttacker = null;
 			continue;
 		}
@@ -1434,7 +1434,7 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			const { log } = group;
 			if (log.hit) {
 				const cName = log.perkName || 'Counter';
-				actionLines.push(`笏披楳 笞費ｸ・**${cName}!** ${log.attacker} thrusts back for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.SWORD} **${cName}!** ${log.attacker} thrusts back for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
 			}
 			lastAttacker = null;
 			continue;
@@ -1453,11 +1453,11 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			if (hitCount === 1) {
 				const h = group.hits[0];
 				if (h.hit) {
-					actionLines.push(`${group.attacker} raises ${group.attack} granting 孱・・**${h.shieldGranted}** shield!`);
-					actionLines.push(`笏披楳 ${group.attacker} Shield: ${h.attackerShield}`);
+					actionLines.push(`${group.attacker} raises ${group.attack} granting ${EMOJI.SHIELD} **${h.shieldGranted}** shield!`);
+					actionLines.push(`${EMOJI.BULLET} ${group.attacker} Shield: ${h.attackerShield}`);
 				}
 				else {
-					actionLines.push(`${group.attacker} attempts to raise ${group.attack} but fumbles! 暢`);
+					actionLines.push(`${group.attacker} attempts to raise ${group.attack} but fumbles! ${EMOJI.WIND}`);
 				}
 			}
 			else {
@@ -1546,12 +1546,12 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	let outcomeSection;
 	if (isMutualDestruction) {
 		outcomeSection = '\u2620\uFE0F **BATTLE OUTCOME** \u2620\uFE0F\n';
-		outcomeSection += `**Mutual Destruction** 窶・both combatants fell simultaneously!\n`;
+		outcomeSection += `**Mutual Destruction** ${EMOJI.EM_DASH} both combatants fell simultaneously!\n`;
 		outcomeSection += defeated.map(a => a.name).join(' and ') + ' are both defeated.\n';
 	}
 	else if (isDraw) {
 		outcomeSection = '\u23F1\uFE0F **BATTLE OUTCOME** \u23F1\uFE0F\n';
-		outcomeSection += `**Inconclusive** 窶・time ran out.\n`;
+		outcomeSection += `**Inconclusive** ${EMOJI.EM_DASH} time ran out.\n`;
 		outcomeSection += survivors.map(a => `${a.name}: ${a.hp} HP remaining`).join(', ') + '\n';
 	}
 	else {
@@ -1567,34 +1567,34 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 	// Build rewards section
 	let rewardsSection = '';
 	if (lootResults && lootResults.playerVictory) {
-		rewardsSection += '\n腸 **REWARDS** 腸\n';
+		rewardsSection += `\n${EMOJI.MONEY_BAG} **REWARDS** ${EMOJI.MONEY_BAG}\n`;
 
 		if (lootResults.gold > 0) {
-			rewardsSection += `Gold: +${lootResults.gold} ｪ兔n`;
+			rewardsSection += `Gold: +${lootResults.gold} ${EMOJI.COIN}\n`;
 		}
 
 		if (lootResults.exp > 0) {
-			rewardsSection += `Experience: +${lootResults.exp} 笨ｨ\n`;
+			rewardsSection += `Experience: +${lootResults.exp} ${EMOJI.SPARKLE}\n`;
 		}
 
 		if (lootResults.items && lootResults.items.length > 0) {
 			rewardsSection += 'Items:\n';
 			for (const item of lootResults.items) {
-				rewardsSection += `笏披楳 ${item.name} x${item.quantity} 氏\n`;
+				rewardsSection += `${EMOJI.BULLET} ${item.name} x${item.quantity} ${EMOJI.GIFT}\n`;
 			}
 		}
 
 		// Show level up info
 		if (lootResults.leveledUp) {
-			rewardsSection += '\n脂 **LEVEL UP!** 脂\n';
-			rewardsSection += `Level ${lootResults.oldLevel} 竊・${lootResults.newLevel}\n`;
+			rewardsSection += `\n${EMOJI.PARTY} **LEVEL UP!** ${EMOJI.PARTY}\n`;
+			rewardsSection += `Level ${lootResults.oldLevel} ${EMOJI.ARROW} ${lootResults.newLevel}\n`;
 			rewardsSection += `Free stat points gained: +${lootResults.freeStatPointsGained}\n`;
 			rewardsSection += `Total free stat points: ${lootResults.totalFreeStatPoints}\n`;
 		}
 
 		// Show weapon skill XP gained
 		if (lootResults.weaponSkillXp && Object.keys(lootResults.weaponSkillXp).length > 0) {
-			rewardsSection += '\n裡・・**SKILL XP** 裡・十n';
+			rewardsSection += `\n${EMOJI.DAGGER} **SKILL XP** ${EMOJI.DAGGER}\n`;
 			for (const [skillName, xpGained] of Object.entries(lootResults.weaponSkillXp)) {
 				rewardsSection += `${skillName}: +${xpGained} XP\n`;
 			}
@@ -1602,14 +1602,14 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 
 		// Show armor skill XP gained
 		if (lootResults.armorSkillXp && Object.keys(lootResults.armorSkillXp).length > 0) {
-			rewardsSection += '\n孱・・**ARMOR XP** 孱・十n';
+			rewardsSection += `\n${EMOJI.SHIELD} **ARMOR XP** ${EMOJI.SHIELD}\n`;
 			for (const [skillName, xpGained] of Object.entries(lootResults.armorSkillXp)) {
 				rewardsSection += `${skillName}: +${xpGained} XP\n`;
 			}
 		}
 	}
 
-	const header = '笞費ｸ・**BATTLE REPORT** 笞費ｸ十n\n';
+	const header = `${EMOJI.SWORD} **BATTLE REPORT** ${EMOJI.SWORD}\n\n`;
 	const footer = outcomeSection + rewardsSection;
 
 	// Calculate available space for actions

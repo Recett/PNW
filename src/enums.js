@@ -82,13 +82,21 @@ const EMOJI = {
 	RUN: '\uD83C\uDFC3',          // 🏃
 	SHIELD: '\uD83D\uDEE1\uFE0F', // 🛡️
 	LIGHTNING: '\u26A1',          // ⚡
-	BULLET: '\u25B8',             // ▸
+	BULLET: '\u2514\u2500',       // └─
 	STAR: '\u2B50',               // ⭐
 	WIND: '\uD83D\uDCA8',         // 💨
+	ARROW: '\u2192',              // →
+	RIPOSTE: '\u21A9\uFE0F',      // ↩️
+	BOOM: '\uD83D\uDCA5',         // 💥
+	DAGGER: '\uD83D\uDDE1\uFE0F', // 🗡️
+	EM_DASH: '\u2014',            // —
 
 	// Items / Economy
 	PACKAGE: '\uD83D\uDCE6', // 📦
 	GOLD: '\uD83D\uDCB0',    // 💰
+	MONEY_BAG: '\uD83D\uDCB0', // 💰
+	COIN: '\uD83E\uFA99',    // 🪙
+	GIFT: '\uD83C\uDF81',    // 🎁
 	SPARKLE: '\u2728',       // ✨
 	CHART: '\uD83D\uDCCA',   // 📊
 	WALK: '\uD83D\uDEB6',    // 🚶
