@@ -1774,19 +1774,49 @@ class EventProcessor {
 				return currentLevel >= (p.required_building_level || 1);
 			});
 			// Filter perks by tier prerequisite (must own previous tier first)
-			const { CharacterPerk: CharPerkForShop } = require('@root/dbObject.js');
+			const { CharacterPerk: CharPerkForShop, CharacterSkill: CharSkillForShop } = require('@root/dbObject.js');
 			const ownedPerks = await CharPerkForShop.findAll({ where: { character_id: session.characterId } });
 			const ownedPerkIds = new Set(
 				ownedPerks
 					.filter(cp => cp.status === 'available' || cp.status === 'equipped')
 					.map(cp => String(cp.perk_id)),
 			);
+
+			// Build character skill level map: { 'rapier': 12, 'spear': 0, ... }
+			const charSkills = await CharSkillForShop.findAll({ where: { character_id: session.characterId } });
+			const skillLevelMap = {};
+			for (const cs of charSkills) skillLevelMap[cs.skill_id] = cs.lv || 0;
+
+			// Build gateway perk ID per skill (tier = null/undefined, same skill)
+			const gatewayPerkBySkill = {};
+			for (const p of contentStore.perks.all()) {
+				if (p.tier == null && p.skill) gatewayPerkBySkill[p.skill] = p.id;
+			}
+
 			const prereqFilteredPerks = filteredPerks.filter(p => {
 				// Hide already-learned perks
 				if (ownedPerkIds.has(String(p.perk))) return false;
-				const tier = p.perkData?.tier;
-				if (tier == null || tier <= 1) return true;
-				const group = p.perkData?.group;
+				const perkData = p.perkData;
+				const tier = perkData?.tier;
+				const skillId = perkData?.skill;
+
+				// Gate by skill level requirement
+				const requiredLevel = perkData?.skill_level_required ?? 0;
+				const charLevel = skillLevelMap[skillId] ?? 0;
+				if (charLevel < requiredLevel) return false;
+
+				// Gateway perks (no tier): no further prereq
+				if (tier == null) return true;
+
+				// Tier-1 perks: require the gateway perk for the same skill
+				if (tier === 1) {
+					const gatewayId = gatewayPerkBySkill[skillId];
+					if (gatewayId && !ownedPerkIds.has(String(gatewayId))) return false;
+					return true;
+				}
+
+				// Tier 2+: require previous tier in same group
+				const group = perkData?.group;
 				if (!group) return true;
 				return ownedPerks.some(cp =>
 					(cp.status === 'available' || cp.status === 'equipped') &&

@@ -35,11 +35,12 @@ async function showIngredientSelection(interaction, ingredients) {
 	const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 	const buttonRow = new ActionRowBuilder().addComponents(cancelButton);
 
-	const method = interaction.replied || interaction.deferred ? 'editReply' : 'reply';
+	const isEdit = interaction.replied || interaction.deferred;
+	const method = isEdit ? 'editReply' : 'reply';
 	await interaction[method]({
 		embeds: [embed],
 		components: [selectRow, buttonRow],
-		flags: MessageFlags.Ephemeral
+		...(isEdit ? {} : { flags: MessageFlags.Ephemeral }),
 	});
 }
 
@@ -83,11 +84,12 @@ async function showCookingInterface(interaction, userId, session) {
 		});
 	}
 	else {
-		const method = interaction.replied || interaction.deferred ? 'editReply' : 'reply';
+		const isEdit = interaction.replied || interaction.deferred;
+		const method = isEdit ? 'editReply' : 'reply';
 		await interaction[method]({
 			embeds: [embed],
 			components: [additiveRow, buttonRow],
-			flags: MessageFlags.Ephemeral
+			...(isEdit ? {} : { flags: MessageFlags.Ephemeral }),
 		});
 	}
 }
@@ -642,7 +644,7 @@ async function startCooking(interaction, userId) {
 	}
 	catch (error) {
 		console.error('Error starting cooking:', error);
-		return false;
+		throw error;
 	}
 }
 module.exports.startCooking = startCooking;
