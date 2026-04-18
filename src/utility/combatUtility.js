@@ -3,6 +3,7 @@ const contentStore = require('@root/contentStore.js');
 const characterUtility = require('./characterUtility');
 const itemUtility = require('./itemUtility');
 const { getCharacterSetting } = require('./characterSettingUtility');
+const { EMOJI } = require('../enums');
 
 // Named ambient combat effects. Referenced by name in YAML: combat.ambient_effect
 const AMBIENT_EFFECTS = {
@@ -1469,8 +1470,8 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 						lastShield = h.attackerShield;
 					}
 				}
-				actionLines.push(`${group.attacker} raises ${group.attack} ${hitCount} times granting 孱・・**${totalShield}** total shield!`);
-				actionLines.push(`笏披楳 ${group.attacker} Shield: ${lastShield}`);
+				actionLines.push(`${group.attacker} raises ${group.attack} ${hitCount} times granting ${EMOJI.SHIELD}**${totalShield}** total shield!`);
+				actionLines.push(`${EMOJI.BULLET} ${group.attacker} Shield: ${lastShield}`);
 			}
 		}
 		else if (hitCount === 1) {
@@ -1479,24 +1480,24 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			if (h.hit) {
 				let attackText = `${group.attacker} attacks ${group.target} with ${group.attack}`;
 				if (h.crit) {
-					attackText += ' **CRITICAL HIT!** 徴';
+					attackText += ` **CRITICAL HIT!** ${EMOJI.LIGHTNING}`;
 				}
 				else if (h.critResisted) {
-					attackText += ' **CRIT RESISTED!** 孱・・;
+					attackText += ` **CRIT RESISTED!** ${EMOJI.SHIELD}`;
 				}
 				if (h.shieldAbsorbed > 0) {
-					attackText += ` (孱・・${h.shieldAbsorbed} absorbed)`;
+					attackText += ` (${EMOJI.SHIELD}${h.shieldAbsorbed} absorbed)`;
 				}
 				if (h.parryReduced > 0) {
-					const parryIcon = h.parryTier === 'perfect' ? '笨ｨ' : h.parryTier === 'good' ? '笞｡' : '笞費ｸ・;
+					const parryIcon = h.parryTier === 'perfect' ? EMOJI.SPARKLE : h.parryTier === 'good' ? EMOJI.STAR : EMOJI.SWORD;
 					attackText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
 				}
 				attackText += ` dealing ${h.damage} damage!`;
 				actionLines.push(attackText);
-				actionLines.push(`笏披楳 ${group.target} HP: ${h.targetHp}`);
+				actionLines.push(`${EMOJI.BULLET} ${group.target} HP: ${h.targetHp}`);
 			}
 			else {
-				actionLines.push(`${group.attacker} attacks ${group.target} with ${group.attack} but misses! 暢`);
+				actionLines.push(`${group.attacker} attacks ${group.target} with ${group.attack} but misses! ${EMOJI.WIND}`);
 			}
 		}
 		else {
@@ -1509,30 +1510,30 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				if (h.hit) {
 					let hitText = '';
 					if (h.crit) {
-						hitText = `笏披楳 徴 Crit - ${h.damage} damage`;
+						hitText = `${EMOJI.BULLET} ${EMOJI.LIGHTNING} Crit - ${h.damage} damage`;
 					}
 					else if (h.critResisted) {
-						hitText = `笏披楳 孱・・Crit Resisted - ${h.damage} damage`;
+						hitText = `${EMOJI.BULLET} ${EMOJI.SHIELD} Crit Resisted - ${h.damage} damage`;
 					}
 					else {
-						hitText = `笏披楳 笞費ｸ・Hit - ${h.damage} damage`;
+						hitText = `${EMOJI.BULLET} ${EMOJI.SWORD} Hit - ${h.damage} damage`;
 					}
 					if (h.shieldAbsorbed > 0) {
-						hitText += ` (孱・・${h.shieldAbsorbed} absorbed)`;
+						hitText += ` (${EMOJI.SHIELD}${h.shieldAbsorbed} absorbed)`;
 					}
 					if (h.parryReduced > 0) {
-						const parryIcon = h.parryTier === 'perfect' ? '笨ｨ' : h.parryTier === 'good' ? '笞｡' : '笞費ｸ・;
+						const parryIcon = h.parryTier === 'perfect' ? EMOJI.SPARKLE : h.parryTier === 'good' ? EMOJI.STAR : EMOJI.SWORD;
 						hitText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
 					}
 					actionLines.push(hitText);
 				}
 				else {
-					actionLines.push('笏披楳 暢 Miss');
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.WIND} Miss`);
 				}
 				lastHp = h.targetHp;
 			}
 			// Show final HP after all attacks
-			actionLines.push(`笏披楳 ${group.target} HP: ${lastHp}`);
+				actionLines.push(`${EMOJI.BULLET} ${group.target} HP: ${lastHp}`);
 		}
 	}
 

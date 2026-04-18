@@ -77,9 +77,14 @@ const EMOJI = {
 	INFO: '\u2139\uFE0F',    // ℹ️
 
 	// Combat
-	SWORD: '\u2694\uFE0F',   // ⚔️
-	SKULL: '\uD83D\uDC80',   // 💀
-	RUN: '\uD83C\uDFC3',     // 🏃
+	SWORD: '\u2694\uFE0F',        // ⚔️
+	SKULL: '\uD83D\uDC80',        // 💀
+	RUN: '\uD83C\uDFC3',          // 🏃
+	SHIELD: '\uD83D\uDEE1\uFE0F', // 🛡️
+	LIGHTNING: '\u26A1',          // ⚡
+	BULLET: '\u25B8',             // ▸
+	STAR: '\u2B50',               // ⭐
+	WIND: '\uD83D\uDCA8',         // 💨
 
 	// Items / Economy
 	PACKAGE: '\uD83D\uDCE6', // 📦

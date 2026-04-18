@@ -844,6 +844,8 @@
         npc: law-hensbane
         shop_type: perk
         trigger_condition: immediate
+
+  - id: hensbane-continue
     name: "Hensbane —Tiếp Tục"
     event_type: dialogue
 

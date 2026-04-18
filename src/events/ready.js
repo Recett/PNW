@@ -7,6 +7,9 @@ module.exports = {
 		console.log(`Ready! Logged in as ${client.user.tag}`);
 		// client.developerMode = (await client.util.config()).developerMode;
 
+		// Migrate character_skills.skill_id from legacy numeric IDs to subtype strings
+		await migrateSkillIds();
+
 		// Clean up orphan TradeItem rows left behind by previously failed trade executions
 		await cleanupOrphanTradeItems();
 
@@ -14,6 +17,43 @@ module.exports = {
 		await restartActiveRaidTimers(client);
 	},
 };
+
+/**
+ * One-time migration: convert character_skills.skill_id from legacy numeric IDs
+ * (e.g. "5") to subtype-based string IDs (e.g. "rapier").
+ * Idempotent — rows that already use subtype IDs are unaffected.
+ */
+async function migrateSkillIds() {
+	try {
+		const { sequelize } = require('../dbObject');
+		const idMap = {
+			'1': 'axe',
+			'2': 'dagger',
+			'3': 'longbow',
+			'4': 'mace',
+			'5': 'rapier',
+			'6': 'shield',
+			'7': 'shortbow',
+			'8': 'spear',
+			'9': 'sword',
+			'10': 'heavy',
+			'11': 'light',
+			'12': 'medium',
+		};
+		let migrated = 0;
+		for (const [oldId, newId] of Object.entries(idMap)) {
+			const [, meta] = await sequelize.query(
+				'UPDATE character_skills SET skill_id = ? WHERE skill_id = ?',
+				{ replacements: [newId, oldId] },
+			);
+			migrated += meta?.changes ?? 0;
+		}
+		if (migrated > 0) console.log(`[Ready] Migrated ${migrated} character_skill row(s) to subtype-based skill IDs.`);
+	}
+	catch (error) {
+		console.error('[Ready] Error migrating skill IDs:', error);
+	}
+}
 
 /**
  * Remove TradeItem rows for cancelled/completed trades.
