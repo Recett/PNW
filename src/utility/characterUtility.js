@@ -767,6 +767,9 @@ let clearAllCharacterStatuses = async (characterId) => {
  */
 const XP_PER_LEVEL = 1000;
 
+// XP required to gain one skill level (used by combat skill XP formula)
+const skillLevelThreshold = 1000;
+
 /**
  * Check if character should level up and apply level up bonuses.
  * Deducts 1000 XP per level gained and grants 2 free stat points per level.
