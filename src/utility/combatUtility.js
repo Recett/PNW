@@ -1251,7 +1251,7 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 	// Handle experience reward
 	// XP = floor(reward.xp * max(0, 1 + (mobLevel - playerLevel) * 0.2))
 	// -5 level diff = 0 XP, each level above/below adds/removes 20%
-	const baseXp = reward.xp || 0;
+	const baseXp = reward.exp || reward.xp || 0;
 	const levelMultiplier = Math.max(0, 1 + (mobLevel - playerLevel) * 0.2);
 	const calculatedXp = Math.floor(baseXp * levelMultiplier);
 
