@@ -469,7 +469,7 @@ async function handleGrant(interaction) {
 		const afterXp = freshChar.xp ?? 0;
 		lines.push(`XP: ${beforeXp} \u2192 ${afterXp} (${xpAmount >= 0 ? '+' : ''}${xpAmount})`);
 		if (xpResult.leveledUp) {
-			lines.push(`Level: ${xpResult.oldLevel} \u2192 ${xpResult.newLevel} (+${xpResult.freeStatPointsGained} free points)`);
+			lines.push(`Level: ${xpResult.oldLevel} \u2192 ${xpResult.newLevel} (+${xpResult.freeStatPointsGained} free points, +${xpResult.perkPointsGained || 0} perk point${(xpResult.perkPointsGained || 0) === 1 ? '' : 's'})`);
 		}
 	}
 

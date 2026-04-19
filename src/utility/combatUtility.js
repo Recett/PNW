@@ -1251,7 +1251,7 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 	// Handle experience reward
 	// XP = floor(reward.xp * max(0, 1 + (mobLevel - playerLevel) * 0.2))
 	// -5 level diff = 0 XP, each level above/below adds/removes 20%
-	const baseXp = reward.xp || 0;
+	const baseXp = reward.exp || reward.xp || 0;
 	const levelMultiplier = Math.max(0, 1 + (mobLevel - playerLevel) * 0.2);
 	const calculatedXp = Math.floor(baseXp * levelMultiplier);
 
@@ -1267,7 +1267,9 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		lootResults.newLevel = expResult.newLevel;
 		lootResults.levelsGained = expResult.levelsGained;
 		lootResults.freeStatPointsGained = expResult.freeStatPointsGained;
+		lootResults.perkPointsGained = expResult.perkPointsGained;
 		lootResults.totalFreeStatPoints = expResult.totalFreeStatPoints;
+		lootResults.totalPerkPoints = expResult.totalPerkPoints;
 		lootResults.remainingXp = expResult.remainingXp;
 	}
 
@@ -1607,6 +1609,8 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			rewardsSection += `Level ${lootResults.oldLevel} ${EMOJI.ARROW} ${lootResults.newLevel}\n`;
 			rewardsSection += `Free stat points gained: +${lootResults.freeStatPointsGained}\n`;
 			rewardsSection += `Total free stat points: ${lootResults.totalFreeStatPoints}\n`;
+			rewardsSection += `Perk points gained: +${lootResults.perkPointsGained || 0}\n`;
+			rewardsSection += `Total perk points: ${lootResults.totalPerkPoints || 0}\n`;
 		}
 
 		// Show weapon skill XP gained

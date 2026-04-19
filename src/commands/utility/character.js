@@ -905,7 +905,7 @@ async function handleSkillList(interaction, userId) {
 		return `**${name}** — Lv. ${cs.lv} (${cs.xp} XP)${desc}`;
 	});
 
-	const title = targetUser ? `${displayUser.username}'s Skills` : `${character.name}'s Skills`;
+	const title = `${character.name}'s Skills`;
 	const embed = new EmbedBuilder()
 		.setTitle(title)
 		.setColor(0x3498db)

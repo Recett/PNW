@@ -325,7 +325,7 @@ async function handleCookingInteraction(interaction) {
 	if (!customId.startsWith('cook_')) return false;
 
 	try {
-		const cookCommand = require('../commands/utility/cook.js');
+		const cookCommand = require('@utility/specialEventUtility.js');
 		
 		if (customId === 'cook_select_ingredient') {
 			await cookCommand.handleIngredientSelection(interaction);

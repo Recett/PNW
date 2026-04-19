@@ -772,9 +772,9 @@ const skillLevelThreshold = 1000;
 
 /**
  * Check if character should level up and apply level up bonuses.
- * Deducts 1000 XP per level gained and grants 2 free stat points per level.
+ * Deducts 1000 XP per level gained and grants 2 free stat points and 1 perk point per level.
  * @param {string} characterId - The character ID
- * @returns {Object} { leveledUp: boolean, oldLevel: number, newLevel: number, freeStatPointsGained: number }
+ * @returns {Object} { leveledUp: boolean, oldLevel: number, newLevel: number, freeStatPointsGained: number, perkPointsGained: number }
  */
 let checkAndApplyLevelUp = async (characterId) => {
 	const { CharacterBase } = getDbModels();
@@ -797,14 +797,17 @@ let checkAndApplyLevelUp = async (characterId) => {
 
 	const newLevel = currentLevel + levelsGained;
 	const freeStatPointsGained = levelsGained * 2;
+	const perkPointsGained = levelsGained;
 	const currentFreePoints = character.free_point || 0;
+	const currentPerkPoints = character.perk_point || 0;
 
-	// Update level, deduct XP, and add free stat points
+	// Update level, deduct XP, and add level-up point rewards
 	await CharacterBase.update(
 		{
 			level: newLevel,
 			xp: currentXp,
 			free_point: currentFreePoints + freeStatPointsGained,
+			perk_point: currentPerkPoints + perkPointsGained,
 		},
 		{ where: { id: characterId } },
 	);
@@ -815,7 +818,9 @@ let checkAndApplyLevelUp = async (characterId) => {
 		newLevel: newLevel,
 		levelsGained: levelsGained,
 		freeStatPointsGained: freeStatPointsGained,
+		perkPointsGained: perkPointsGained,
 		totalFreeStatPoints: currentFreePoints + freeStatPointsGained,
+		totalPerkPoints: currentPerkPoints + perkPointsGained,
 		remainingXp: currentXp,
 		xpForNextLevel: XP_PER_LEVEL,
 	};

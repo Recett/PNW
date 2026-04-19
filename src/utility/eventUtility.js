@@ -1267,7 +1267,7 @@ class EventProcessor {
 			session.messages.push({ type: 'failure', text: `Bạn quá mệt để nấu ăn. (Cần ${STAMINA_COST} stamina)` });
 			return;
 		}
-		const cookCommand = require('../commands/utility/cook.js');
+		const cookCommand = require('@utility/specialEventUtility.js');
 		const started = await cookCommand.startCooking(session.interaction, session.characterId);
 		if (started) {
 			session.cookDone = true;
@@ -1616,7 +1616,7 @@ class EventProcessor {
 		if (result?.leveledUp) {
 			session.messages.push({
 				type: 'level_up',
-				text: `🎉 Level Up! You are now level ${result.newLevel}! (+${result.freeStatPointsGained} stat points)`,
+				text: `🎉 Level Up! You are now level ${result.newLevel}! (+${result.freeStatPointsGained} stat points, +${result.perkPointsGained || 0} perk point${(result.perkPointsGained || 0) === 1 ? '' : 's'})`,
 			});
 		}
 	}
