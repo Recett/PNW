@@ -1,6 +1,7 @@
 ﻿perks:
   - id: sbow-focus
     name: Focus
+    description: "Unlocks the Focus stack system. Each shortbow hit builds a stack; any enemy attack resets all stacks. Stacks amplify evasion and attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 1
@@ -9,6 +10,7 @@
     timing: battle_start
   - id: sbow-evasion-1
     name: Evasion I
+    description: "Each Focus stack grants +5% of your base evasion."
     category: combat
     skill: shortbow
     skill_level_required: 3
@@ -19,6 +21,7 @@
     timing: before_turn
   - id: sbow-evasion-2
     name: Evasion II
+    description: "Each Focus stack grants +8% of your base evasion."
     category: combat
     skill: shortbow
     skill_level_required: 20
@@ -29,6 +32,7 @@
     timing: before_turn
   - id: sbow-evasion-3
     name: Evasion III
+    description: "Each Focus stack grants +11% of your base evasion."
     category: combat
     skill: shortbow
     skill_level_required: 36
@@ -39,6 +43,7 @@
     timing: before_turn
   - id: sbow-evasion-4
     name: Evasion IV
+    description: "Each Focus stack grants +14% of your base evasion."
     category: combat
     skill: shortbow
     skill_level_required: 50
@@ -49,6 +54,7 @@
     timing: before_turn
   - id: sbow-evasion-5
     name: Evasion V
+    description: "Each Focus stack grants +17% of your base evasion."
     category: combat
     skill: shortbow
     skill_level_required: 58
@@ -59,6 +65,7 @@
     timing: before_turn
   - id: sbow-momentum-1
     name: Momentum I
+    description: "Each Focus stack grants +3% to your shortbow attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 6
@@ -69,6 +76,7 @@
     timing: after_turn
   - id: sbow-momentum-2
     name: Momentum II
+    description: "Each Focus stack grants +5% to your shortbow attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 28
@@ -79,6 +87,7 @@
     timing: after_turn
   - id: sbow-momentum-3
     name: Momentum III
+    description: "Each Focus stack grants +7% to your shortbow attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 44
@@ -89,6 +98,7 @@
     timing: after_turn
   - id: sbow-momentum-4
     name: Momentum IV
+    description: "Each Focus stack grants +9% to your shortbow attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 54
@@ -99,6 +109,7 @@
     timing: after_turn
   - id: sbow-momentum-5
     name: Momentum V
+    description: "Each Focus stack grants +11% to your shortbow attack speed."
     category: combat
     skill: shortbow
     skill_level_required: 60

@@ -34,31 +34,31 @@ const RIPOSTE_MULT_BY_PERK = {
 	'rapier-riposte-5': 1.50,
 };
 
-// Spear Thorn perks: each level adds 0.20 to the counter multiplier M
+// Spear Thorn perks: cumulative counter multiplier bonus (highest tier wins)
 const SPEAR_THORN_M_BY_PERK = {
 	'spear-thorn-1': 0.20,
-	'spear-thorn-2': 0.20,
-	'spear-thorn-3': 0.20,
-	'spear-thorn-4': 0.20,
-	'spear-thorn-5': 0.20,
+	'spear-thorn-2': 0.40,
+	'spear-thorn-3': 0.60,
+	'spear-thorn-4': 0.80,
+	'spear-thorn-5': 1.00,
 };
 
-// Spear Steady perks: each level subtracts 0.20 from M (penalty applied against Bold sum)
+// Spear Steady perks: cumulative counter multiplier penalty (highest tier wins)
 const SPEAR_STEADY_M_BY_PERK = {
 	'spear-steady-1': 0.20,
-	'spear-steady-2': 0.20,
-	'spear-steady-3': 0.20,
-	'spear-steady-4': 0.20,
-	'spear-steady-5': 0.20,
+	'spear-steady-2': 0.40,
+	'spear-steady-3': 0.60,
+	'spear-steady-4': 0.80,
+	'spear-steady-5': 1.00,
 };
 
-// Spear Steady perks: each level adds 0.10 to the absorption multiplier S
+// Spear Steady perks: cumulative absorption multiplier (highest tier wins)
 const SPEAR_STEADY_S_BY_PERK = {
 	'spear-steady-1': 0.10,
-	'spear-steady-2': 0.10,
-	'spear-steady-3': 0.10,
-	'spear-steady-4': 0.10,
-	'spear-steady-5': 0.10,
+	'spear-steady-2': 0.20,
+	'spear-steady-3': 0.30,
+	'spear-steady-4': 0.40,
+	'spear-steady-5': 0.50,
 };
 const SPEAR_STEADY_NAME_BY_PERK = {
 	'spear-thorn-1': 'Thorn I',
@@ -682,13 +682,13 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	let sumSteadyM = 0;
 	let sumSteadyS = 0;
 	for (const [id, val] of Object.entries(SPEAR_THORN_M_BY_PERK)) {
-		if (spearPerkIds.has(id)) sumThornM += val;
+		if (spearPerkIds.has(id)) sumThornM = Math.max(sumThornM, val);
 	}
 	for (const [id, val] of Object.entries(SPEAR_STEADY_M_BY_PERK)) {
-		if (spearPerkIds.has(id)) sumSteadyM += val;
+		if (spearPerkIds.has(id)) sumSteadyM = Math.max(sumSteadyM, val);
 	}
 	for (const [id, val] of Object.entries(SPEAR_STEADY_S_BY_PERK)) {
-		if (spearPerkIds.has(id)) sumSteadyS += val;
+		if (spearPerkIds.has(id)) sumSteadyS = Math.max(sumSteadyS, val);
 	}
 
 	// === Compute spear counter state ===
@@ -1251,7 +1251,7 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 	// Handle experience reward
 	// XP = floor(reward.xp * max(0, 1 + (mobLevel - playerLevel) * 0.2))
 	// -5 level diff = 0 XP, each level above/below adds/removes 20%
-	const baseXp = reward.exp || reward.xp || 0;
+	const baseXp = reward.xp || 0;
 	const levelMultiplier = Math.max(0, 1 + (mobLevel - playerLevel) * 0.2);
 	const calculatedXp = Math.floor(baseXp * levelMultiplier);
 
@@ -1267,9 +1267,7 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		lootResults.newLevel = expResult.newLevel;
 		lootResults.levelsGained = expResult.levelsGained;
 		lootResults.freeStatPointsGained = expResult.freeStatPointsGained;
-		lootResults.perkPointsGained = expResult.perkPointsGained;
 		lootResults.totalFreeStatPoints = expResult.totalFreeStatPoints;
-		lootResults.totalPerkPoints = expResult.totalPerkPoints;
 		lootResults.remainingXp = expResult.remainingXp;
 	}
 
@@ -1609,8 +1607,6 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			rewardsSection += `Level ${lootResults.oldLevel} ${EMOJI.ARROW} ${lootResults.newLevel}\n`;
 			rewardsSection += `Free stat points gained: +${lootResults.freeStatPointsGained}\n`;
 			rewardsSection += `Total free stat points: ${lootResults.totalFreeStatPoints}\n`;
-			rewardsSection += `Perk points gained: +${lootResults.perkPointsGained || 0}\n`;
-			rewardsSection += `Total perk points: ${lootResults.totalPerkPoints || 0}\n`;
 		}
 
 		// Show weapon skill XP gained

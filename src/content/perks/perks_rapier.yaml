@@ -1,6 +1,7 @@
 perks:
   - id: rapier-prise-de-fer
     name: Prise de Fer
+    description: "Unlocks the Parry mechanic. Sets your parry ceiling to 40%. Without it, rapier guard is unavailable."
     category: combat
     skill: rapier
     skill_level_required: 1
@@ -9,6 +10,7 @@ perks:
     timing: battle_start
   - id: rapier-parry-1
     name: Parry I
+    description: "Raises your parry ceiling to 44%."
     category: combat
     skill: rapier
     skill_level_required: 12
@@ -19,6 +21,7 @@ perks:
     timing: battle_start
   - id: rapier-parry-2
     name: Parry II
+    description: "Raises your parry ceiling to 48%."
     category: combat
     skill: rapier
     skill_level_required: 20
@@ -29,6 +32,7 @@ perks:
     timing: battle_start
   - id: rapier-parry-3
     name: Parry III
+    description: "Raises your parry ceiling to 52%."
     category: combat
     skill: rapier
     skill_level_required: 36
@@ -39,6 +43,7 @@ perks:
     timing: battle_start
   - id: rapier-parry-4
     name: Parry IV
+    description: "Raises your parry ceiling to 56%."
     category: combat
     skill: rapier
     skill_level_required: 50
@@ -49,6 +54,7 @@ perks:
     timing: battle_start
   - id: rapier-parry-5
     name: Parry V
+    description: "Raises your parry ceiling to 60%."
     category: combat
     skill: rapier
     skill_level_required: 58
@@ -59,6 +65,7 @@ perks:
     timing: battle_start
   - id: rapier-riposte-1
     name: Riposte I
+    description: "On a successful parry, counter-attacks at 50% of your rapier attack."
     category: combat
     skill: rapier
     skill_level_required: 6
@@ -69,6 +76,7 @@ perks:
     timing: after_turn
   - id: rapier-riposte-2
     name: Riposte II
+    description: "On a successful parry, counter-attacks at 70% of your rapier attack."
     category: combat
     skill: rapier
     skill_level_required: 28
@@ -79,6 +87,7 @@ perks:
     timing: after_turn
   - id: rapier-riposte-3
     name: Riposte III
+    description: "On a successful parry, counter-attacks at 90% of your rapier attack."
     category: combat
     skill: rapier
     skill_level_required: 44
@@ -89,6 +98,7 @@ perks:
     timing: after_turn
   - id: rapier-riposte-4
     name: Riposte IV
+    description: "On a successful parry, counter-attacks at 120% of your rapier attack."
     category: combat
     skill: rapier
     skill_level_required: 54
@@ -99,6 +109,7 @@ perks:
     timing: after_turn
   - id: rapier-riposte-5
     name: Riposte V
+    description: "On a successful parry, counter-attacks at 150% of your rapier attack."
     category: combat
     skill: rapier
     skill_level_required: 60
