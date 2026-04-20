@@ -52,7 +52,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-8"
         operation: add
         silent: true
@@ -112,7 +112,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-11"
         operation: add
         silent: true
@@ -177,7 +177,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-15"
         operation: add
         silent: true
@@ -242,7 +242,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-15"
         operation: add
         silent: true
@@ -303,7 +303,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-8"
         operation: add
         silent: true
@@ -364,7 +364,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-11"
         operation: add
         silent: true
@@ -430,7 +430,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-15"
         operation: add
         silent: true
@@ -613,7 +613,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-20"
         operation: add
         silent: true
@@ -725,7 +725,7 @@ events:
 
     action:
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         value: "-10"
         operation: add
         silent: true

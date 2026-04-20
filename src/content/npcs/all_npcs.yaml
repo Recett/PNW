@@ -81,8 +81,6 @@ npcs:
   - id: "captain-vorne"
     name: "Thuyền trưởng Vorne"
     fullname: "Aldric Vorne"
-    avatar: >-
-      https://static.wikia.nocookie.net/fireemblem/images/1/12/OlsonFE8.gif/revision/latest?cb=20120323005935
     unknown_name: "Sĩ quan"
     npc_type: "guard"
     status: "active"
@@ -163,7 +161,7 @@ npcs:
     fullname: "Lawrence Hensbane"
     unknown_name: "Người lính đánh thuê"
     avatar: >-
-      https://static.wikia.nocookie.net/fireemblem/images/2/2a/KeseldaFE8.gif/revision/latest?cb=20120101031556
+      https://static.wikia.nocookie.net/fireemblem/images/f/f2/Portrait_Glen_Heroes.png/revision/latest?cb=20240716044328
     npc_type: "guard"
     status: "active"
     age: 43
@@ -200,6 +198,18 @@ npcs:
         stamina_cost: 150
         gold_cost: 50
         npc_line: "Giữ vững tư thế, sử dụng cây giáo để chuyển sức mạnh của địch xuống đất."
+      - perk: "mace-shock-and-awe"
+        stamina_cost: 100
+        gold_cost: 30
+        npc_line: "Chùy không phải thứ vũ khí tinh tế. Trước khi nghĩ đến chuyện nghiền nát ai đó, hãy học cách dồn lực cho đúng."
+      - perk: "mace-shock-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Muốn đánh nhanh bằng chùy thì phải đưa sức nặng vào đòn ngay từ đầu. Ra tay gọn, nện thật đau."
+      - perk: "mace-awe-1"
+        stamina_cost: 150
+        gold_cost: 50
+        npc_line: "Có lối đánh ép dần từng chút một. Cứ để sức nặng tích lại cho đến khi cú vung trở nên không thể tránh."
 
   - id: "ian-mcbetha"
     name: "Linh mục Ian"

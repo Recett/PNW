@@ -86,8 +86,126 @@ const SBOW_MOMENTUM_BY_PERK = {
 	'sbow-momentum-5': 0.11,
 };
 
+const MACE_REVERBERATION_PER_SWING = 2;
+const MACE_BASE_REVERBERATION_CAP = 6;
+const MACE_BASE_REVERBERATION_RATE = 0.02;
+const MACE_SHOCK_CAP_DELTA_BY_PERK = {
+	'mace-shock-1': -1,
+	'mace-shock-2': -2,
+	'mace-shock-3': -3,
+	'mace-shock-4': -4,
+	'mace-shock-5': -5,
+};
+const MACE_SHOCK_RATE_DELTA_BY_PERK = {
+	'mace-shock-1': 0.010,
+	'mace-shock-2': 0.020,
+	'mace-shock-3': 0.030,
+	'mace-shock-4': 0.040,
+	'mace-shock-5': 0.050,
+};
+const MACE_AWE_CAP_DELTA_BY_PERK = {
+	'mace-awe-1': 1,
+	'mace-awe-2': 2,
+	'mace-awe-3': 3,
+	'mace-awe-4': 4,
+	'mace-awe-5': 5,
+};
+const MACE_AWE_RATE_DELTA_BY_PERK = {
+	'mace-awe-1': 0.002,
+	'mace-awe-2': 0.004,
+	'mace-awe-3': 0.006,
+	'mace-awe-4': 0.008,
+	'mace-awe-5': 0.010,
+};
+
 // Discord embed description character limit
 const DISCORD_MESSAGE_LIMIT = 4000;
+
+function getHighestEquippedValue(perkIds, valueMap, defaultValue = 0) {
+	let value = defaultValue;
+	for (const [perkId, candidateValue] of Object.entries(valueMap)) {
+		if (perkIds.has(perkId)) value = candidateValue;
+	}
+	return value;
+}
+
+function resolveMaceProfile(perkIds) {
+	if (!perkIds.has('mace-shock-and-awe')) {
+		return {
+			enabled: false,
+			cap: 0,
+			rate: 0,
+		};
+	}
+
+	const shockCapDelta = getHighestEquippedValue(perkIds, MACE_SHOCK_CAP_DELTA_BY_PERK);
+	const shockRateDelta = getHighestEquippedValue(perkIds, MACE_SHOCK_RATE_DELTA_BY_PERK);
+	const aweCapDelta = getHighestEquippedValue(perkIds, MACE_AWE_CAP_DELTA_BY_PERK);
+	const aweRateDelta = getHighestEquippedValue(perkIds, MACE_AWE_RATE_DELTA_BY_PERK);
+
+	return {
+		enabled: true,
+		cap: Math.max(1, MACE_BASE_REVERBERATION_CAP + shockCapDelta + aweCapDelta),
+		rate: Math.max(0, MACE_BASE_REVERBERATION_RATE + shockRateDelta + aweRateDelta),
+	};
+}
+
+function applyMaceReverberation(attacker, tracker, hitResult, damage) {
+	const beforeStacks = attacker.reverberationTotalAccumulated || 0;
+	const disabledState = {
+		before: beforeStacks,
+		after: beforeStacks,
+		cap: attacker.reverberationCap || 0,
+		overflow: 0,
+		bonusDamage: 0,
+	};
+
+	if (!tracker.isMace || !attacker.reverberationEnabled) {
+		return {
+			damage,
+			state: disabledState,
+		};
+	}
+
+	const postSwingStacks = beforeStacks + MACE_REVERBERATION_PER_SWING;
+	const cap = attacker.reverberationCap || 0;
+	const overflow = Math.max(0, Math.min(postSwingStacks - cap, MACE_REVERBERATION_PER_SWING));
+	let bonusDamage = 0;
+
+	if (hitResult && damage > 0 && postSwingStacks >= cap) {
+		bonusDamage = Math.floor(damage * (cap + overflow) * attacker.reverberationRate);
+		damage += bonusDamage;
+	}
+
+	attacker.reverberationTotalAccumulated = postSwingStacks;
+
+	return {
+		damage,
+		state: {
+			before: beforeStacks,
+			after: attacker.reverberationTotalAccumulated,
+			cap,
+			overflow,
+			bonusDamage,
+		},
+	};
+}
+
+function formatReverberationSegment(log) {
+	if (log.reverberationAfter == null || log.reverberationCap == null || log.reverberationCap <= 0) {
+		return '';
+	}
+
+	if (log.reverberationBonusDamage > 0) {
+		return ` (Reverberation +${log.reverberationBonusDamage})`;
+	}
+
+	if (log.reverberationAfter < log.reverberationCap) {
+		return ` (Reverberation ${log.reverberationAfter}/${log.reverberationCap})`;
+	}
+
+	return '';
+}
 
 /**
  * Calculate total attack stat for a character (including STR and weapon)
@@ -179,6 +297,7 @@ async function runInitTracker(actors, options = {}) {
 				crit: attack.crit,
 				isShield: attack.isShield || false,
 				isGreatshield: attack.isGreatshield || false,
+				isMace: attack.isMace || false,
 				// firstStrikeReady: the very first attack from a bonus-initiative weapon is called "First Strike"
 				firstStrikeReady: (attack.initBonus || 0) > 0,
 			});
@@ -233,6 +352,11 @@ async function runInitTracker(actors, options = {}) {
 				let spearCounterHit = false;
 				let spearCounterDamage = 0;
 				let spearAbsorbed = 0;
+				let reverberationBefore = null;
+				let reverberationAfter = null;
+				let reverberationCap = null;
+				let reverberationOverflow = 0;
+				let reverberationBonusDamage = 0;
 				
 				if (hitResult) {
 					// Check if this is a shield attack - grants shield instead of dealing damage
@@ -277,6 +401,14 @@ async function runInitTracker(actors, options = {}) {
 							// Normal hit (no crit)
 							damage = calculateDamage(attacker, tracker, target);
 						}
+
+						const reverberationResult = applyMaceReverberation(attacker, tracker, hitResult, damage);
+						damage = reverberationResult.damage;
+						reverberationBefore = reverberationResult.state.before;
+						reverberationAfter = reverberationResult.state.after;
+						reverberationCap = reverberationResult.state.cap;
+						reverberationOverflow = reverberationResult.state.overflow;
+						reverberationBonusDamage = reverberationResult.state.bonusDamage;
 						
 						// === Apply shield damage reduction ===
 						if (target.shieldStrength > 0 && damage > 0) {
@@ -377,6 +509,14 @@ async function runInitTracker(actors, options = {}) {
 						}
 					}
 				}
+				else {
+					const reverberationResult = applyMaceReverberation(attacker, tracker, hitResult, damage);
+					reverberationBefore = reverberationResult.state.before;
+					reverberationAfter = reverberationResult.state.after;
+					reverberationCap = reverberationResult.state.cap;
+					reverberationOverflow = reverberationResult.state.overflow;
+					reverberationBonusDamage = reverberationResult.state.bonusDamage;
+				}
 				// === Call skill triggers: After Attack ===
 				if (options.handleAfterAttackSkills) {
 					await options.handleAfterAttackSkills(attacker, target, tracker, { hit: hitResult, crit, critResisted, damage });
@@ -414,6 +554,11 @@ async function runInitTracker(actors, options = {}) {
 					attackerShield: attacker.shieldStrength || 0,
 					targetShield: target.shieldStrength || 0,
 					focusStacks: tracker.actorId === 'player' ? (attacker.focusStacks || 0) : 0,
+					reverberationBefore,
+					reverberationAfter,
+					reverberationCap,
+					reverberationOverflow,
+					reverberationBonusDamage,
 				});
 				// Apply riposte counter-attack if a parry triggered one
 				if (riposteDamage > 0) {
@@ -592,6 +737,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 			let isRapier = false;
 			let isSpear = false;
 			let isShortbow = false;
+			let isMace = false;
 			let parryRating = 0;
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
@@ -624,6 +770,9 @@ async function mainCombat(playerId, enemyId, options = {}) {
 					else if (subtype === 'shortbow') {
 						isShortbow = true;
 					}
+					else if (subtype === 'mace') {
+						isMace = true;
+					}
 				}
 			}
 			else {
@@ -645,6 +794,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				isRapier: isRapier,
 				isSpear: isSpear,
 				isShortbow: isShortbow,
+				isMace: isMace,
 				parryRating: parryRating,
 				// Shortbow: store base speed for per-stack momentum recalculation
 				baseSbowSpeed: isShortbow ? playerSpeed : 0,
@@ -727,6 +877,16 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	player.sbowMomentumPerStack = sbowActive ? sbowMomentumPerStack : 0;
 	// Store base evade so we can recalculate dynamically as stacks change
 	player.baseEvade = player.evade;
+
+	// === Load mace Reverberation perk data ===
+	const macePerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('mace-')).map(p => p.perk_id));
+	const maceProfile = resolveMaceProfile(macePerkIds);
+	const maceAttackEntries = player.attacks.filter(a => a.isMace);
+	const hasMaceEquipped = maceAttackEntries.length > 0;
+	player.reverberationEnabled = maceProfile.enabled && hasMaceEquipped;
+	player.reverberationCap = player.reverberationEnabled ? maceProfile.cap : 0;
+	player.reverberationRate = player.reverberationEnabled ? maceProfile.rate : 0;
+	player.reverberationTotalAccumulated = 0;
 
 	const enemy = {
 		id: 'enemy',
@@ -1509,12 +1669,13 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					const parryIcon = h.parryTier === 'perfect' ? EMOJI.SPARKLE : h.parryTier === 'good' ? EMOJI.STAR : EMOJI.SWORD;
 					attackText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
 				}
+				attackText += formatReverberationSegment(h);
 				attackText += ` dealing ${h.damage} damage!`;
 				actionLines.push(attackText);
 				actionLines.push(`${EMOJI.BULLET} ${group.target} HP: ${h.targetHp}`);
 			}
 			else {
-				actionLines.push(`${group.attacker} attacks ${group.target} with ${group.attack} but misses! ${EMOJI.WIND}`);
+				actionLines.push(`${group.attacker} attacks ${group.target} with ${group.attack} but misses! ${EMOJI.WIND}${formatReverberationSegment(h)}`);
 			}
 		}
 		else {
@@ -1542,10 +1703,11 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 						const parryIcon = h.parryTier === 'perfect' ? EMOJI.SPARKLE : h.parryTier === 'good' ? EMOJI.STAR : EMOJI.SWORD;
 						hitText += ` (${parryIcon} ${h.parryTier} parry! -${h.parryReduced})`;
 					}
+					hitText += formatReverberationSegment(h);
 					actionLines.push(hitText);
 				}
 				else {
-					actionLines.push(`${EMOJI.BULLET} ${EMOJI.WIND} Miss`);
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.WIND} Miss${formatReverberationSegment(h)}`);
 				}
 				lastHp = h.targetHp;
 			}

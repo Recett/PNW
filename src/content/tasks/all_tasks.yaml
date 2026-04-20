@@ -78,7 +78,7 @@ tasks:
         
       # Regenerate 7% Stamina
       - type: stat
-        stat_name: stamina
+        stat_name: currentStamina
         stat_value: "7"
         operation: add_percent_of_max
         silent: true

@@ -6,7 +6,7 @@ perks:
     skill: rapier
     skill_level_required: 1
     power: 0.40
-    cost: 5
+    cost: 3
     timing: battle_start
   - id: rapier-parry-1
     name: Parry I

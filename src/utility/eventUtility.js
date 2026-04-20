@@ -222,6 +222,9 @@ class EventProcessor {
 				// If combat failed (e.g. player is knocked out), surface the error and abort
 				if (combatResult.result === 'error') {
 					const errMsg = combatResult.message || 'Combat could not start.';
+					if (sessionData.suppressInteractionErrors) {
+						return { success: false, error: errMsg, recoverable: true };
+					}
 					if (interaction.replied || interaction.deferred) {
 						await interaction.editReply({ content: `${EMOJI.FAILURE} ${errMsg}` });
 					}
@@ -342,11 +345,34 @@ class EventProcessor {
 				return { sessionId: session.sessionId, success: true, silent: true };
 			}
 
-			// 4. Build the message
-			const messageData = await this.buildMessage(eventBase, session);
-
-			// 5. Get options
+			// 4. Get options first so UI hints can be reflected in the message
 			const options = await this.getVisibleOptions(eventId, session);
+			if ((!options || options.length === 0) && nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
+				const character = session.characterId
+					? await characterUtil.getCharacterBase(session.characterId)
+					: null;
+				const defaultCombatBlocked = await this.isCombatOptionBlocked({ next: nextEventId }, session, character);
+				const defaultStaminaBlocked = await this.isStaminaOptionBlocked({ next: nextEventId }, session, character);
+				if (defaultCombatBlocked && session.messages && !session.messages.some(message => (
+					message.type === 'info' && message.text === 'You cannot continue into combat while knocked out.'
+				))) {
+					session.messages.push({
+						type: 'info',
+						text: 'You cannot continue into combat while knocked out.',
+					});
+				}
+				if (defaultStaminaBlocked && session.messages && !session.messages.some(message => (
+					message.type === 'info' && message.text === 'You do not have enough stamina to continue.'
+				))) {
+					session.messages.push({
+						type: 'info',
+						text: 'You do not have enough stamina to continue.',
+					});
+				}
+			}
+
+			// 5. Build the message
+			const messageData = await this.buildMessage(eventBase, session);
 
 			// 6. Display to Discord
 			// For non-silent events, checkOutcomeEventId (from a check's on_success/on_failure) takes
@@ -362,8 +388,11 @@ class EventProcessor {
 		}
 		catch (error) {
 			console.error('Event processing error:', error);
+			if (sessionData.suppressInteractionErrors) {
+				return { success: false, error: error.message || 'Something went wrong.', recoverable: true };
+			}
 			await this.handleError(interaction, error);
-			if (characterId) this.activeCharacters.delete(characterId);
+			if (characterId && !sessionData.preserveActiveChain) this.activeCharacters.delete(characterId);
 			return { success: false, error: error.message };
 		}
 	}
@@ -598,7 +627,8 @@ class EventProcessor {
 		}
 
 		const { stat_name, stat_comparison, stat_value, use_dice_roll, difficulty_modifier } = check.stat_data || {};
-		const statValue = await characterUtil.getCharacterStat(session.characterId, stat_name);
+		const resolvedStatName = this.normalizeCharacterStatName(stat_name);
+		const statValue = await characterUtil.getCharacterStat(session.characterId, resolvedStatName);
 
 		let success = false;
 		let rollResult = null;
@@ -1267,7 +1297,7 @@ class EventProcessor {
 			session.messages.push({ type: 'failure', text: `Bạn quá mệt để nấu ăn. (Cần ${STAMINA_COST} stamina)` });
 			return;
 		}
-		const cookCommand = require('@utility/specialEventUtility.js');
+		const cookCommand = require('../commands/utility/cook.js');
 		const started = await cookCommand.startCooking(session.interaction, session.characterId);
 		if (started) {
 			session.cookDone = true;
@@ -1570,29 +1600,47 @@ class EventProcessor {
 		if (!session.characterId) return;
 
 		const { stat_name, value, operation, silent, custom_message, output_variable } = action;
+		const resolvedStatName = this.normalizeCharacterStatName(stat_name);
 		
 		// Resolve value if it contains expressions
 		const resolvedValue = this.resolveExpression(value, session);
 		let result;
 		let newStatValue = 0;
 
+		if (this.isStaminaStatName(resolvedStatName)) {
+			let staminaDelta = 0;
+			if (operation === STAT_OPERATION.SUBTRACT) {
+				staminaDelta = -Math.abs(Number(resolvedValue) || 0);
+			}
+			else if (operation === STAT_OPERATION.ADD) {
+				staminaDelta = Number(resolvedValue) || 0;
+			}
+
+			if (staminaDelta < 0) {
+				const currentStamina = await characterUtil.getCharacterStat(session.characterId, resolvedStatName);
+				if (currentStamina < Math.abs(staminaDelta)) {
+					throw new Error('Not enough stamina for this option.');
+				}
+			}
+		}
+
 		switch (operation) {
 		case STAT_OPERATION.SET:
-			result = await characterUtil.setCharacterStat(session.characterId, stat_name, resolvedValue);
+			result = await characterUtil.setCharacterStat(session.characterId, resolvedStatName, resolvedValue);
 			newStatValue = resolvedValue;
 			break;
 		case STAT_OPERATION.ADD:
-			result = await characterUtil.modifyCharacterStat(session.characterId, stat_name, resolvedValue);
-			newStatValue = await characterUtil.getCharacterStat(session.characterId, stat_name);
+			result = await characterUtil.modifyCharacterStat(session.characterId, resolvedStatName, resolvedValue);
+			newStatValue = await characterUtil.getCharacterStat(session.characterId, resolvedStatName);
 			break;
 		case STAT_OPERATION.SUBTRACT:
-			result = await characterUtil.modifyCharacterStat(session.characterId, stat_name, -resolvedValue);
-			newStatValue = await characterUtil.getCharacterStat(session.characterId, stat_name);
+			result = await characterUtil.modifyCharacterStat(session.characterId, resolvedStatName, -resolvedValue);
+			newStatValue = await characterUtil.getCharacterStat(session.characterId, resolvedStatName);
 			break;
 		case STAT_OPERATION.PERCENTAGE: {
-			const current = await characterUtil.getCharacterStat(session.characterId, stat_name);
+			const current = await characterUtil.getCharacterStat(session.characterId, resolvedStatName);
 			const newVal = Math.max(1, Math.floor(current * (resolvedValue / 100)));
-			result = await characterUtil.setCharacterStat(session.characterId, stat_name, newVal);
+			result = await characterUtil.setCharacterStat(session.characterId, resolvedStatName, newVal);
 			newStatValue = newVal;
 			break;
 		}
@@ -1605,7 +1653,7 @@ class EventProcessor {
 
 		// Add message if not silent
 		if (!silent) {
-			let message = custom_message || this.generateStatMessage(stat_name, resolvedValue, operation);
+			let message = custom_message || this.generateStatMessage(resolvedStatName, resolvedValue, operation);
 			if (message) {
 				message = await this.processText(message, session);
 				session.messages.push({ type: 'info', text: message });
@@ -1616,7 +1664,7 @@ class EventProcessor {
 		if (result?.leveledUp) {
 			session.messages.push({
 				type: 'level_up',
-				text: `🎉 Level Up! You are now level ${result.newLevel}! (+${result.freeStatPointsGained} stat points, +${result.perkPointsGained || 0} perk point${(result.perkPointsGained || 0) === 1 ? '' : 's'})`,
+				text: `🎉 Level Up! You are now level ${result.newLevel}! (+${result.freeStatPointsGained} stat points)`,
 			});
 		}
 	}
@@ -2231,8 +2279,18 @@ class EventProcessor {
 		}
 
 		const visible = [];
+		let combatOptionHidden = false;
+		let staminaOptionHidden = false;
 		for (const option of options) {
 			if (await this.isOptionVisible(option, session)) {
+				if (await this.isCombatOptionBlocked(option, session, character)) {
+					combatOptionHidden = true;
+					continue;
+				}
+				if (await this.isStaminaOptionBlocked(option, session, character)) {
+					staminaOptionHidden = true;
+					continue;
+				}
 				// Process option text with pronouns and player name (includes NPC-relational pronouns)
 				if (character && option.text) {
 					option.text = processTextTemplate(option.text, character.age, character.gender, character, session.npc);
@@ -2244,7 +2302,98 @@ class EventProcessor {
 			}
 		}
 
+		if (combatOptionHidden && session.messages && !session.messages.some(message =>
+			message.type === 'info' && message.text === 'You cannot choose combat options while knocked out.'
+		)) {
+			session.messages.push({
+				type: 'info',
+				text: 'You cannot choose combat options while knocked out.',
+			});
+		}
+
+		if (staminaOptionHidden && session.messages && !session.messages.some(message =>
+			message.type === 'info' && message.text === 'You do not have enough stamina for one or more options.'
+		)) {
+			session.messages.push({
+				type: 'info',
+				text: 'You do not have enough stamina for one or more options.',
+			});
+		}
+
 		return visible;
+	}
+
+	async isCombatOptionBlocked(option, session, character = null) {
+		if (!option?.next || !session.characterId) {
+			return false;
+		}
+
+		const nextEvent = contentStore.events.findByPk(String(option.next));
+		if (!nextEvent?.combat) {
+			return false;
+		}
+
+		const resolvedCharacter = character || await characterUtil.getCharacterBase(session.characterId);
+		return (resolvedCharacter?.currentHp ?? 0) <= 0;
+	}
+
+	normalizeCharacterStatName(statName) {
+		if (statName === 'stamina') {
+			return 'currentStamina';
+		}
+
+		return statName;
+	}
+
+	isStaminaStatName(statName) {
+		return this.normalizeCharacterStatName(statName) === 'currentStamina';
+	}
+
+	getActionStaminaCost(action) {
+		if (!action || action.type !== 'stat') {
+			return 0;
+		}
+
+		const statName = this.normalizeCharacterStatName(action.stat_name);
+		if (statName !== 'currentStamina') {
+			return 0;
+		}
+
+		const rawValue = Number(action.value ?? 0);
+		if (!Number.isFinite(rawValue) || rawValue === 0) {
+			return 0;
+		}
+
+		if (action.operation === STAT_OPERATION.SUBTRACT) {
+			return Math.max(0, rawValue);
+		}
+
+		if (action.operation === STAT_OPERATION.ADD && rawValue < 0) {
+			return Math.abs(rawValue);
+		}
+
+		return 0;
+	}
+
+	getImmediateStaminaCostForEvent(eventId) {
+		const eventData = contentStore.events.findByPk(String(eventId));
+		const actions = (eventData && eventData.action) || [];
+
+		return actions.reduce((totalCost, action) => totalCost + this.getActionStaminaCost(action), 0);
+	}
+
+	async isStaminaOptionBlocked(option, session, character = null) {
+		if (!option?.next || !session.characterId) {
+			return false;
+		}
+
+		const staminaCost = this.getImmediateStaminaCostForEvent(option.next);
+		if (staminaCost <= 0) {
+			return false;
+		}
+
+		const resolvedCharacter = character || await characterUtil.getCharacterBase(session.characterId);
+		return (resolvedCharacter?.currentStamina ?? 0) < staminaCost;
 	}
 
 	/**
@@ -2285,6 +2434,7 @@ class EventProcessor {
 		if (resolved.stat_data) {
 			resolved.stat_data = {
 				...resolved.stat_data,
+				stat_name: this.normalizeCharacterStatName(resolved.stat_data.stat_name),
 				stat_value: this.resolveExpression(resolved.stat_data.stat_value, session),
 			};
 		}
@@ -2484,13 +2634,20 @@ class EventProcessor {
 			}
 		}
 		else if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
+			const character = session.characterId
+				? await characterUtil.getCharacterBase(session.characterId)
+				: null;
+			const defaultCombatBlocked = await this.isCombatOptionBlocked({ next: nextEventId }, session, character);
+			const defaultStaminaBlocked = await this.isStaminaOptionBlocked({ next: nextEventId }, session, character);
+			if (!defaultCombatBlocked && !defaultStaminaBlocked) {
 			// No options but has next event - show Continue button
-			const button = new Discord.ButtonBuilder()
-				.setCustomId(`event_continue_${session.sessionId}`)
-				.setLabel('Ti\u1EBFp t\u1EE5c')
-				.setStyle(Discord.ButtonStyle.Primary);
+				const button = new Discord.ButtonBuilder()
+					.setCustomId(`event_continue_${session.sessionId}`)
+					.setLabel('Ti\u1EBFp t\u1EE5c')
+					.setStyle(Discord.ButtonStyle.Primary);
 
-			components.push(new Discord.ActionRowBuilder().addComponents(button));
+				components.push(new Discord.ActionRowBuilder().addComponents(button));
+			}
 		}
 		// If no options and no next event (or blank), don't add components (event ends)
 
@@ -2971,15 +3128,38 @@ class EventProcessor {
 					// Save session flags before proceeding
 					await this.saveSession(session);
 
-					await this.processEvent(nextEventId, componentInteraction, session.characterId, {
+					const processResult = await this.processEvent(nextEventId, componentInteraction, session.characterId, {
 						flags: session.flags,
 						pendingCharacterFlags: session.pendingCharacterFlags,
 						pendingGlobalFlags: session.pendingGlobalFlags,
 						variables: session.variables,
 						metadata: session.metadata,
 						ephemeral: session.ephemeral,
+						suppressInteractionErrors: true,
+						preserveActiveChain: true,
 						eventDepth: session.eventDepth + 1,
 					});
+
+					if (processResult?.success === false) {
+						const errorMessage = `${EMOJI.FAILURE} ${processResult.error || 'That option could not be processed.'}`;
+
+						if (componentInteraction.replied || componentInteraction.deferred) {
+							await componentInteraction.followUp({
+								content: errorMessage,
+								ephemeral: true,
+							});
+						}
+						else {
+							await componentInteraction.reply({
+								content: errorMessage,
+								ephemeral: true,
+							});
+						}
+
+						this.activeEvents.set(session.sessionId, session);
+						await this.setupCollector(session, eventBase, defaultNextEventId, message);
+						return;
+					}
 				}
 				else {
 					// Event chain ended - remove buttons, flush flags, schedule message deletion, clean up
