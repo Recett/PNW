@@ -1,0 +1,120 @@
+perks:
+  - id: mace-shock-and-awe
+    name: Shock & Awe
+    description: "Unlocks Reverberation for maces. Each swing adds 2 Reverberation to the target. At stack cap, mace strikes deal bonus damage based on the number of Reverberation stacks."
+    category: combat
+    skill: mace
+    skill_level_required: 1
+    power: 0
+    cost: 5
+    timing: battle_start
+  - id: mace-shock-1
+    name: Shock I
+    description: "Reduces Reverberation stack cap by 1. Increases bonus damage per stack by 1.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 3
+    power: 0
+    cost: 10
+    tier: 1
+    group: mace-shock
+    timing: before_turn
+  - id: mace-shock-2
+    name: Shock II
+    description: "Reduces Reverberation stack cap by 2. Increases bonus damage per stack by 2.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 20
+    power: 0
+    cost: 15
+    tier: 2
+    group: mace-shock
+    timing: before_turn
+  - id: mace-shock-3
+    name: Shock III
+    description: "Reduces Reverberation stack cap by 3. Increases bonus damage per stack by 3.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 36
+    power: 0
+    cost: 22
+    tier: 3
+    group: mace-shock
+    timing: before_turn
+  - id: mace-shock-4
+    name: Shock IV
+    description: "Reduces Reverberation stack cap by 4. Increases bonus damage per stack by 4.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 50
+    power: 0
+    cost: 30
+    tier: 4
+    group: mace-shock
+    timing: before_turn
+  - id: mace-shock-5
+    name: Shock V
+    description: "Reduces Reverberation stack cap by 5. Increases bonus damage per stack by 5.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 58
+    power: 0
+    cost: 50
+    tier: 5
+    group: mace-shock
+    timing: before_turn
+  - id: mace-awe-1
+    name: Awe I
+    description: "Increases Reverberation stack cap by 1. Increases bonus damage per stack by 0.2%."
+    category: combat
+    skill: mace
+    skill_level_required: 6
+    power: 0
+    cost: 10
+    tier: 1
+    group: mace-awe
+    timing: after_turn
+  - id: mace-awe-2
+    name: Awe II
+    description: "Increases Reverberation stack cap by 2. Increases bonus damage per stack by 0.4%."
+    category: combat
+    skill: mace
+    skill_level_required: 28
+    power: 0
+    cost: 15
+    tier: 2
+    group: mace-awe
+    timing: after_turn
+  - id: mace-awe-3
+    name: Awe III
+    description: "Increases Reverberation stack cap by 3. Increases bonus damage per stack by 0.6%."
+    category: combat
+    skill: mace
+    skill_level_required: 44
+    power: 0
+    cost: 22
+    tier: 3
+    group: mace-awe
+    timing: after_turn
+  - id: mace-awe-4
+    name: Awe IV
+    description: "Increases Reverberation stack cap by 4. Increases bonus damage per stack by 0.8%."
+    category: combat
+    skill: mace
+    skill_level_required: 54
+    power: 0
+    cost: 30
+    tier: 4
+    group: mace-awe
+    timing: after_turn
+  - id: mace-awe-5
+    name: Awe V
+    description: "Increases Reverberation stack cap by 5. Increases bonus damage per stack by 1.0%."
+    category: combat
+    skill: mace
+    skill_level_required: 60
+    power: 0
+    cost: 50
+    tier: 5
+    group: mace-awe
+    timing: after_turn
