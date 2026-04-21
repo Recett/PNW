@@ -1286,7 +1286,7 @@ class EventProcessor {
 
 	/**
 	 * Launch the cooking mini-game from a kitchen object interaction.
-	 * Calls cook.js startCooking which edits the interaction reply directly.
+	 * Calls specialEventUtility.startCooking which edits the interaction reply directly.
 	 * Sets session.cookDone to signal processEvent to skip displayEvent.
 	 */
 	async executeCookAction(action, session) {
@@ -1297,8 +1297,8 @@ class EventProcessor {
 			session.messages.push({ type: 'failure', text: `Bạn quá mệt để nấu ăn. (Cần ${STAMINA_COST} stamina)` });
 			return;
 		}
-		const cookCommand = require('../commands/utility/cook.js');
-		const started = await cookCommand.startCooking(session.interaction, session.characterId);
+		const specialEventUtil = require('@utility/specialEventUtility.js');
+		const started = await specialEventUtil.startCooking(session.interaction, session.characterId);
 		if (started) {
 			session.cookDone = true;
 		}
