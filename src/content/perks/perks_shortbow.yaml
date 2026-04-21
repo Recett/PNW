@@ -6,7 +6,7 @@
     skill: shortbow
     skill_level_required: 1
     power: 0
-    cost: 5
+    cost: 1
     timing: battle_start
   - id: sbow-evasion-1
     name: Evasion I
@@ -15,7 +15,7 @@
     skill: shortbow
     skill_level_required: 3
     power: 0.08
-    cost: 10
+    cost: 4
     tier: 1
     group: sbow-evasion
     timing: before_turn
@@ -70,7 +70,7 @@
     skill: shortbow
     skill_level_required: 6
     power: 0.05
-    cost: 10
+    cost: 5
     tier: 1
     group: sbow-momentum
     timing: after_turn

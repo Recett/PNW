@@ -6,7 +6,7 @@ perks:
     skill: spear
     skill_level_required: 1
     power: 0
-    cost: 5
+    cost: 1
     timing: battle_start
   - id: spear-thorn-1
     name: Thorn I
@@ -15,7 +15,7 @@ perks:
     skill: spear
     skill_level_required: 3
     power: 0
-    cost: 10
+    cost: 4
     tier: 1
     group: spear-thorn
     timing: after_turn
@@ -70,7 +70,7 @@ perks:
     skill: spear
     skill_level_required: 6
     power: 0
-    cost: 10
+    cost: 6
     tier: 1
     group: spear-steady
     timing: before_turn

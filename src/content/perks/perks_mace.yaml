@@ -6,7 +6,7 @@ perks:
     skill: mace
     skill_level_required: 1
     power: 0
-    cost: 5
+    cost: 1
     timing: battle_start
   - id: mace-shock-1
     name: Shock I
@@ -15,7 +15,7 @@ perks:
     skill: mace
     skill_level_required: 3
     power: 0
-    cost: 10
+    cost: 4
     tier: 1
     group: mace-shock
     timing: before_turn
@@ -70,7 +70,7 @@ perks:
     skill: mace
     skill_level_required: 6
     power: 0
-    cost: 10
+    cost: 6
     tier: 1
     group: mace-awe
     timing: after_turn
