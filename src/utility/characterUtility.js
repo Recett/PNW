@@ -50,9 +50,9 @@ let calculateCombatStat = async (characterId) => {
 			if (itemDetails.item_type === 'armor' && itemDetails.armor?.defense != null) {
 				defense += itemDetails.armor.defense;
 			}
-			// Accumulate weight
+			// An equipped stack represents one worn item, not the whole inventory amount.
 			let weight = itemDetails.weight || itemDetails.weapon?.weight || itemDetails.armor?.weight || 0;
-			currentWeight += (inv.amount || 1) * weight;
+			currentWeight += weight;
 		}
 	}
 
@@ -437,7 +437,8 @@ let updateCharacterWeight = async (characterId) => {
 				}
 			}
 		}
-		total += (inv.amount || 1) * weight;
+		// Equipped rows count as one equipped instance even if inventory stack amount > 1.
+		total += weight;
 	}
 	// Update currentWeight in CharacterCombatStat (use upsert in case record doesn't exist)
 	const existing = await CharacterCombatStat.findOne({ where: { character_id: characterId } });

@@ -90,6 +90,7 @@ const EMOJI = {
 	BOOM: '\uD83D\uDCA5',         // 💥
 	DAGGER: '\uD83D\uDDE1\uFE0F', // 🗡️
 	EM_DASH: '\u2014',            // —
+	FOCUS: '\uD83C\uDFAF',        // 🎯
 
 	// Items / Economy
 	PACKAGE: '\uD83D\uDCE6', // 📦

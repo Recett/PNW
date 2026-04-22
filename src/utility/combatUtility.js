@@ -319,7 +319,9 @@ async function runInitTracker(actors, options = {}) {
 				}
 
 				// Shortbow: wipe player stacks when enemy fires (any attack, hit or miss)
+				let focusStacksLost = 0;
 				if (tracker.actorId !== 'player' && target.sbowActive) {
+					focusStacksLost = target.focusStacks || 0;
 					target.focusStacks = 0;
 					target.evade = target.baseEvade;
 				}
@@ -554,6 +556,7 @@ async function runInitTracker(actors, options = {}) {
 					attackerShield: attacker.shieldStrength || 0,
 					targetShield: target.shieldStrength || 0,
 					focusStacks: tracker.actorId === 'player' ? (attacker.focusStacks || 0) : 0,
+					focusStacksLost,
 					reverberationBefore,
 					reverberationAfter,
 					reverberationCap,
@@ -1541,6 +1544,7 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				parryReduced: log.parryReduced,
 				attackerShield: log.attackerShield,
 				focusStacks: log.focusStacks || 0,
+				focusStacksLost: log.focusStacksLost || 0,
 			});
 		}
 		else {
@@ -1565,6 +1569,7 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					parryReduced: log.parryReduced,
 					attackerShield: log.attackerShield,
 					focusStacks: log.focusStacks || 0,
+					focusStacksLost: log.focusStacksLost || 0,
 				}],
 			};
 		}
@@ -1673,9 +1678,18 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				attackText += ` dealing ${h.damage} damage!`;
 				actionLines.push(attackText);
 				actionLines.push(`${EMOJI.BULLET} ${group.target} HP: ${h.targetHp}`);
+				if (h.focusStacks > 0) {
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} Focus \u00D7${h.focusStacks}`);
+				}
+				else if (h.focusStacksLost > 0) {
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} Focus reset! (\u00D7${h.focusStacksLost} lost)`);
+				}
 			}
 			else {
 				actionLines.push(`${group.attacker} attacks ${group.target} with ${group.attack} but misses! ${EMOJI.WIND}${formatReverberationSegment(h)}`);
+				if (h.focusStacksLost > 0) {
+					actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} Focus reset! (\u00D7${h.focusStacksLost} lost)`);
+				}
 			}
 		}
 		else {
@@ -1684,6 +1698,8 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			
 			// Each hit on its own line
 			let lastHp = null;
+			let lastFocusStacks = 0;
+			let focusStacksLostInGroup = 0;
 			for (const h of group.hits) {
 				if (h.hit) {
 					let hitText = '';
@@ -1705,14 +1721,23 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					}
 					hitText += formatReverberationSegment(h);
 					actionLines.push(hitText);
+					lastFocusStacks = h.focusStacks;
 				}
 				else {
-					actionLines.push(`${EMOJI.BULLET} ${EMOJI.WIND} Miss${formatReverberationSegment(h)}`);
+					let missLine = `${EMOJI.BULLET} ${EMOJI.WIND} Miss${formatReverberationSegment(h)}`;
+					actionLines.push(missLine);
+					if (h.focusStacksLost > 0) focusStacksLostInGroup = h.focusStacksLost;
 				}
 				lastHp = h.targetHp;
 			}
 			// Show final HP after all attacks
 				actionLines.push(`${EMOJI.BULLET} ${group.target} HP: ${lastHp}`);
+			if (lastFocusStacks > 0) {
+				actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} Focus \u00D7${lastFocusStacks}`);
+			}
+			else if (focusStacksLostInGroup > 0) {
+				actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} Focus reset! (\u00D7${focusStacksLostInGroup} lost)`);
+			}
 		}
 	}
 

@@ -1,7 +1,8 @@
-const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ComponentType } = require('discord.js');
 const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, CharacterCombatStat, CharacterAttackStat, CharacterStatus } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
+const locationUtil = require('@utility/locationUtility.js');
 const { resetNpcStockPurchases } = require('@utility/cronUtility.js');
 const contentStore = require('../../contentStore.js');
 const eventUtil = require('@utility/eventUtility.js');
@@ -116,8 +117,7 @@ module.exports = {
 				.setDescription('Force-restock a single NPC shop by clearing its purchase records.')
 				.addStringOption(opt =>
 					opt.setName('npc_id')
-						.setDescription('NPC YAML ID to restock.')
-						.setRequired(true)),
+						.setDescription('NPC YAML ID to restock. If omitted or invalid, choose from this channel location.')),
 		)
 		.addSubcommandGroup(group =>
 			group.setName('flag')
@@ -209,12 +209,13 @@ async function handleRestockNpc(interaction) {
 	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 	const npcId = interaction.options.getString('npc_id');
-	const npc = contentStore.npcs.findByPk(npcId);
+	let npc = npcId ? contentStore.npcs.findByPk(npcId) : null;
 
 	if (!npc) {
-		return interaction.editReply({
-			content: `${EMOJI.FAILURE} NPC \`${npcId}\` was not found in the content store.`,
-		});
+		npc = await promptForLocationNpc(interaction, npcId);
+		if (!npc) {
+			return;
+		}
 	}
 
 	if (!Array.isArray(npc.stock) || npc.stock.length === 0) {
@@ -227,6 +228,84 @@ async function handleRestockNpc(interaction) {
 	return interaction.editReply({
 		content: `${EMOJI.SUCCESS} Restocked **${npc.name}** (\`${npc.id}\`). Cleared ${deleted} purchase record(s); item stock is back to YAML max values.`,
 	});
+}
+
+async function promptForLocationNpc(interaction, invalidNpcId = null) {
+	const location = await locationUtil.getLocationByChannel(interaction.channelId);
+	if (!location) {
+		await interaction.editReply({
+			content: invalidNpcId
+				? `${EMOJI.FAILURE} NPC \`${invalidNpcId}\` was not found, and this channel is not linked to a game location.`
+				: `${EMOJI.FAILURE} This channel is not linked to a game location. Provide a valid NPC ID instead.`,
+		});
+		return null;
+	}
+
+	const { npcs } = await locationUtil.getLocationContents(location.id);
+	const shopNpcs = npcs.filter(currentNpc => Array.isArray(currentNpc?.stock) && currentNpc.stock.length > 0);
+
+	if (shopNpcs.length === 0) {
+		await interaction.editReply({
+			content: invalidNpcId
+				? `${EMOJI.FAILURE} NPC \`${invalidNpcId}\` was not found, and there are no shop NPCs at **${location.name}** to choose from.`
+				: `${EMOJI.WARNING} There are no shop NPCs at **${location.name}** to choose from.`,
+		});
+		return null;
+	}
+
+	if (shopNpcs.length === 1) {
+		return shopNpcs[0];
+	}
+
+	const options = shopNpcs.slice(0, 25).map(currentNpc => ({
+		label: currentNpc.name.substring(0, 100),
+		value: String(currentNpc.id),
+		description: String(currentNpc.id).substring(0, 100),
+	}));
+
+	const select = new StringSelectMenuBuilder()
+		.setCustomId(`debug_restocknpc_select_${interaction.id}`)
+		.setPlaceholder('Choose an NPC to restock')
+		.addOptions(options);
+	const row = new ActionRowBuilder().addComponents(select);
+	const promptText = invalidNpcId
+		? `${EMOJI.WARNING} NPC \`${invalidNpcId}\` was not found. Select a shop NPC at **${location.name}**:`
+		: `Select a shop NPC at **${location.name}** to restock:`;
+	const reply = await interaction.editReply({
+		content: promptText,
+		components: [row],
+	});
+
+	try {
+		const selected = await reply.awaitMessageComponent({
+			componentType: ComponentType.StringSelect,
+			time: 60_000,
+			filter: i => i.user.id === interaction.user.id && i.customId === `debug_restocknpc_select_${interaction.id}`,
+		});
+
+		const selectedNpc = contentStore.npcs.findByPk(String(selected.values[0]));
+		if (!selectedNpc) {
+			await selected.update({
+				content: `${EMOJI.FAILURE} The selected NPC could not be found anymore.`,
+				components: [],
+			});
+			return null;
+		}
+
+		await selected.update({
+			content: `${EMOJI.SUCCESS} Selected **${selectedNpc.name}** (\`${selectedNpc.id}\`). Restocking...`,
+			components: [],
+		});
+
+		return selectedNpc;
+	}
+	catch {
+		await interaction.editReply({
+			content: `${EMOJI.WARNING} NPC selection timed out.`,
+			components: [],
+		});
+		return null;
+	}
 }
 
 // ─── Stat Check ──────────────────────────────────────────────────────────────

@@ -980,15 +980,21 @@ class EventProcessor {
 			return inputValue || input_default || '';
 		}
 		catch (error) {
-			console.error(`Modal input failed for ${variable_name}:`, error);
-
 			// If the modal never reached the user (interaction was already consumed),
 			// throw so the event aborts cleanly instead of saving a corrupted empty value.
 			if (error.code === 'InteractionAlreadyReplied') {
 				throw error;
 			}
 
-			// Genuine timeout (user saw modal but didn't respond) — fall back to default.
+			// Genuine timeout (user saw modal but didn't respond).
+			// If no default was configured, abort the event chain rather than silently
+			// proceeding with a junk value (e.g. qty = 0 for a turn-in would do nothing).
+			if (!input_default || input_default === 'null') {
+				console.log(`Modal input timed out for ${variable_name} (no default) \u2014 aborting event.`);
+				throw new Error('Input timed out \u2014 please try again.');
+			}
+
+			// Has an explicit default — fall back to it.
 			if (!interaction.replied && !interaction.deferred) {
 				try {
 					await interaction.reply({
