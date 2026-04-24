@@ -105,6 +105,12 @@ await characterUtil.modifyCharacterStat(userId, 'gold', 100, 'add');
 await characterUtil.addCharacterItem(characterId, itemId, quantity);
 ```
 
+**Production Database Environment (CRITICAL):**
+- The bot runs in a **production environment** — the live database (`src/database.sqlite`) is the same database real players use
+- **Never suggest inspecting or modifying the database directly** (e.g., via SQLite CLI, raw SQL scripts, or Sequelize one-off scripts run locally) as the production DB is on the deployment server, not the local machine
+- For debugging or diagnosing runtime state, always implement a **Discord admin slash command** (under `src/commands/admin/`) — this is the correct interface for observing and correcting production data
+- Temporary diagnostic scripts (`temp_*.js`) are only appropriate for a local dev environment with a local copy of the DB; assume they cannot be used unless the user confirms a local DB is available
+
 **Temporary Scripts & Files:**
 - When creating diagnostic/helper scripts for investigation, prefix with `temp_` (e.g., `temp_check-data.js`)
 - These can be safely deleted after use without checking with the user

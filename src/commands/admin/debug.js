@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits, ActionRowBuilder, StringSelectMenuBuilder, ComponentType } = require('discord.js');
-const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, CharacterCombatStat, CharacterAttackStat, CharacterStatus } = require('@root/dbObject.js');
+const { CharacterBase, CharacterItem, CharacterFlag, GlobalFlag, LocationBase, CharacterCombatStat, CharacterAttackStat, CharacterStatus, CharacterPerk } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
 const locationUtil = require('@utility/locationUtility.js');
@@ -153,6 +153,14 @@ module.exports = {
 			sub.setName('catscores')
 				.setDescription('Show Lt. Morale cook high score and total score for all players.'),
 		)
+		.addSubcommand(sub =>
+			sub.setName('combatcheck')
+				.setDescription('Show combat readiness: perks, equipped weapon types, and reverberation state for a player.')
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player.')
+						.setRequired(true)),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('status')
 				.setDescription('View or remove character status effects.')
@@ -202,6 +210,7 @@ module.exports = {
 		if (sub === 'statcheck') return handleStatCheck(interaction);
 		if (sub === 'restocknpc') return handleRestockNpc(interaction);
 		if (sub === 'catscores') return handleCatScores(interaction);
+		if (sub === 'combatcheck') return handleCombatCheck(interaction);
 	},
 };
 
@@ -878,4 +887,102 @@ async function handleStatusClear(interaction) {
 	return interaction.editReply({
 		content: `${EMOJI.SUCCESS} Removed \`${statusId}\` from **${character.name}**.`,
 	});
+}
+
+// ─── Combat Check ─────────────────────────────────────────────────────────────
+
+async function handleCombatCheck(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const targetUser = interaction.options.getUser('user');
+	const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+	if (!character) {
+		return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+	}
+
+	// --- Perk state ---
+	const allPerks = await CharacterPerk.findAll({ where: { character_id: targetUser.id } });
+	const macePerks = allPerks.filter(p => p.perk_id.startsWith('mace-'));
+
+	const perkLines = [];
+	if (macePerks.length === 0) {
+		perkLines.push('  (no mace perks)');
+	}
+	else {
+		for (const p of macePerks) {
+			const perkData = contentStore.perks.findByPk(p.perk_id);
+			const name = perkData?.name ?? p.perk_id;
+			const statusIcon = p.status === 'equipped' ? EMOJI.SUCCESS : p.status === 'available' ? EMOJI.WARNING : '\u{1F4D6}';
+			perkLines.push(`  ${statusIcon} \`${p.perk_id}\` **${name}** — \`${p.status}\` (stamina: ${p.stamina_spent})`);
+		}
+	}
+
+	const shockAndAwe = macePerks.find(p => p.perk_id === 'mace-shock-and-awe');
+	let reverberationNote;
+	if (!shockAndAwe) {
+		reverberationNote = `${EMOJI.FAILURE} \`mace-shock-and-awe\` not found — Reverberation **disabled**`;
+	}
+	else if (shockAndAwe.status === 'learning') {
+		reverberationNote = `${EMOJI.FAILURE} \`mace-shock-and-awe\` still **learning** (stamina: ${shockAndAwe.stamina_spent}) — Reverberation **disabled**`;
+	}
+	else if (shockAndAwe.status === 'available') {
+		reverberationNote = `${EMOJI.WARNING} \`mace-shock-and-awe\` is **available but not activated** — use \`/character perk activate\` to spend 1 perk point and enable Reverberation`;
+	}
+	else {
+		reverberationNote = `${EMOJI.SUCCESS} \`mace-shock-and-awe\` is **equipped** — Reverberation is armed`;
+	}
+
+	// --- Attack stat weapon types ---
+	const attackStats = await CharacterAttackStat.findAll({ where: { character_id: targetUser.id } });
+	const weaponLines = [];
+	let hasMaceInAttacks = false;
+	if (attackStats.length === 0) {
+		weaponLines.push('  (no attack stats — may need stat recalc)');
+	}
+	else {
+		for (const atk of attackStats) {
+			const itemData = atk.item_id ? contentStore.items.findByPk(String(atk.item_id)) : null;
+			const subtype = itemData?.weapon?.subtype?.toLowerCase() ?? 'unarmed';
+			const name = itemData?.name ?? atk.item_id ?? 'Unarmed';
+			const isMace = subtype === 'mace';
+			if (isMace) hasMaceInAttacks = true;
+			const icon = isMace ? EMOJI.SUCCESS : '\u2022';
+			weaponLines.push(`  ${icon} \`${atk.item_id ?? 'unarmed'}\` **${name}** — subtype: \`${subtype}\``);
+		}
+	}
+
+	const maceWeaponNote = hasMaceInAttacks
+		? `${EMOJI.SUCCESS} Mace weapon present in attack stats`
+		: `${EMOJI.FAILURE} No mace weapon in attack stats — Reverberation **disabled** even if perk is equipped`;
+
+	// --- Final verdict ---
+	const perkOk = shockAndAwe?.status === 'equipped';
+	let verdict;
+	if (perkOk && hasMaceInAttacks) {
+		verdict = `${EMOJI.SUCCESS} **Reverberation should be ACTIVE** in combat`;
+	}
+	else {
+		const reasons = [];
+		if (!perkOk) reasons.push('perk not equipped');
+		if (!hasMaceInAttacks) reasons.push('no mace in attack stats');
+		verdict = `${EMOJI.FAILURE} **Reverberation INACTIVE** — ${reasons.join(', ')}`;
+	}
+
+	const lines = [
+		`**Combat Check — ${character.name}** (${targetUser})`,
+		'',
+		'**Mace perks:**',
+		...perkLines,
+		'',
+		reverberationNote,
+		'',
+		'**Attack stat weapons:**',
+		...weaponLines,
+		'',
+		maceWeaponNote,
+		'',
+		verdict,
+	];
+
+	return interaction.editReply({ content: lines.join('\n') });
 }
