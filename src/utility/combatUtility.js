@@ -1545,6 +1545,9 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				attackerShield: log.attackerShield,
 				focusStacks: log.focusStacks || 0,
 				focusStacksLost: log.focusStacksLost || 0,
+				reverberationAfter: log.reverberationAfter,
+				reverberationCap: log.reverberationCap,
+				reverberationBonusDamage: log.reverberationBonusDamage,
 			});
 		}
 		else {
@@ -1568,6 +1571,9 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 					parryTier: log.parryTier,
 					parryReduced: log.parryReduced,
 					attackerShield: log.attackerShield,
+					reverberationAfter: log.reverberationAfter,
+					reverberationCap: log.reverberationCap,
+					reverberationBonusDamage: log.reverberationBonusDamage,
 					focusStacks: log.focusStacks || 0,
 					focusStacksLost: log.focusStacksLost || 0,
 				}],
