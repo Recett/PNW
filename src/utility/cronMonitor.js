@@ -19,7 +19,13 @@ class CronMonitor {
 		const executionId = `${jobName}_${Date.now()}`;
 		const startTime = new Date();
 		const memoryStart = process.memoryUsage();
-		
+
+		// Ensure a cron_logs row exists before creating the execution log (FK constraint)
+		await CronLog.findOrCreate({
+			where: { job_name: jobName },
+			defaults: { job_name: jobName, status: 'running' },
+		});
+
 		// Create execution log entry
 		const executionLog = await CronExecutionLog.create({
 			job_name: jobName,
