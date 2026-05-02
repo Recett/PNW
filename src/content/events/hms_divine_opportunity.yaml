@@ -1,0 +1,730 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # ARB OPENING — random 15% prompt after a fight win
+  # Triggered from fight.js when at least one of armory/cannon deck is accessible.
+  # Offers a quick-entry choice between available destinations.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: arb-armory-opening
+    name: "Cơ Hội — Lối Vào Ngẫu Nhiên"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Cơ hội!"
+      text: |
+        Ngay khi vừa đánh bại kẻ địch, bạn chợt nhận ra mình đang ở ngay gần cầu thang dẫn xuống.
+
+        Có lẽ đây là cơ hội của bạn. Và cũng là thách thức. Sẽ không ai hỗ trợ được bạn bên dưới.
+      message_type: normal
+
+    option:
+      - id: enter-armory
+        text: "Xuống Kho Vũ Khí"
+        next: arb-armory-enter
+        display_order: 0
+
+      - id: enter-cannon
+        text: "Xuống Boong Pháo"
+        next: arb-cannon-enter
+        display_order: 1
+
+      - id: skip
+        text: "Tập trung vào trận chiến."
+        display_order: 2
+
+  # ── Outcome: player chooses to enter ────────────────────────────────────────
+
+  - id: arb-armory-enter
+    name: "Kho Vũ Khí — Vào Trong"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Kho Vũ Khí"
+      text: |
+        Bạn lao qua cánh cửa. Ánh sáng mờ — kệ vũ khí xếp dọc hai bên tường.
+      message_type: normal
+
+    action:
+      - type: move
+        location: 11
+        silent: true
+
+  # ── Outcome: player skips — no event, chain ends ──────────────────────────────
+
+  - id: arb-cannon-enter
+    name: "Boong Pháo — Vào Trong"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Boong Pháo"
+      text: |
+        Bạn lách qua cầu thang. Mùi thuốc súng còn lưu lại — khẩu đại bác xếp thành hàng hai bên.
+      message_type: normal
+
+    action:
+      - type: move
+        location: 10
+        silent: true
+
+  # ── Standalone boss encounter events ──────────────────────────────────────
+  # Each is an independent entry point; not part of the below-deck entry flow.
+
+  - id: arb-boss-boatswain-intro
+    name: "Sự Kiện Boss — Thủy Thủ Trưởng"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Kẻ Cầm Trịch"
+      text: |
+        Một sợi dây nặng vút qua hành lang. Thủy Thủ Trưởng bước ra,
+        buộc mọi người khác phải dạt sang hai bên.
+      message_type: normal
+
+    option:
+      - id: fight-boatswain
+        text: "Chiến đấu với Thủy Thủ Trưởng"
+        next: arb-boss-boatswain-combat
+        display_order: 0
+
+      - id: spare-boatswain
+        text: "Rút lui"
+        display_order: 1
+
+  - id: arb-boss-boatswain-combat
+    name: "Chiến Đấu Boss — Thủy Thủ Trưởng"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: "boss"
+      enemy: "enemy_boatswain"
+      on_victory: arb-boss-boatswain-victory
+      on_defeat: arb-boss-boatswain-defeat
+
+  - id: arb-boss-boatswain-victory
+    name: "Boss Bị Hạ — Thủy Thủ Trưởng"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Thủy Thủ Trưởng Gục Ngã"
+      text: |
+        Sợi dây buông thõng và hàng ngũ boong trên tan vỡ. Bạn buộc những
+        tên thủy thủ sống sót phải tán loạn, tạo khoảng thở cho phe ta.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: arb_boss_boatswain_defeated
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 10
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-boss-boatswain-defeat
+    name: "Boss Thắng — Thủy Thủ Trưởng"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Đẩy Lui"
+      text: |
+        Thủy Thủ Trưởng liên tục làm bạn mất thăng bằng và đẩy bạn ra
+        khỏi hành lang trước khi bạn kịp lấy lại tư thế.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-boss-master-at-arms-intro
+    name: "Sự Kiện Boss — Chỉ Huy Vũ Trang"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Thủy Quân Tinh Nhuệ"
+      text: |
+        Giáp thép sắc cạnh và một cây rìu chiến chặn ngang hành lang.
+        Chỉ Huy Vũ Trang đứng đợi mà không vội vàng, rồi từng bước tiến lên.
+      message_type: normal
+
+    option:
+      - id: fight-master-at-arms
+        text: "Chiến đấu với Chỉ Huy Vũ Trang"
+        next: arb-boss-master-at-arms-combat
+        display_order: 0
+
+      - id: spare-master-at-arms
+        text: "Lùi bước"
+        display_order: 1
+
+  - id: arb-boss-master-at-arms-combat
+    name: "Chiến Đấu Boss — Chỉ Huy Vũ Trang"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: "boss"
+      enemy: "master_at_arms"
+      on_victory: arb-boss-master-at-arms-victory
+      on_defeat: arb-boss-master-at-arms-defeat
+
+  - id: arb-boss-master-at-arms-victory
+    name: "Boss Bị Hạ — Chỉ Huy Vũ Trang"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Chỉ Huy Vũ Trang Gục Ngã"
+      text: |
+        Cây rìu rơi khỏi tay hắn và hành lang mở ra. Hàng ngũ kỷ luật
+        ở khu vực này sụp đổ hoàn toàn.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: arb_boss_master_at_arms_defeated
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 10
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-boss-master-at-arms-defeat
+    name: "Boss Thắng — Chỉ Huy Vũ Trang"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Phòng Tuyến Giữ Vững"
+      text: |
+        Mọi đòn tấn công đều bị hóa giải và trả đòn. Bạn buộc phải
+        rút lui trước khi áp lực trở nên nguy hiểm.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-boss-first-mate-intro
+    name: "Sự Kiện Boss — Thuyền Phó"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Kiếm Khách"
+      text: |
+        Một lưỡi kiếm nhanh lóe lên trong ánh sáng yếu ớt. Thuyền Phó
+        lượn vòng, quan sát nhịp điệu của bạn trước khi ra đòn.
+      message_type: normal
+
+    option:
+      - id: fight-first-mate
+        text: "Chiến đấu với Thuyền Phó"
+        next: arb-boss-first-mate-combat
+        display_order: 0
+
+      - id: spare-first-mate
+        text: "Rút lui"
+        display_order: 1
+
+  - id: arb-boss-first-mate-combat
+    name: "Chiến Đấu Boss — Thuyền Phó"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: "boss"
+      enemy: "enemy_first_mate"
+      on_victory: arb-boss-first-mate-victory
+      on_defeat: arb-boss-first-mate-defeat
+
+  - id: arb-boss-first-mate-victory
+    name: "Boss Bị Hạ — Thuyền Phó"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Thuyền Phó Gục Ngã"
+      text: |
+        Bạn bắt được hắn đúng lúc bước hụt và kết thúc cuộc đấu gọn gàng.
+        Đám thủy thủ gần đó mất phương hướng khi chỉ huy biến mất khỏi hàng ngũ.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: arb_boss_first_mate_defeated
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 10
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-boss-first-mate-defeat
+    name: "Boss Thắng — Thuyền Phó"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Không Theo Kịp"
+      text: |
+        Hắn kiểm soát nhịp điệu từ đòn đầu tiên. Bạn rút lui trước
+        khi cuộc đấu trở thành thảm bại.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  # ── Random deck encounters ─────────────────────────────────────────────────
+  # Repeatable. Added to the main-deck 15% post-win pool alongside boss intros.
+  # Interceding starts a fight; ignoring costs -2 morale.
+
+  # ── Encounter A: Wounded ally ──────────────────────────────────────────────
+
+  - id: arb-renc-wounded-ally-intro
+    name: "Gặp Gỡ Ngẫu Nhiên — Đồng Đội Bị Thương"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Người Ngã Xuống"
+      text: |
+        Một thủy thủ HMS Divine đang bị dồn vào thành tàu, một tay bị liệt,
+        cố gắng chống đỡ một tên thủy thủ dày dạn kinh nghiệm bằng cây
+        thương giáp chiến gãy. Anh ta sẽ không cầm cự được bao lâu nữa.
+      message_type: normal
+
+    option:
+      - id: renc-a-intercede
+        text: "Kéo kẻ địch ra khỏi anh ta."
+        next: arb-renc-wounded-ally-combat
+        display_order: 0
+
+      - id: renc-a-ignore
+        text: "Tiếp tục tiến — còn nhiều việc quan trọng hơn."
+        next: arb-renc-wounded-ally-ignore
+        display_order: 1
+
+  - id: arb-renc-wounded-ally-combat
+    name: "Gặp Gỡ Ngậu Nhiên A — Chiến Đấu"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: veteran_sailor
+      on_victory: arb-renc-wounded-ally-win
+      on_defeat: arb-renc-wounded-ally-lose
+
+  - id: arb-renc-wounded-ally-win
+    name: "Gặp Gỡ Ngậu Nhiên A — Chiến Thắng"
+    event_type: scene
+    is_active: true
+    next: arb-renc-wounded-ally-tip
+
+    message:
+      title: "Đã Cứu"
+      text: |
+        Tên thủy thủ dày dạn ngã xuống. Người bị thương tựa vào thành
+        tàu lấy lại hơi thở. Anh ta gật đầu về phía một khoảng trống trong hàng ngũ kẻ địch.
+
+        “Chúng bỏ trống một vị trí hậu trận. Chỉ một tên lính vũ trang đang giữ một mình.”
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-wounded-ally-tip
+    name: "Gặp Gỡ Ngậu Nhiên A — Tiếp Nối"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Vị Trí Bỏ Trống"
+      text: |
+        Một khoảng hở ngắn. Sẽ không kéo dài lâu.
+      message_type: normal
+
+    option:
+      - id: renc-a-tip-push
+        text: "Chiếm lấy vị trí đó."
+        next: arb-renc-wounded-ally-tip-combat
+        display_order: 0
+
+      - id: renc-a-tip-skip
+        text: "Cứu được đồng đội là đủ — rút lui."
+        display_order: 1
+
+  - id: arb-renc-wounded-ally-tip-combat
+    name: "Gặp Gỡ Ngậu Nhiên A — Chiến Đấu Tiếp Nối"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: man_at_arms
+      on_victory: arb-renc-wounded-ally-tip-win
+      on_defeat: arb-renc-wounded-ally-tip-lose
+
+  - id: arb-renc-wounded-ally-tip-win
+    name: "Gặp Gỡ Ngậu Nhiên A — Chiến Thắng Tiếp Nối"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Chiếm Được Vị Trí"
+      text: |
+        Tên lính vũ trang không ngờ có mối đe dọa thứ hai. Vị trí đó
+        là của bạn chừng nào phòng tuyến còn giữ được.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-wounded-ally-tip-lose
+    name: "Gặp Gỡ Ngậu Nhiên A — Thất Bại Tiếp Nối"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Đánh Lui"
+      text: |
+        Hắn chuẩn bị kỹ hơn so với người thủy thủ nói. Bạn rút lui
+        trước khi chịu thương tích nặng hơn một vết bầm.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-wounded-ally-lose
+    name: "Gặp Gỡ Ngậu Nhiên A — Thất Bại"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Đẩy Lui"
+      text: |
+        Tên thủy thủ dày dạn mạnh hơn vẻ ngoài. Bạn cắt liên lạc
+        trước khi tình huống tệ hơn. Người bị thương biến mất trong hỗn loạn.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-wounded-ally-ignore
+    name: "Gặp Gỡ Ngậu Nhiên A — Bỏ Qua"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bỏ Lại Phía Sau"
+      text: |
+        Bạn tiếp tục bước qua. Phía sau, tiếng động ngắn ngủi của một
+        cuộc chiến thua cuộc chấm dứt. Phòng tuyến cảm thấy mỏng manh hơn một chút.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  # ── Encounter B: Grapple cutter ───────────────────────────────────────────
+
+  - id: arb-renc-breach-intro
+    name: "Gặp Gỡ Ngẫu Nhiên — Xạ Thủ Nỏ"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Trong Tầm Ngắm"
+      text: |
+        Một tên xạ thủ nỏ đang ngắm thẳng vào lưng một thủy thủ HMS Divine
+        đang giao chiến phía trước. Hắn sắp bắn.
+      message_type: normal
+
+    option:
+      - id: renc-b-intercede
+        text: "Xông vào hắn."
+        next: arb-renc-breach-combat
+        display_order: 0
+
+      - id: renc-b-ignore
+        text: "Không đủ thời gian — tiếp tục tiến."
+        next: arb-renc-breach-ignore
+        display_order: 1
+
+  - id: arb-renc-breach-combat
+    name: "Gặp Gỡ Ngẫu Nhiên B — Chiến Đấu"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: crossbowman
+      on_victory: arb-renc-breach-win
+      on_defeat: arb-renc-breach-lose
+
+  - id: arb-renc-breach-win
+    name: "Gặp Gỡ Ngẫu Nhiên B — Chiến Thắng"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Phát Nỏ Bị Chặn"
+      text: |
+        Hắn ngã xuống trước khi buông dây nỏ. Người thủy thủ phía trước
+        liếc qua vai — thấy tên xạ thủ đổ gục, gật đầu một cái, rồi quay
+        lại đòn đang đối mặt.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-breach-lose
+    name: "Gặp Gỡ Ngẫu Nhiên B — Thất Bại"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Đánh Bật"
+      text: |
+        Báng nỏ phang vào bạn trước khi bạn kịp tiếp cận. Bạn ngã xuống — loạng
+        choạng rời khỏi trận. Đằng sau, tiếng dây nỏ bật. Người thủy thủ phía
+        trước không còn ai che.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-breach-ignore
+    name: "Gặp Gỡ Ngẫu Nhiên B — Bỏ Qua"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Một Phát Nỏ"
+      text: |
+        Bạn tiếp tục tiến. Phía sau, tiếng dây nỏ bật. Một người gục xuống.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  # ── Encounter C: Pinned gunner ─────────────────────────────────────────────
+
+  - id: arb-renc-pinned-gunner-intro
+    name: "Gặp Gỡ Ngậu Nhiên — Xạ Thủ Bị Cô Lập"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Ghim Chặt"
+      text: |
+        Một xạ thủ HMS Divine đang co ro sau đống hàng hóa bị lật đổ,
+        không thể di chuyển. Một tên lính vũ trang đang dần tiến quanh
+        chiếc bình phong của hắn.
+      message_type: normal
+
+    option:
+      - id: renc-c-intercede
+        text: "Kéo hắn ra khỏi xạ thủ."
+        next: arb-renc-pinned-gunner-combat
+        display_order: 0
+
+      - id: renc-c-ignore
+        text: "Không thể dừng lại vì từng cuộc đụng độ nhỏ."
+        next: arb-renc-pinned-gunner-ignore
+        display_order: 1
+
+  - id: arb-renc-pinned-gunner-combat
+    name: "Gặp Gỡ Ngậu Nhiên C — Chiến Đấu"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: man_at_arms
+      on_victory: arb-renc-pinned-gunner-win
+      on_defeat: arb-renc-pinned-gunner-lose
+
+  - id: arb-renc-pinned-gunner-win
+    name: "Gặp Gỡ Ngậu Nhiên C — Chiến Thắng"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Xạ Thủ Được Giải Thoát"
+      text: |
+        Tên lính vũ trang ngã xuống. Xạ thủ bò ra khỏi bình phong và
+        trở lại vị trí mà không nói một lời — khẩu đại bác thay
+        anh ta nói lời cảm ơn.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-pinned-gunner-lose
+    name: "Gặp Gỡ Ngậu Nhiên C — Thất Bại"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Không Giữ Được"
+      text: |
+        Tên lính vũ trang có góc đánh tốt hơn. Bạ nhận một đòn
+        và buộc phải lùi lại. Xạ thủ tự lo liệu lấy.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  - id: arb-renc-pinned-gunner-ignore
+    name: "Gặp Gỡ Ngậu Nhiên C — Bỏ Qua"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Mặc Kệ"
+      text: |
+        Khi bạn đi qua, tiếng động từ góc đó đã dứt. Khẩu súng
+        im lặng cho đến hết trận chiến.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+  # ── Armory state announcements (posted to battle channel) ─────────────────
+  # Fired from battleUtility.js via runActionsOnly.
+
+  - id: arb-armory-occupied
+    name: "Kho Vũ Khí — Bị Xâm Nhập"
+    event_type: scene
+    is_active: true
+    action:
+      - type: narrate
+        channel: battle
+        title: "Giao tranh tại Kho Vũ Khí!"
+        text: |
+          Kho Vũ Khí La Dauphine đã bị xâm nhập. Tạm thời kẻ địch sẽ không thể lấy vũ khí mới.
+          Quân Arbrance đang tổ chức phản công.
+
+  - id: arb-armory-retaken
+    name: "Kho Vũ Khí — Đẩy Lui Kẻ Địch"
+    event_type: scene
+    is_active: true
+    action:
+      - type: narrate
+        channel: battle
+        title: "Kho Vũ Khí được bảo vệ"
+        text: |
+          Bất chấp mọi nỗ lực, kẻ địch đã giành lại quyền kiểm soát kho vũ khí.
+          Quân Arbrance đã lấy lại quyền kiểm soát.
+
+  - id: arb-armory-secured
+    name: "Kho Vũ Khí — Kiểm Soát Hoàn Toàn"
+    event_type: scene
+    is_active: true
+    action:
+      - type: narrate
+        channel: battle
+        title: "Kho Vũ Khí La Dauphine thất thủ hoàn toàn"
+        text: |
+          Sau nhiều lần giao tranh liên tiếp, Kho Vũ Khí La Dauphine đã bị chiếm đóng hoàn toàn.
+          Khả năng chiến đấu của quân Arbrance suy giảm vĩnh viễn.
+
+

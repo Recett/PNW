@@ -169,11 +169,44 @@ enemies:
 |-------|------|:--------:|-------------|
 | `id` | `string` | yes | Kebab-case. Unique within the enemy. |
 | `name` | `string` | yes | Display name. |
-| `base_damage` | `integer` | yes | Base damage before modifiers. |
+| `base_damage` | `integer` | yes | Base damage before modifiers. Reinterpreted as shield strength when `tags` includes `shield`. |
 | `accuracy` | `float` | yes | 0.0–1.0 hit chance. |
 | `critical_chance` | `integer` | yes | Critical hit chance as integer percentage. |
 | `cooldown` | `float` | yes | Cooldown in seconds before reuse. |
 | `description` | `string` | — | Flavour text shown in combat log. |
+| `tags` | `list` | — | Mechanic keywords. See attack tag vocabulary below. |
+
+
+### 1.4.1 Attack Tag Vocabulary
+
+Tags on an attack entry activate named combat mechanics. Unknown tags are silently ignored.
+
+| Tag | Effect |
+|-----|--------|
+| `shield` | This attack grants a shield buff to the enemy instead of dealing damage. `base_damage` becomes the shield strength absorbed before HP is touched. The shield is fully consumed on the first hit. |
+| `greatshield` | Same as `shield`, but the shield is only reduced by the damage absorbed rather than fully consumed on a single hit. |
+
+**Example — regular shield:**
+```yaml
+- id: shield_block
+  name: Shield
+  base_damage: 8       # grants 8 points of shield
+  accuracy: 0
+  critical_chance: 0
+  cooldown: 300
+  tags: [shield]
+```
+
+**Example — greatshield:**
+```yaml
+- id: tower_guard
+  name: Tower Shield
+  base_damage: 20      # grants 20 points of persistent greatshield
+  accuracy: 0
+  critical_chance: 0
+  cooldown: 400
+  tags: [greatshield]
+```
 
 
 ### 1.5 Field Reference — Ability

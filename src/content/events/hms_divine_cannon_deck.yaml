@@ -1,0 +1,274 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # CANNON DECK ENCOUNTERS
+  # Entry points are called from fight.js after the spawn-chance computation.
+  #
+  # Two possible entry points:
+  #   arb-cannon-master-gunner-intro  — Master Gunner boss (probabilistic spawn)
+  #   arb-cannon-round-1-combat       — Normal 3-round crew fight
+  #
+  # Shared tail events:
+  #   arb-cannon-defeat   — Any defeat on the gun deck (morale -3, move to living quarters)
+  #   arb-cannon-retreat  — Any retreat (move to main deck via flag-resolved location)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # ── Master Gunner encounter ──────────────────────────────────────────────────
+
+  - id: arb-cannon-master-gunner-intro
+    name: "Master Gunner — Encounter"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Master Gunner"
+      text: |
+        The Master Gunner blocks your path, powder-stained and furious.
+        Do you stand your ground or fall back to the main deck?
+      message_type: normal
+
+    option:
+      - id: fight-master-gunner
+        text: "Fight the Master Gunner"
+        next: arb-cannon-master-gunner-combat
+        display_order: 0
+
+      - id: retreat-from-master-gunner
+        text: "Fall back to the main deck"
+        next: arb-cannon-retreat
+        display_order: 1
+
+  - id: arb-cannon-master-gunner-combat
+    name: "Master Gunner — Combat"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: boss
+      enemy: master_gunner
+      on_victory: arb-cannon-master-gunner-victory
+      on_defeat: arb-cannon-master-gunner-defeat
+
+  - id: arb-cannon-master-gunner-victory
+    name: "Master Gunner — Victory"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Master Gunner Defeated"
+      text: |
+        The Master Gunner falls. The guns go silent.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: arb_boss_master_gunner_defeated
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 10
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: hms_divine_drain_reduction
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: arb_cannon_deck_hp
+        flag_value: 100
+        flag_operation: subtract
+        flag_type: global
+        silent: true
+
+  - id: arb-cannon-master-gunner-defeat
+    name: "Master Gunner — Defeat"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Driven Back"
+      text: |
+        The Master Gunner keeps you off-balance and drives you down on the gun deck.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: move
+        location: 6
+        silent: true
+
+  # ── 3-Round crew fight ───────────────────────────────────────────────────────
+
+  - id: arb-cannon-round-1-combat
+    name: "Cannon Deck — Round 1"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: sailor
+      on_victory: arb-cannon-round-1-victory
+      on_defeat: arb-cannon-defeat
+
+  - id: arb-cannon-round-1-victory
+    name: "Cannon Deck — Round 1 Clear"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Round 1 Clear"
+      text: |
+        Enemy down. Press on to round 2, or fall back to the main deck?
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 1
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+    option:
+      - id: continue-to-round-2
+        text: "Press on"
+        next: arb-cannon-round-2-combat
+        display_order: 0
+
+      - id: retreat-after-round-1
+        text: "Fall back to the main deck"
+        next: arb-cannon-retreat
+        display_order: 1
+
+  - id: arb-cannon-round-2-combat
+    name: "Cannon Deck — Round 2"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: veteran_sailor
+      on_victory: arb-cannon-round-2-victory
+      on_defeat: arb-cannon-defeat
+
+  - id: arb-cannon-round-2-victory
+    name: "Cannon Deck — Round 2 Clear"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Round 2 Clear"
+      text: |
+        One more wave left. Do you push through?
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+    option:
+      - id: continue-to-round-3
+        text: "Press on"
+        next: arb-cannon-round-3-combat
+        display_order: 0
+
+      - id: retreat-after-round-2
+        text: "Fall back to the main deck"
+        next: arb-cannon-retreat
+        display_order: 1
+
+  - id: arb-cannon-round-3-combat
+    name: "Cannon Deck — Round 3"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: boarder
+      on_victory: arb-cannon-round-3-victory
+      on_defeat: arb-cannon-defeat
+
+  - id: arb-cannon-round-3-victory
+    name: "Cannon Deck — All Rounds Clear"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Cannon Deck Suppressed"
+      text: |
+        Your squad fought through all three waves and silenced the guns.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: arb_cannon_deck_hp
+        flag_value: 30
+        flag_operation: subtract
+        flag_type: global
+        silent: true
+
+  # ── Shared tail events ───────────────────────────────────────────────────────
+
+  - id: arb-cannon-defeat
+    name: "Cannon Deck — Defeat"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Overwhelmed"
+      text: |
+        You are driven back from the gun deck.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: move
+        location: 6
+        silent: true
+
+  - id: arb-cannon-retreat
+    name: "Cannon Deck — Retreat"
+    event_type: scene
+    silent: true
+    is_active: true
+
+    action:
+      - type: move
+        location: "flag:location_id_arb_main_deck"
+        silent: true

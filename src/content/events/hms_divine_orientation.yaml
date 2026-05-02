@@ -1,0 +1,321 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────
+  # HMS DIVINE BATTLE — YORK WAYLAN ORIENTATION
+  # Events shown when players talk to York during the battle.
+  # Entry point: york-battle-hub (routed from york-approach).
+  # ─────────────────────────────────────────────────────────────
+
+  # Hub — shown each time the player talks to York during battle.
+  - id: york-battle-hub
+    name: "York — Chiến Đấu Hub"
+    event_type: dialogue
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Nếu ${2p} muốn biết gì về tàu địch hay tình hình bên này, ${npc_1p} có thể trả lời."
+
+    option:
+      - id: battle-attack
+        text: "${1p} sang tàu địch."
+        next: york-battle-attack
+        display_order: 0
+
+      - id: battle-defense
+        text: "${1p} ở lại bảo vệ tàu."
+        next: york-battle-hms-defense
+        display_order: 1
+
+      - id: battle-med-kit
+        text: "Nếu có người bị thương?"
+        next: york-battle-med-kit
+        display_order: 2
+        hidden_check:
+          - type: flag
+            flag_data:
+              flag_name: char.york_med_kit_briefed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: false
+
+      - id: battle-med-kit-resupply
+        text: "Cho thêm bộ dụng cụ."
+        next: york-battle-med-kit-resupply
+        display_order: 2
+        required_check:
+          - type: flag
+            flag_data:
+              flag_name: char.york_med_kit_briefed
+              flag_value: 1
+              flag_comparison: equal
+              is_global_flag: false
+
+      - id: battle-morale
+        text: "Tình hình cuộc chiến hiện tại?"
+        next: york-battle-morale-route
+        display_order: 3
+
+      - id: battle-leave
+        text: "Đã rõ."
+        display_order: 4
+
+  # Attack briefing — combined overview of enemy ship
+  - id: york-battle-attack
+    name: "York — Tấn Công Tàu Địch"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Tấn công tàu địch à? Đầu tiên, phải vượt qua được boong trên. Có thể vượt qua từ boong chính tàu chúng ta, hoặc từ cột buồm. Người đầu tiên đổ bộ sẽ là người quan trọng nhất, vì họ sẽ thiết lập được chỗ đứng cho những người tiếp theo. Nhưng đây cũng là việc khó khăn nhất. Nên chờ thời cơ thích hợp hơn là tấn công liều lĩnh.
+        
+        Kẻ địch có thể bắn xuống từ cột buồm, nên cần phải kiểm soát chỗ đó càng nhanh càng tốt.
+
+        Phía dưới là boong pháo. Nếu ${2p} vào được, có thể phá hủy một số khẩu pháo của địch, nhưng sẽ rất nguy hiểm vì kẻ địch sẽ tập trung bảo vệ chỗ đó.
+
+        Ngoài ra còn có kho vũ khí. Cắt đứt được chỗ đó, tình hình bên trên sẽ thay đổi. Tuy nhiên, kẻ địch chắc chắn sẽ tìm mọi cách để dành lại kiểm soát chỗ đó, nên sẽ rất nguy hiểm. Nếu có thể giữ vững vị trí đủ lâu có thể cho nước tràn vào và phá hủy hoàn toàn."
+
+  # HMS Divine defense briefing
+  - id: york-battle-hms-defense
+    name: "York — Phòng Thủ HMS Divine"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Quân địch chắc chắn sẽ tìm cách tràn qua boong trên và phá hoại. Vì thế việc phòng thủ chính sẽ diễn ra ở boong trên. Để hỗ trợ, các xạ thủ có thể đứng trên cột buồm để bắn xuống. Nhưng kể cả ở đó cũng sẽ không an toàn.
+        
+        Boong chính sẽ là nơi phòng thủ cuối cùng. Nếu địch tràn qua được boong trên, họ sẽ cố gắng phá hủy các khẩu pháo ở đó để giảm khả năng phản công của chúng ta."
+
+  # Med kit — check if player already has one, give if not
+  - id: york-battle-med-kit
+    name: "York — Med Kit"
+    event_type: dialogue
+    next: york-battle-hub
+
+    check:
+      - name: "already-has-med-kit"
+        type: "item"
+        item_data:
+          - item_id: "med_kit"
+            required_quantity: 1
+        is_required: false
+        silent: true
+        on_success: "york-battle-med-kit-already-has"
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Boong sinh hoạt đang được dùng làm trạm y tế. Nếu bị thương thì quay về đây."
+
+        ${npc_2p} ${npc_name} lục ngăn kéo, đặt một bộ dụng cụ y tế lên bàn.
+
+        "Khi nào cần sơ cứu thì dùng cái này."
+    action:
+      - type: flag
+        flag_name: york_med_kit_briefed
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+      - type: item
+        item: "med_kit"
+        quantity: "1"
+        operation: give
+        silent: false
+
+  - id: york-battle-med-kit-already-has
+    name: "York — Med Kit (Already Has)"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Boong sinh hoạt đang được dùng làm trạm y tế. Có vật tư cơ bản ở đó, và có người trực. Ai bị thương nặng thì đưa về đó."
+    action:
+      - type: flag
+        flag_name: york_med_kit_briefed
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+  # Med kit resupply — shown after briefing, player requests another kit
+  - id: york-battle-med-kit-resupply
+    name: "York — Med Kit Resupply"
+    event_type: dialogue
+    next: york-battle-hub
+
+    check:
+      - name: "already-has-med-kit-resupply"
+        type: "item"
+        item_data:
+          - item_id: "med_kit"
+            required_quantity: 1
+        is_required: false
+        silent: true
+        on_success: "york-battle-med-kit-resupply-has"
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        ${npc_2p} ${npc_name} lục ngăn kéo, lấy thêm một bộ dụng cụ.
+    action:
+      - type: item
+        item: "med_kit"
+        quantity: "1"
+        operation: give
+        silent: false
+
+  - id: york-battle-med-kit-resupply-has
+    name: "York — Med Kit Resupply (Already Has)"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Còn nhiều người cần lắm, cứ dùng hết đi đã."
+
+  # ── Morale check ─────────────────────────────────────────────────────────────
+
+  # Silent router: load morale into session variable, then branch by value.
+  - id: york-battle-morale-route
+    name: "York — Morale Route"
+    event_type: dialogue
+    silent: true
+    next: york-battle-morale-high
+
+    check:
+      - name: morale-critical
+        type: flag
+        flag_data:
+          flag_name: global.hms_divine_morale
+          flag_value: -50
+          flag_comparison: less_than
+          is_global_flag: true
+        is_required: false
+        on_success: york-battle-morale-critical
+        execution_order: 0
+
+      - name: morale-low
+        type: flag
+        flag_data:
+          flag_name: global.hms_divine_morale
+          flag_value: 0
+          flag_comparison: less_equal
+          is_global_flag: true
+        is_required: false
+        on_success: york-battle-morale-low
+        execution_order: 1
+
+      - name: morale-neutral
+        type: flag
+        flag_data:
+          flag_name: global.hms_divine_morale
+          flag_value: 20
+          flag_comparison: less_equal
+          is_global_flag: true
+        is_required: false
+        on_success: york-battle-morale-neutral
+        execution_order: 2
+
+      - name: morale-good
+        type: flag
+        flag_data:
+          flag_name: global.hms_divine_morale
+          flag_value: 40
+          flag_comparison: less_equal
+          is_global_flag: true
+        is_required: false
+        on_success: york-battle-morale-good
+        execution_order: 3
+
+    action:
+      - type: variable
+        variable_name: morale
+        source_type: flag
+        source_name: hms_divine_morale
+        is_global_flag: true
+        silent: true
+
+  # Tier 1: < -50 — critical
+  - id: york-battle-morale-critical
+    name: "York — Morale: Critical"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Tập trung vào phòng thủ ngay bây giờ. Tình hình đang rất tệ, chúng ta đang bị đẩy lùi và nếu không cẩn thận thì có thể sẽ mất kiểm soát hoàn toàn."
+
+        *(${morale})*
+
+  # Tier 2: -50 <= x <= 0 — low
+  - id: york-battle-morale-low
+    name: "York — Morale: Low"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Chúng ta đang phải phòng thủ. Địch đang tấn công mạnh, chúng ta không có đủ khả năng phản công ngay bây giờ."
+
+        *(${morale})*
+
+  # Tier 3: 0 < x <= 20 — neutral
+  - id: york-battle-morale-neutral
+    name: "York — Morale: Neutral"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Tạm thời mọi thứ đang ổn, đây là lúc chúng ta có thể phản công."
+
+        *(${morale})*
+
+  # Tier 4: 20 < x <= 40 — good
+  - id: york-battle-morale-good
+    name: "York — Morale: Good"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Những đợt phản công đang phát huy tác dụng. Chúng ta đang ép được địch, và nếu tiếp tục giữ thế chủ động thì có thể sẽ phá vỡ được phòng thủ của chúng."
+
+        *(${morale})*
+
+  # Tier 5: > 40 — high
+  - id: york-battle-morale-high
+    name: "York — Morale: High"
+    event_type: dialogue
+    next: york-battle-hub
+
+    message:
+      npc_speaker: quartermaster-york
+      message_type: dialogue
+      text: |
+        "Có vẻ như mọi thứ đang đi đúng hướng. Chúng ta đang kiểm soát hoàn toàn tình hình và nếu tiếp tục giữ thế chủ động, chiến thắng sẽ nằm trong tầm tay."
+
+        *(${morale})*

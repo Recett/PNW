@@ -1,0 +1,52 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────
+  # HMS DIVINE — BATTLE START & END ANNOUNCEMENTS
+  # These events are triggered via runActionsOnly() from
+  # battleUtility.js — they post to the BATTLE channel.
+  # ─────────────────────────────────────────────────────────────
+
+  # Called by battleUtility.initBattle() after flags are set.
+  - id: hms-divine-battle-commence
+    name: "HMS Divine — Khai Trận"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0xc0392b
+        title: "Hải Hành Ký — Khinh Hạm HMS Divine"
+        text: |
+          *Trích Hải hành ký về chuyến vượt Hỗn Mang Hải của khinh hạm HMS Divine, chép lại bởi một người trong đoàn viễn chinh*
+
+          "Nếu có ai hỏi ta đâu là nơi gần với địa ngục nhất mà con người vẫn còn có thể sống sót để kể lại, ta sẽ không ngần ngại đáp rằng: ấy là Hỗn Mang Hải."
+
+          Đã nhiều tuần trôi qua kể từ ngày chiến hạm Divine rời bến và tiến vào vùng biển bị nguyền rủa ấy. Những gì đoàn viễn chinh phải chịu đựng trong khoảng thời gian đó vượt quá mọi kinh nghiệm hàng hải mà ta từng biết. Dòng hải lưu không chảy theo lẽ thường, khi thì lôi con tàu nghiêng ngả sang phương đông dù gió thổi từ tây, khi lại kéo nó lùi ngược giữa lúc buồm căng đầy gió thuận. Trời đất cũng chẳng còn tuân theo quy luật nào của tạo hóa: nắng rực giữa buổi sáng có thể hóa thành giông tố trong chớp mắt, rồi ngay sau cơn mưa như roi quất là một khoảng tĩnh lặng chết chóc, không gió, không sóng, không lấy một tiếng chim biển.
+
+          Nhưng đáng sợ hơn cả là khi HMS Divine tiến vào vùng mà thủy thủ gọi là Vụ Hải — biển của sương mù trắng đặc như sữa, nơi tầm mắt của mỗi người không vượt quá chính boong tàu mình đang đứng. Trong làn sương ấy, chúng ta trông thấy vô vàn hình bóng quái dị: những con rồng dài như núi non lượn mình giữa tầng mây trắng; những bóng đen có sừng và cánh như ác quỷ từ cổ thư; những đoàn quân ma quái đang giao chiến trong im lặng; và cả những sinh vật không thể gọi tên, thân thể méo mó như bị nặn từ cơn ác mộng của tạo hóa. Chúng hiện ra rồi tan biến, gần đến mức tưởng chừng chỉ cần đưa tay là chạm tới — nhưng tuyệt nhiên không điều gì thật sự xảy ra. Không tiếng gầm, không cuộc tập kích, không máu đổ. Chỉ có một nỗi kinh hoàng vô hình đè nặng lên lồng ngực mỗi người, khiến từng đêm dài như vô tận. Có lẽ, nếu không có hoa tiêu Henry với chiếc la bàn Konrad trong tay, luôn lặng lẽ dẫn con tàu rẽ theo những phương hướng kỳ dị mà không ai hiểu nổi, thì định mệnh dành cho chúng ta hẳn đã là một kết cục còn ghê rợn hơn những ảo ảnh kia. Nhưng kỳ lạ thay — sau muôn vàn cảm giác kinh hoàng, sau bao nhiêu đêm tưởng như thần chết đã đứng ngay sau lưng — không một tai họa thực sự giáng xuống HMS Divine. Chúng ta vượt qua Hỗn Mang Hải nguyên vẹn.
+
+          Vì thế, khi biển lặng trở lại và ánh mặt trời của một bầu trời bình thường một lần nữa soi xuống boong tàu, toàn thể thủy thủ đoàn mở tiệc ăn mừng suốt nhiều ngày đêm. Men rượu chảy tràn, tiếng hát vang lên dưới những cánh buồm, và ai nấy đều hướng về tương lai với niềm hy vọng lớn lao. Phía trước là Tân Ireyes, thuộc địa đầu tiên của Gateland nơi Tân Thế Giới — vùng đất của ruộng đồng mới, của vàng bạc chưa khai phá, của danh vọng, đất đai, và một cuộc đời mới cho những ai dám rời bỏ Cựu Thế Giới phía sau.
+
+          Nhưng biển cả chưa bao giờ rộng lòng với kẻ mơ mộng.
+
+          Vào một buổi chiều xám lạnh, lính gác trên cột buồm bất ngờ hét lớn báo hiệu có tàu lạ phía chân trời. Qua ống kính đồng, lá cờ của nó hiện ra rõ ràng trong gió: nền xanh lục với cây vàng rực ở chính giữa — biểu tượng không thể nhầm lẫn của Arbrance. Một chiến hạm Arbrancien. Tệ hơn nữa — đó là một carrack chiến trận, thân tàu đồ sộ như một pháo đài nổi, mạn tàu dày đặc những họng súng đen ngòm. Chỉ cần nhìn qua cũng biết số đại bác của nó vượt xa HMS Divine, và kích thước của nó lớn hơn con tàu chúng ta gần một bậc.
+
+          Một cơn lạnh chạy dọc sống lưng tất cả những ai có mặt trên boong. Phải chăng số phận đã để chúng ta vượt qua ranh giới chết chóc của thế giới cũ, chỉ để bỏ mạng ngay trước ngưỡng cửa của thế giới mới?
+
+          Nhưng giữa lúc nỗi sợ hãi lan nhanh như lửa bén cỏ khô, thuyền trưởng Aldric Vorne không hề nao núng. Ông lập tức truyền lệnh dồn dập như sấm:
+
+          *"Toàn pháo đội vào vị trí! Mở kho thuốc súng! Chuẩn bị giao chiến!"*
+
+          Các binh lính hải quân Vương quyền Gateland lao vào vị trí như thể đã tập dượt cho khoảnh khắc này từ rất lâu. Đại bác được nạp đạn, dây cháy chậm được châm sẵn, những khẩu súng xoay mũi về phía kẻ địch đang áp sát. Còn với chúng ta — những người viễn chinh, những kẻ đi tìm miền đất mới — ngài chỉ ra một mệnh lệnh ngắn gọn nhưng cứng như thép:
+
+          *"Đứng yên. Chờ lệnh ta. Không ai được tự ý hành động."*
+
+          Giọng nói ấy không mang chút hoảng loạn nào. Chỉ có sự quyết tuyệt của một người đã chuẩn bị cho ngày này từ rất lâu.
+
+          Và khi ấy, tất cả đều hiểu ra:
+
+          Thuyền trưởng Aldric không định chạy.
+          Ngài định chiến đấu.
+          Và ngài định chiến thắng.
+

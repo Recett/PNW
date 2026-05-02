@@ -304,8 +304,9 @@ async function handleLocationExitButton(interaction) {
 		await locationUtil.postLocationActivity(interaction.client, locationId, characterName, 'depart', characterGender).catch(() => null);
 		await locationUtil.postLocationActivity(interaction.client, targetLocationId, characterName, 'arrive', characterGender).catch(() => null);
 
+		let exitReplyContent = `\uD83D\uDEAA You have left the locked location and moved to **${targetLocation.name}**.`;
 		await interaction.reply({
-			content: `\uD83D\uDEAA You have left the locked location and moved to **${targetLocation.name}**.`,
+			content: exitReplyContent,
 			flags: MessageFlags.Ephemeral,
 		});
 	}
@@ -417,6 +418,471 @@ async function handleCharDeleteInteraction(interaction) {
 	return true;
 }
 
+/**
+ * Handle a player pressing the "Fight" button on a pending encounter embed.
+ * @param {import('discord.js').Interaction} interaction
+ * @returns {Promise<boolean>} true if this interaction was handled
+ */
+async function handleEncounterFightInteraction(interaction) {
+	if (!interaction.isButton()) return false;
+	if (!interaction.customId.startsWith('encounter_fight|')) return false;
+
+	const parts = interaction.customId.split('|');
+	const encounterId = parseInt(parts[1], 10);
+	if (isNaN(encounterId)) return false;
+
+	const { PendingEncounter } = require('@root/dbObject.js');
+	const characterUtil = require('@utility/characterUtility.js');
+	const combatUtil = require('@utility/combatUtility.js');
+	const { EMOJI } = require('../enums');
+	const { MessageFlags, EmbedBuilder } = require('discord.js');
+
+	const record = await PendingEncounter.findByPk(encounterId);
+	if (!record) {
+		await interaction.reply({ content: 'Encounter not found.', flags: MessageFlags.Ephemeral });
+		return true;
+	}
+
+	if (record.status !== 'pending') {
+		await interaction.reply({ content: 'This encounter has already been resolved.', flags: MessageFlags.Ephemeral });
+		return true;
+	}
+
+	if (record.expires_at < new Date()) {
+		await record.update({ status: 'expired' });
+		try { await interaction.message.delete(); } catch (_) { /* ignore */ }
+		await interaction.reply({ content: 'This encounter has expired.', flags: MessageFlags.Ephemeral });
+		return true;
+	}
+
+	const fighterId = interaction.user.id;
+	const isTarget = fighterId === record.target_player_id;
+
+	// All fighters pay 5 stamina. If they can't afford it they still fight but at half speed.
+	const STAMINA_COST = 5;
+	const fighter = await characterUtil.getCharacterData(fighterId);
+	if (!fighter) {
+		await interaction.reply({ content: 'You need a character to fight.', flags: MessageFlags.Ephemeral });
+		return true;
+	}
+	const canPayStamina = (fighter.currentStamina ?? 0) >= STAMINA_COST;
+	if (canPayStamina) {
+		await characterUtil.modifyCharacterStat(fighterId, 'currentStamina', -STAMINA_COST, 'add');
+	}
+
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+	// Pre-mark as resolved to prevent concurrent fight triggers; reverted below on player loss
+	await record.update({ status: 'resolved', fighter_id: fighterId });
+
+	// Compute armory damage multiplier (20% debuff if players in armory or armory secured)
+	const battleUtil = require('@utility/battleUtility.js');
+	const enemyDamageMultiplier = await battleUtil.getArmoryDamageMultiplier(record.location_id);
+
+	// Compute morale-based speed multipliers for this location
+	const moraleMultipliers = await battleUtil.getMoraleSpeedMultipliers(record.location_id);
+
+	// Run combat, passing any retained enemy HP from a prior lost round
+	// If fighter couldn't pay stamina, their speed is halved
+	const result = await combatUtil.mainCombat(fighterId, record.enemy_id, {
+		enemyStartHp: record.enemy_current_hp ?? undefined,
+		enemyDamageMultiplier,
+		playerSpeedMultiplier: (canPayStamina ? 1 : 0.7) * moraleMultipliers.playerSpeedMultiplier,
+		enemySpeedMultiplier: moraleMultipliers.enemySpeedMultiplier,
+	});
+	const won = (result?.finalState?.player?.hp ?? 0) > 0 && (result?.finalState?.enemy?.hp ?? 1) <= 0;
+	const enemyLabel = record.enemy_id.replace(/-/g, ' ');
+
+	// Post result to zone channel
+	try {
+		const channel = interaction.guild?.channels.cache.get(record.channel_id);
+		if (channel) {
+			const embed = new EmbedBuilder()
+				.setDescription(`<@${fighterId}> ${won ? 'defeated' : 'was defeated by'} **${enemyLabel}**!`);
+			await channel.send({ embeds: [embed] });
+		}
+	}
+	catch (e) {
+		console.error('[Encounter] Failed to post combat result:', e);
+	}
+
+	// Delete the original encounter message
+	try { await interaction.message.delete(); } catch (_) { /* ignore */ }
+
+	// Update battle morale based on encounter result
+	try {
+		const battleUtil = require('@utility/battleUtility.js');
+		const moraleDelta = won
+			? (battleUtil.ENEMY_MORALE_VALUES[record.enemy_id] ?? 1)
+			: -3;
+		await battleUtil.updateMorale(moraleDelta);
+		// Boss kill: permanently reduce drain baseline by 2
+		if (won && battleUtil.BOSS_ENEMIES.has(record.enemy_id)) {
+			const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
+			await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + 2);
+		}
+		// Armory wave: mark outcome and check completion
+		if (won && record.wave_id != null) {
+			await record.update({ outcome: 'win' });
+			await battleUtil.checkArmoryWaveCompletion(interaction.guild, record.wave_id);
+		}
+	}
+	catch (moraleErr) {
+		console.error('[Encounter] Failed to update morale:', moraleErr);
+	}
+
+	if (won) {
+		await interaction.editReply({ content: `${EMOJI.SUCCESS} You defeated the **${enemyLabel}**!` });
+	}
+	else {
+		// Player lost — retain enemy HP
+		const enemyHpLeft = result?.finalState?.enemy?.hp ?? 0;
+		const playerHp = result?.finalState?.player?.hp ?? 1;
+		await record.update({ status: 'pending', fighter_id: null, enemy_current_hp: enemyHpLeft });
+
+		if (playerHp > 0) {
+			// Not knocked out — repost weakened encounter targeting same player
+			try {
+				const channel = interaction.guild?.channels.cache.get(record.channel_id);
+				if (channel) {
+					const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+					const contentStore = require('@root/contentStore.js');
+					const enemyData = contentStore.enemies.findByPk(String(record.enemy_id));
+					const enemyMaxHp = enemyData?.stat?.health || 100;
+
+					const weakenedEmbed = new EmbedBuilder()
+						.setTitle(`${EMOJI.SWORD} Under Attack!`)
+						.setDescription(`A **${enemyLabel}** (weakened) has engaged <@${record.target_player_id}>.`)
+						.setFooter({ text: `HP: ${enemyHpLeft}/${enemyMaxHp} \u2022 Encounter #${record.id}` });
+
+					const row = new ActionRowBuilder().addComponents(
+						new ButtonBuilder()
+							.setCustomId(`encounter_fight|${record.id}`)
+							.setLabel('Fight')
+							.setStyle(ButtonStyle.Danger),
+					);
+
+					const msg = await channel.send({ embeds: [weakenedEmbed], components: [row] });
+					await record.update({ message_id: msg.id });
+				}
+			}
+			catch (e) {
+				console.error('[Encounter] Failed to repost weakened encounter message:', e);
+			}
+
+			await interaction.editReply({ content: `${EMOJI.FAILURE} You were defeated by the **${enemyLabel}**. It lingers, weakened.` });
+		}
+		else {
+			// Knocked out — move to living quarters; departure hook handles wave encounter retarget
+			await interaction.editReply({ content: `${EMOJI.FAILURE} You were knocked out by the **${enemyLabel}**.` });
+			try {
+				const battleUtil = require('@utility/battleUtility.js');
+				const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+				if (battleActive) {
+					const locationUtil = require('@utility/locationUtility.js');
+					await locationUtil.moveCharacterToLocation(fighterId, battleUtil.BOONG_SINH_HOAT_ID, interaction.guild);
+					console.log(`[Battle] Player ${fighterId} knocked out — moved to living quarters.`);
+				}
+			}
+			catch (e) {
+				console.error('[Battle] Failed to move KO\'d player to living quarters:', e);
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * Handle officer cabin assault confirm/cancel buttons.
+ * CustomId formats: ocabin_confirm|<sessionId>  |  ocabin_cancel|<sessionId>
+ * @param {import('discord.js').Interaction} interaction
+ * @returns {Promise<boolean>}
+ */
+async function handleOfficerCabinInteraction(interaction) {
+	if (!interaction.isButton()) return false;
+	const { customId } = interaction;
+	if (!customId.startsWith('ocabin_confirm|') && !customId.startsWith('ocabin_cancel|')) return false;
+
+	const { EmbedBuilder } = require('discord.js');
+	const battleUtil = require('@utility/battleUtility.js');
+	const combatUtil = require('@utility/combatUtility.js');
+	const characterUtil = require('@utility/characterUtility.js');
+	const locationUtil = require('@utility/locationUtility.js');
+	const { EMOJI } = require('../enums');
+
+	const parts = customId.split('|');
+	const action = parts[0]; // 'ocabin_confirm' or 'ocabin_cancel'
+	const sessionId = parts[1];
+
+	// Find session by sessionId
+	let sessionKey = null;
+	let session = null;
+	for (const [key, s] of battleUtil.officerCabinSessions.entries()) {
+		if (s.sessionId === sessionId) {
+			sessionKey = key;
+			session = s;
+			break;
+		}
+	}
+
+	if (!session) {
+		try { await interaction.update({ components: [] }); } catch (_) { /* already updated */ }
+		await interaction.followUp({ content: 'This assault has already been resolved or expired.', flags: MessageFlags.Ephemeral });
+		return true;
+	}
+
+	const userId = interaction.user.id;
+
+	if (action === 'ocabin_cancel') {
+		clearTimeout(session.timeout);
+		battleUtil.officerCabinSessions.delete(sessionKey);
+		await interaction.update({ content: 'The assault on the officer quarters has been called off.', embeds: [], components: [] });
+		return true;
+	}
+
+	// ocabin_confirm — check user has an assigned role
+	const userRole = Object.entries(session.assignments).find(([, uid]) => uid === userId)?.[0];
+	if (!userRole) {
+		await interaction.reply({
+			content: 'You must be assigned a role before you can confirm the assault.',
+			flags: MessageFlags.Ephemeral,
+		});
+		return true;
+	}
+
+	// Remove buttons from the board and open a deferred reply for the follow-up summary.
+	// Use deferUpdate so we can later call followUp; also delete the board message so
+	// stale copies (from previous role updates) don't leave orphaned buttons.
+	try {
+		await interaction.deferUpdate();
+		await interaction.message.delete();
+	}
+	catch {
+		// Board already gone or interaction stale — safe to continue
+	}
+
+	// Clear session — prevent re-entry
+	clearTimeout(session.timeout);
+	battleUtil.officerCabinSessions.delete(sessionKey);
+
+	// Check current defeated state to skip already-dead officers
+	const [captainDefeated, firstMateDefeated, headGuardDefeated] = await Promise.all([
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.captain.defeatFlag),
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.first_mate.defeatFlag),
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
+	]);
+	const defeatedBefore = {
+		captain: captainDefeated === 1,
+		first_mate: firstMateDefeated === 1,
+		head_guard: headGuardDefeated === 1,
+	};
+
+	// Collect all active fights
+	const fights = [];
+	for (const [role, def] of Object.entries(battleUtil.OFFICER_ROLES)) {
+		const fighterId = session.assignments[role];
+		if (!fighterId || defeatedBefore[role]) continue;
+		fights.push({ role, def, fighterId, name: session.names[role] });
+	}
+
+	if (fights.length === 0) {
+		await interaction.followUp({
+			content: 'No fights are ready to begin — all assigned officers are already defeated.',
+			flags: MessageFlags.Ephemeral,
+		});
+		return true;
+	}
+
+	const STAMINA_COST = 5;
+	const channel = interaction.channel;
+
+	// Announce the assault
+	const startLines = fights.map(f => `${EMOJI.SWORD} **${f.name}** vs **${f.def.label.replace('Fight ', '')}**`);
+	const startEmbed = new EmbedBuilder()
+		.setTitle('\u2694\uFE0F The Assault Begins!')
+		.setDescription(startLines.join('\n'))
+		.setColor(0x8B0000);
+	await channel.send({ embeds: [startEmbed] });
+
+	// Deduct stamina for each fighter and build team pairs
+	const teamPairs = await Promise.all(fights.map(async ({ fighterId, def }) => {
+		const fighter = await characterUtil.getCharacterData(fighterId);
+		let speedMultiplier = 1;
+		if (fighter && (fighter.currentStamina ?? 0) >= STAMINA_COST) {
+			await characterUtil.modifyCharacterStat(fighterId, 'currentStamina', -STAMINA_COST, 'add');
+		}
+		else {
+			speedMultiplier = 0.7;
+		}
+		return { playerId: fighterId, enemyId: def.enemyId, speedMultiplier };
+	}));
+
+	// Run all three fights on a single shared initiative tracker
+	const teamResult = await combatUtil.teamCombat(teamPairs);
+
+	// Map outcomes back to fight metadata for downstream logic
+	const fightResults = fights.map((f, i) => {
+		const outcome = teamResult.pairOutcomes[i];
+		return { role: f.role, def: f.def, fighterId: f.fighterId, name: f.name, won: outcome.playerWon, finalPlayer: outcome.finalPlayer };
+	});
+
+	// Post one combined battle report
+	const pages = teamResult.battleReportPages;
+	const allWon = fightResults.every(f => f.won);
+	const anyWon = fightResults.some(f => f.won);
+	const reportColor = allWon ? 0x27ae60 : anyWon ? 0xF39C12 : 0xe74c3c;
+	const firstEmbed = new EmbedBuilder()
+		.setTitle(`${EMOJI.SWORD} Officer Quarters \u2014 The Assault`)
+		.setDescription(pages[0])
+		.setColor(reportColor);
+	await channel.send({ embeds: [firstEmbed] });
+	for (let i = 1; i < pages.length; i++) {
+		const pageEmbed = new EmbedBuilder()
+			.setTitle(`${EMOJI.SWORD} Officer Quarters (${i + 1}/${pages.length})`)
+			.setDescription(pages[i])
+			.setColor(reportColor);
+		await channel.send({ embeds: [pageEmbed] });
+	}
+
+	// Apply morale updates — individual per fight
+	const allWon = fightResults.every(f => f.won);
+	let moraleDelta = 0;
+	for (const { def, won } of fightResults) {
+		if (won) {
+			moraleDelta += battleUtil.ENEMY_MORALE_VALUES[def.enemyId] ?? 1;
+		}
+		else {
+			moraleDelta -= 3;
+		}
+	}
+	if (moraleDelta !== 0) {
+		await battleUtil.updateMorale(moraleDelta);
+	}
+
+	// Boss defeat flags and drain reduction only count if every boss was killed
+	if (allWon) {
+		for (const { def } of fightResults) {
+			await battleUtil.setFlag(def.defeatFlag, 1);
+		}
+		const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
+		await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + (2 * fightResults.length));
+	}
+
+	// If all 3 officers are now dead, mark the commander quarters as secured
+	const [c, fm, hg] = await Promise.all([
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.captain.defeatFlag),
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.first_mate.defeatFlag),
+		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
+	]);
+	if (c === 1 && fm === 1 && hg === 1) {
+		await battleUtil.setFlag('global.arb_commander_slain', 1);
+		const victoryEmbed = new EmbedBuilder()
+			.setTitle('\u2694\uFE0F Officer Quarters Secured!')
+			.setDescription('All officers of *La Dauphine* have been defeated. The officer quarters are under your control.')
+			.setColor(0xFFD700);
+		await channel.send({ embeds: [victoryEmbed] });
+	}
+
+	// Move knocked-out players to living quarters
+	for (const { fighterId, won, finalPlayer } of fightResults) {
+		if (!won) {
+			const playerHp = finalPlayer?.hp ?? 1;
+			if (playerHp <= 0) {
+				try {
+					const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+					if (battleActive) {
+						await locationUtil.moveCharacterToLocation(fighterId, battleUtil.BOONG_SINH_HOAT_ID, interaction.guild);
+						console.log(`[OfficerCabin] Player ${fighterId} KO'd \u2014 moved to living quarters.`);
+					}
+				}
+				catch (e) {
+					console.error('[OfficerCabin] Failed to move KO\'d player:', e);
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+/**
+ * Handle a player clicking the "Ready" muster button before battle spawns begin.
+ * @param {import('discord.js').Interaction} interaction
+ * @returns {Promise<boolean>}
+ */
+async function handleBattleMusterInteraction(interaction) {
+	if (!interaction.isButton()) return false;
+	if (interaction.customId !== 'battle_muster_ready') return false;
+
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const userId = interaction.user.id;
+	const battleUtil = require('@utility/battleUtility.js');
+	const { CharacterBase, CharacterFlag } = require('../dbObject.js');
+
+	// Must be a registered character
+	const character = await CharacterBase.findOne({ where: { id: userId } });
+	if (!character) {
+		await interaction.editReply({ content: 'You do not have a character.' });
+		return true;
+	}
+	const unregistered = await CharacterFlag.findOne({ where: { character_id: userId, flag_name: 'unregistered' } });
+	if (unregistered && parseInt(unregistered.flag_value) !== 0) {
+		await interaction.editReply({ content: 'You must complete registration first.' });
+		return true;
+	}
+
+	// Check battle is still mustering
+	const mustering = await battleUtil.getFlag('global.hms_divine_mustering');
+	if (!mustering) {
+		await interaction.editReply({ content: 'The battle has already begun!' });
+		return true;
+	}
+
+	// Check if already mustered
+	const alreadyMustered = await CharacterFlag.findOne({ where: { character_id: userId, flag_name: 'hms_divine_mustered' } });
+	if (alreadyMustered && parseInt(alreadyMustered.flag_value) !== 0) {
+		const count = await battleUtil.getFlag('global.hms_divine_ready_count');
+		await interaction.editReply({ content: `You are already marked as ready. (${count}/${battleUtil.MUSTER_REQUIRED})` });
+		return true;
+	}
+
+	// Mark this player as mustered
+	await CharacterFlag.upsert({ character_id: userId, flag_name: 'hms_divine_mustered', flag_value: 1 });
+
+	// Increment counter
+	const prevCount = await battleUtil.getFlag('global.hms_divine_ready_count');
+	const newCount = prevCount + 1;
+	await battleUtil.setFlag('global.hms_divine_ready_count', newCount);
+
+	// Update the muster message footer with current count
+	const { EmbedBuilder } = require('discord.js');
+	const SystemSettingUtil = require('@utility/systemSetting.js');
+	try {
+		const ref = await SystemSettingUtil.get('message.battle_muster');
+		if (ref) {
+			const [channelId, messageId] = ref.split(':');
+			const channel = interaction.guild?.channels.cache.get(channelId);
+			if (channel) {
+				const msg = await channel.messages.fetch(messageId);
+				const updated = EmbedBuilder.from(msg.embeds[0]).setFooter({ text: `${newCount} / ${battleUtil.MUSTER_REQUIRED} ready` });
+				await msg.edit({ embeds: [updated], components: msg.components });
+			}
+		}
+	}
+	catch (e) {
+		console.error('[Muster] Failed to update muster message count:', e);
+	}
+
+	await interaction.editReply({ content: `You are ready! (${newCount}/${battleUtil.MUSTER_REQUIRED})` });
+
+	// Activate spawns if threshold reached
+	if (newCount >= battleUtil.MUSTER_REQUIRED) {
+		await battleUtil.activateBattleSpawns(interaction.guild, interaction.client);
+	}
+
+	return true;
+}
+
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
@@ -432,6 +898,12 @@ module.exports = {
 			if (await handleLocationExitButton(interaction)) return;
 			// Check for character delete confirmation
 			if (await handleCharDeleteInteraction(interaction)) return;
+			// Check for officer cabin assault buttons
+			if (await handleOfficerCabinInteraction(interaction)) return;
+			// Check for encounter fight button
+			if (await handleEncounterFightInteraction(interaction)) return;
+			// Check for battle muster button
+			if (await handleBattleMusterInteraction(interaction)) return;
 			// Add other button/select handlers here as needed
 			return;
 		}

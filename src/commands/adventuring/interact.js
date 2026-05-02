@@ -6,6 +6,8 @@ const {
 	EmbedBuilder,
 	StringSelectMenuBuilder,
 	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
 	ComponentType,
 } = require('discord.js');
 const { Op } = require('sequelize');
@@ -22,10 +24,13 @@ const {
 	LocationInstanceResourceNode,
 	LocationInstanceEnemy,
 	EnemyInstance,
+	PendingEncounter,
 } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const characterUtil = require('@utility/characterUtility.js');
+const battleUtil = require('@utility/battleUtility.js');
 const { v4: uuidv4 } = require('uuid');
+const { MSG } = require('./interact-messages.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -225,48 +230,213 @@ async function handleMove(interaction, userId) {
 
 	collector.on('collect', async i => {
 		const selectedId = i.values[0];
-		const { newLocation } = await interaction.client.locationUtil.moveCharacterToLocation(
-			userId,
-			selectedId,
-			interaction.guild,
-			5000,
+		const destLocation = await LocationBase.findByPk(selectedId);
+		collector.stop();
+
+		// Calculate stamina cost
+		let staminaCost = 0;
+		const battleActiveFlagRecord = await GlobalFlag.findOne({ where: { flag: 'global.hms_divine_battle_active' } });
+		if (battleActiveFlagRecord && parseInt(battleActiveFlagRecord.value) === 1) {
+			const arbranceIds = await battleUtil.getArbranceZoneIds();
+			const hmsRiggingId = await battleUtil.getFlag('global.location_id_hms_rigging');
+			const allBattleIds = new Set([...battleUtil.HMS_ZONE_IDS, ...Object.values(arbranceIds).filter(Boolean)]);
+			if (hmsRiggingId) allBattleIds.add(hmsRiggingId);
+			const srcIsBattle = allBattleIds.has(currentLocation.id);
+			const dstIsBattle = allBattleIds.has(Number(selectedId));
+			if (srcIsBattle || dstIsBattle) {
+				const riggingIds = new Set([arbranceIds.arb_rigging, hmsRiggingId].filter(Boolean));
+				const isRiggingToRigging = riggingIds.has(currentLocation.id) && riggingIds.has(Number(selectedId));
+				staminaCost = isRiggingToRigging ? 10 : 5;
+			}
+		}
+
+		// Build preview embed
+		const freshChar = await CharacterBase.findOne({ where: { id: userId } });
+		const previewEmbed = new EmbedBuilder()
+			.setTitle(`\u2192 ${destLocation?.name || selectedId}`)
+			.setDescription(destLocation?.description || MSG.MOVE_NO_DESCRIPTION);
+		if (staminaCost > 0) {
+			previewEmbed.addFields(
+				{ name: MSG.MOVE_STAMINA_COST, value: `${staminaCost}`, inline: true },
+				{ name: MSG.MOVE_STAMINA_CURRENT, value: `${freshChar?.currentStamina ?? 0}`, inline: true },
+			);
+		}
+
+		const confirmRow = new ActionRowBuilder().addComponents(
+			new ButtonBuilder()
+				.setCustomId(`move_confirm|${selectedId}|${staminaCost}`)
+				.setLabel(MSG.MOVE_CONFIRM_BUTTON)
+				.setStyle(ButtonStyle.Success),
+			new ButtonBuilder()
+				.setCustomId('move_cancel')
+				.setLabel(MSG.MOVE_CANCEL_BUTTON)
+				.setStyle(ButtonStyle.Secondary),
 		);
 
-		// Post move activity to old and new location channels
-		const characterName = character.name || `<@${userId}>`;
-		const characterGender = character?.gender;
-		try {
-			const locationUtil = interaction.client.locationUtil;
-			if (currentLocation) {
-				await locationUtil.postLocationActivity(interaction.client, currentLocation.id, characterName, 'depart', characterGender);
+		const hasPendingEncounter = await PendingEncounter.findOne({
+			where: { target_player_id: userId, location_id: currentLocation.id, status: 'pending' },
+		});
+		const confirmContent = hasPendingEncounter
+			? MSG.MOVE_CONFIRM_BATTLE
+			: MSG.MOVE_CONFIRM;
+		await i.update({ content: confirmContent, embeds: [previewEmbed], components: [confirmRow] });
+
+		// Button collector for confirmation
+		const btnCollector = message.createMessageComponentCollector({
+			componentType: ComponentType.Button,
+			time: 30000,
+			filter: b => b.user.id === userId,
+		});
+
+		btnCollector.on('collect', async b => {
+			btnCollector.stop();
+
+			if (b.customId === 'move_cancel') {
+				await b.update({ content: MSG.MOVE_CANCELLED, embeds: [], components: [] });
+				return;
 			}
-			if (newLocation) {
-				await locationUtil.postLocationActivity(interaction.client, newLocation.id, characterName, 'arrive', characterGender);
-			}
-		}
-		catch (actErr) { console.error('Error posting location activity:', actErr); }
 
-		let replyContent = `You traveled to **${newLocation?.name || 'the new location'}**!`;
-		if (newLocation?.channel) replyContent += ` Head over to <#${newLocation.channel}>`;
-		await i.reply({ content: replyContent, flags: MessageFlags.Ephemeral });
+			// Parse confirm data
+			const parts = b.customId.split('|');
+			const destId = parts[1];
+			const cost = parseInt(parts[2]) || 0;
 
-		collector.stop();
-		await interaction.editReply({ components: [] }).catch(() => {});
+			// Morale entry gate for Arbrance zones
+			if (destLocation) {
+				const arbranceIds = await battleUtil.getArbranceZoneIds();
+				const isArmoryDest = destLocation.id === arbranceIds.arb_armory;
 
-		const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
-		if (isBilge) {
-			const [flag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
-			if (!flag.value) {
-				const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
-				if (!hasKey) {
-					await interaction.client.eventUtil.processEvent('bilge-door-locked', i, userId, { ephemeral: false });
+				// Armory secured: permanently blocked
+				if (isArmoryDest) {
+					const armorySecured = await battleUtil.getFlag('global.arb_armory_secured');
+					if (armorySecured) {
+						await b.update({
+							content: 'The armory has been secured and is now off-limits.',
+							embeds: [],
+							components: [],
+						});
+						return;
+					}
 				}
-				else {
-					await flag.update({ value: 1 });
-					await characterUtil.removeCharacterItem(userId, 'bilge-key');
+
+				const zoneMalus = battleUtil.getMoraleRequirementForLocation(destLocation.id, arbranceIds);
+				if (zoneMalus !== null) {
+					const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
+					const entryFloor = zoneMalus - 20;
+					if (currentMorale < entryFloor) {
+						await b.update({
+							content: MSG.moraleToLow(destLocation.name, entryFloor, currentMorale),
+							embeds: [],
+							components: [],
+						});
+						return;
+					}
 				}
 			}
-		}
+
+			// HP restriction: cannot leave Boong Sinh Ho\u1ea1t under 50% HP
+			if (currentLocation.id === battleUtil.BOONG_SINH_HOAT_ID) {
+				const charNow = await CharacterBase.findOne({ where: { id: userId } });
+				const curHp = charNow?.currentHp ?? 0;
+				const maxHp = charNow?.maxHp ?? 1;
+				if (curHp < maxHp * 0.5) {
+					await b.update({
+						content: MSG.tooWounded(curHp, maxHp),
+						embeds: [],
+						components: [],
+					});
+					return;
+				}
+			}
+
+			// Stamina check
+			if (cost > 0) {
+				const charNow = await CharacterBase.findOne({ where: { id: userId } });
+				if ((charNow?.currentStamina ?? 0) < cost) {
+					await b.update({
+						content: MSG.notEnoughStamina(cost),
+						embeds: [],
+						components: [],
+					});
+					return;
+				}
+				await characterUtil.modifyCharacterStat(userId, 'currentStamina', -cost);
+			}
+
+			// Pre-move check: main deck boarding push fires BEFORE the player is moved
+			if (destLocation && Array.isArray(destLocation.tag) && destLocation.tag.includes('arb_main_deck')) {
+				const isBattleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+				const footholdEstablished = await battleUtil.getFlag('global.arb_main_deck_foothold');
+				if (isBattleActive && !footholdEstablished) {
+					await interaction.client.eventUtil.processEvent('arb-main-deck-breach-warning', b, userId, { ephemeral: false });
+					return;
+				}
+			}
+
+			const { newLocation } = await interaction.client.locationUtil.moveCharacterToLocation(
+				userId,
+				destId,
+				interaction.guild,
+				5000,
+			);
+
+			// Post move activity to old and new location channels
+			const characterName = character.name || `<@${userId}>`;
+			const characterGender = character?.gender;
+			try {
+				if (currentLocation) {
+					await locationUtil.postLocationActivity(interaction.client, currentLocation.id, characterName, 'depart', characterGender);
+				}
+				if (newLocation) {
+					await locationUtil.postLocationActivity(interaction.client, newLocation.id, characterName, 'arrive', characterGender);
+				}
+			}
+			catch (actErr) { console.error('Error posting location activity:', actErr); }
+
+			// Retreat penalty: leaving Arbrance zone with a pending encounter targeting this player
+			const retreatArbranceIds = await battleUtil.getArbranceZoneIds();
+			const allArbranceIds = new Set(Object.values(retreatArbranceIds).filter(Boolean));
+			if (allArbranceIds.has(currentLocation.id)) {
+				const pendingEnc = await PendingEncounter.findOne({
+					where: {
+						target_player_id: userId,
+						location_id: currentLocation.id,
+						status: 'pending',
+					},
+				});
+				if (pendingEnc) {
+					await battleUtil.updateMorale(-2);
+				}
+			}
+
+			let replyContent = MSG.movedTo(newLocation?.name || 'vị trí mới');
+			if (newLocation?.channel) replyContent += MSG.enterChannel(newLocation.channel);
+			await b.update({ content: replyContent, embeds: [], components: [] });
+
+			const isBilge = newLocation && Array.isArray(newLocation.tag) && newLocation.tag.includes('bilge');
+			if (isBilge) {
+				const [flag] = await GlobalFlag.findOrCreate({ where: { flag: 'global.bilge_unlocked' }, defaults: { value: 0 } });
+				if (!flag.value) {
+					const hasKey = await characterUtil.checkCharacterInventory(userId, 'bilge-key');
+					if (!hasKey) {
+						await interaction.client.eventUtil.processEvent('bilge-door-locked', b, userId, { ephemeral: false });
+					}
+					else {
+						await flag.update({ value: 1 });
+						await characterUtil.removeCharacterItem(userId, 'bilge-key');
+					}
+				}
+			}
+
+			// Main deck boarding push: fire once per battle until foothold is established
+			// NOTE: now handled pre-move above; this block retained as safety no-op guard
+		});
+
+		btnCollector.on('end', async (collected, reason) => {
+			if (reason === 'time') {
+				await interaction.editReply({ content: MSG.MOVE_CONFIRM_TIMEOUT, embeds: [], components: [] }).catch(() => {});
+			}
+		});
 	});
 }
 

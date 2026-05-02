@@ -1,0 +1,269 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # MAIN DECK BOARDING PUSH
+  # Triggered from interact.js when a player tries to move to arb_main_deck while
+  # the HMS Divine battle is active and the foothold has not yet been established.
+  # The check fires BEFORE moveCharacterToLocation so the player is not moved until
+  # they confirm by choosing "Push through".
+  #
+  # Accuracy penalty:
+  #   A character flag  boarding_disoriented = 1  is set on the player at the
+  #   start of the warning event and cleared in every exit path (retreat, defeat,
+  #   victory).  combatUtility.mainCombat reads this flag and applies x0.8 to
+  #   playerAccuracyMultiplier for all three combat rounds automatically.
+  #
+  # Entry point:
+  #   arb-main-deck-breach-warning  — warning / confirmation scene
+  #
+  # Round chain:
+  #   arb-main-deck-breach-round-1-combat  -> arb-main-deck-breach-round-1-victory
+  #   arb-main-deck-breach-round-2-combat  -> arb-main-deck-breach-round-2-victory
+  #   arb-main-deck-breach-round-3-combat  -> arb-main-deck-breach-victory
+  #
+  # All 3 combats apply:
+  # Round 3 also applies:
+  #   foothold_announcement: true  — posts server-wide announcement on victory
+  #
+  # Shared tail events:
+  #   arb-main-deck-breach-defeat   — any defeat  (morale -3, move to living quarters loc 6)
+  #   arb-main-deck-breach-retreat  — any retreat  (clears flag, player stays put)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  # ── Warning ──────────────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-warning
+    name: "Main Deck — Boarding Warning"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Kẻ Địch Đang Chờ"
+      text: |
+        Bạn bước lên boong chính của La Dauphine. Phía cuối boong đầy ắc thủy thủ vũ trang
+        — họ đã theo dõi điểm đổ bộ suốt, và họ biết bạn đang ở đây.
+
+        Tiến lên có nghĩa là phải vượt qua ba đợt bảo vệ trong chiến đấu tầm gần.
+        Mặt boong chật hẹp khiến mỗi đòn tấn công khó đánh chính xác hơn.
+
+        (Lưu ý: Đây là kẻ địch phòng thủ kiên cố. Bạn sẽ mất 20% độ chính xác trong lần vượt boong đầu tiên.)
+
+        Bạn có tiến lên, hay rút lui về HMS?
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: boarding_disoriented
+        flag_value: 1
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+    option:
+      - id: breach-push-forward
+        text: "Xông qua hàng ngũ bảo vệ"
+        next: arb-main-deck-breach-round-1-combat
+        display_order: 0
+
+      - id: breach-hold-back
+        text: "Rút lui về boong trên HMS"
+        next: arb-main-deck-breach-retreat
+        display_order: 1
+
+  # ── Round 1 ──────────────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-round-1-combat
+    name: "Main Deck Breach — Round 1"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: sailor
+      on_victory: arb-main-deck-breach-round-1-victory
+      on_defeat: arb-main-deck-breach-defeat
+
+  - id: arb-main-deck-breach-round-1-victory
+    name: "Main Deck Breach — Round 1 Clear"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Đợt Đầu Đã Phá Vỡ"
+      text: |
+        Nhóm bảo vệ đầu tiên đã bị đánh gục. Bạn có một chút để lấy hơi.
+        Còn hai đợt nữa đứng giữa bạn và việc kiểm soát boong.
+        Tiếp tục hay rút lui?
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 1
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+    option:
+      - id: breach-continue-round-2
+        text: "Tiếp tục tiến"
+        next: arb-main-deck-breach-round-2-combat
+        display_order: 0
+
+      - id: breach-retreat-after-round-1
+        text: "Rút lui về boong trên HMS"
+        next: arb-main-deck-breach-retreat
+        display_order: 1
+
+  # ── Round 2 ──────────────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-round-2-combat
+    name: "Main Deck Breach — Round 2"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: boarder
+      on_victory: arb-main-deck-breach-round-2-victory
+      on_defeat: arb-main-deck-breach-defeat
+
+  - id: arb-main-deck-breach-round-2-victory
+    name: "Main Deck Breach — Round 2 Clear"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Đợt Hai Đã Gục"
+      text: |
+        Hai đợt đã bị phá vỡ. Còn một nhóm nữa đang giữ phía cuối boong —
+        đường ranh giới cuối cùng giữa bạn và việc đặt chân trên La Dauphine.
+        Bạn có muốn kết thúc không?
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+    option:
+      - id: breach-continue-round-3
+        text: "Xông qua đợt cuối"
+        next: arb-main-deck-breach-round-3-combat
+        display_order: 0
+
+      - id: breach-retreat-after-round-2
+        text: "Rút lui về boong trên HMS"
+        next: arb-main-deck-breach-retreat
+        display_order: 1
+
+  # ── Round 3 ──────────────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-round-3-combat
+    name: "Main Deck Breach — Round 3"
+    event_type: combat
+    silent: true
+    is_active: true
+
+    combat:
+      combat_type: normal
+      enemy: veteran_sailor
+      special_rules:
+        foothold_announcement: true
+      on_victory: arb-main-deck-breach-victory
+      on_defeat: arb-main-deck-breach-defeat
+
+  # ── Victory ──────────────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-victory
+    name: "Main Deck Breach — Foothold Established"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Địa Bàn Được Thiết Lập"
+      text: |
+        Những tên bảo vệ cuối cùng vỡ chạy tán loạn. Boong chính của La Dauphine đã thuộc về bạn.
+        Tin tức sẽ lan nhanh — đội đổ bộ đã vượt qua.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: arb_main_deck_foothold
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: 5
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: boarding_disoriented
+        flag_value: 0
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+      - type: move
+        location: "flag:location_id_arb_main_deck"
+        silent: true
+
+  # ── Shared tail events ────────────────────────────────────────────────────────
+
+  - id: arb-main-deck-breach-defeat
+    name: "Main Deck Breach — Defeat"
+    event_type: scene
+    is_active: true
+
+    message:
+      title: "Bị Đẩy Lùi"
+      text: |
+        Quân bảo vệ áp đảo bạn. Bạn bị đẩy xuống dưới boong và trở lại HMS.
+      message_type: normal
+
+    action:
+      - type: flag
+        flag_name: hms_divine_morale
+        flag_value: -3
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: boarding_disoriented
+        flag_value: 0
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+      - type: move
+        location: 6
+        silent: true
+
+  - id: arb-main-deck-breach-retreat
+    name: "Main Deck Breach — Retreat"
+    event_type: scene
+    silent: true
+    is_active: true
+
+    action:
+      - type: flag
+        flag_name: boarding_disoriented
+        flag_value: 0
+        flag_operation: set
+        flag_type: character
+        silent: true
+
+      - type: move
+        location: 4
+        silent: true

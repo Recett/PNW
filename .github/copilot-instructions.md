@@ -63,6 +63,17 @@ const characterUtil = require('@utility/characterUtility.js');  // Utilities
 3. **Do not double down** — never defend or iterate on a rejected approach
 4. A complaint is always an implicit undo request
 
+## Naval Battle — Implementation Tracker Protocol
+
+**Any request that touches the HMS Divine naval battle system must be reflected in `Document/HMS_Divine_Implementation.md`.**
+
+- After implementing or changing any battle mechanic, flag, cron job, or combat path related to the naval battle, update the relevant section(s) of the tracker to match the new code state.
+- If a gap is closed, change its status from ❌/🔶 to ✅ and update the "Code does:" description.
+- If a new gap is introduced or discovered, add it to the relevant section and to the Gap Summary table.
+- If a value is corrected (flag name, ratio, threshold, etc.), update every occurrence in the tracker that references the old value.
+- The tracker is user-maintained — do **not** rewrite its structure, prose style, or section order. Only update the specific facts that changed.
+- Scope: anything in `battleUtility.js`, `cronUtility.js`, `fight.js`, `act.js`, `interact.js` (battle paths), `interactionCreate.js` (encounter handler), `src/models/encounter/`, `src/content/hazards/`, or any YAML/event file prefixed `hms_divine_` or `arb_`.
+
 ## Debugging State Changes
 
 - Treat stored application/database state as ground truth during debugging. The data is not to be blamed by default.

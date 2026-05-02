@@ -1,0 +1,173 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────
+  # HMS DIVINE BATTLE — ZONE OBJECTIVES
+  # Triggered from /act command when player chooses a zone action.
+  # The /act command pre-checks zone, morale gate, and battle state.
+  # ─────────────────────────────────────────────────────────────
+
+  # ── CANNON DECK — Spike the Guns ─────────────────────────────
+  - id: hms-spike-guns
+    name: "Mục Tiêu: Cắm Đía Pháo"
+    event_type: encounter
+    is_active: true
+
+    message:
+      text: |
+        Pháo địch xung quanh. Một khẩu đã guội lại, nong pháo còn nóng. ${player_name} đỉnh đượng vị trí.
+
+    check:
+      - name: spike-guns-stat-check
+        type: stat
+        stat_data:
+          stat_name: strength
+          stat_comparison: dice_roll
+          stat_value: 60
+          use_dice_roll: true
+        is_required: false
+        silent: false
+        on_success: hms-spike-guns-success
+        on_failure: hms-spike-guns-fail
+        execution_order: 0
+
+  - id: hms-spike-guns-success
+    name: "Cắm Đía — Thành Công"
+    event_type: encounter
+
+    message:
+      text: |
+        Đía cắm chặt. Khung điều hướng bị bëm gãy. Khẩu pháo này sẽ không bắn được đến cuối trận.
+
+    action:
+      - type: flag
+        flag_name: global.arb_cannon_deck_hp
+        flag_value: 30
+        flag_operation: subtract
+        flag_type: global
+        silent: true
+      - type: stat
+        stat_name: xp
+        value: 150
+        operation: add
+        silent: false
+
+  - id: hms-spike-guns-fail
+    name: "Cắm Đía — Thất Bại"
+    event_type: encounter
+
+    message:
+      text: |
+        Đía trượt ra ngoài. Trước khi làm lại, tiếng bước chân vếng lại gần. Không còn thời gian.
+
+  # ── ARMORY — Sever Supply ────────────────────────────────────
+  - id: hms-sever-supply
+    name: "Mục Tiêu: Cắt Tiếp Tế"
+    event_type: encounter
+    is_active: true
+
+    message:
+      text: |
+        Kho vũ khí. Rui rá giữa các thùng đạn. Nếu cắt được đƳ, lính trên boong chính mất nguồn bổ sung.
+
+    check:
+      - name: sever-supply-stat-check
+        type: stat
+        stat_data:
+          stat_name: agility
+          stat_comparison: dice_roll
+          stat_value: 65
+          use_dice_roll: true
+        is_required: false
+        silent: false
+        on_success: hms-sever-supply-success
+        on_failure: hms-sever-supply-fail
+        execution_order: 0
+
+  - id: hms-sever-supply-success
+    name: "Cắt Tiếp Tế — Thành Công"
+    event_type: encounter
+
+    message:
+      text: |
+        Dây cấp phát cắt đứt. Thùng đạn bị chặn. Lính trên boong chính sẽ chiến đấu đến viên cuối cuùng.
+
+    action:
+      - type: stat
+        stat_name: xp
+        value: 200
+        operation: add
+        silent: false
+
+  - id: hms-sever-supply-fail
+    name: "Cắt Tiếp Tế — Thất Bại"
+    event_type: encounter
+
+    message:
+      text: |
+        Bị phát hiện trước khi hoàn thành. Tử kho đạn chưa bị cắt.
+
+  # ── OFFICER QUARTERS — Assassinate Commander ─────────────────
+  # The /act command calls this event. The combat with the captain is
+  # handled directly in /act as a mainCombat call using
+  # 'enemy_captain' enemy ID (persistent HP from global flag).
+  - id: hms-assassinate-commander
+    name: "Mục Tiêu: Hạ Chỉ Huy"
+    event_type: encounter
+    is_active: true
+
+    message:
+      text: |
+        Khoang sĩ quan. Đèn đầu giường còn sáng. Bản đồ trải trên bàn. Viên thuyền trưởng đứng đó — đã biết có người vào. Tay nắm kiếm.
+
+        *Hắn không nói gì.*
+
+  # Triggered after the captain is defeated.
+  - id: hms-assassinate-commander-success
+    name: "Hạ Chỉ Huy — Thành Công"
+    event_type: encounter
+
+    message:
+      text: |
+        Hắn ngã xuống. Không có lời trẻo. Chỉ có bản đồ, những giấy tờ, và con dấu chính thức của Hải Quân Arbrance nằm đế bîa đồ.
+
+        *Tiếng ồn bên ngoài. Phải đi thôi.*
+
+    action:
+      - type: flag
+        flag_name: global.arb_commander_slain
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: global.arb_main_deck_hp
+        flag_value: 100
+        flag_operation: subtract
+        flag_type: global
+        silent: true
+      - type: stat
+        stat_name: xp
+        value: 500
+        operation: add
+        silent: false
+      - type: narrate
+        channel: battle
+        color: 0xe74c3c
+        title: "Chỉ Huy Arbrance Đã Bị Hạ"
+        text: |
+          Một tầng trong buồng chỉ huy vừa im lặng.
+
+          **${player_name}** đã tiếp cận được tới khoang sĩ quan tàu địch và hạ tên chỉ huy. Sự hiện diện của địch trên boong chính bắt đầu suy yếu.
+
+  # ── HMS DIVINE — Fortify (stub, to be designed later) ─────────
+  # TODO: Design hms-divine-fortify content. Currently a placeholder.
+  - id: hms-divine-fortify
+    name: "Mục Tiêu: Củng Cố Vị Trí (Chưa Hoàn Thiện)"
+    event_type: encounter
+    is_active: true
+
+    message:
+      text: |
+        ${player_name} khảo sát vị trí phòng thủ. Hiện tại chưa có hành động cụ thể nào có thể thực hiện ở đây.
+
+        # TODO: Implement fortify actions for HMS Divine zones.

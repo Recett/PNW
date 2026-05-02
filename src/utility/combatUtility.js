@@ -167,12 +167,19 @@ function applyMaceReverberation(attacker, tracker, hitResult, damage) {
 		};
 	}
 
+	if (!hitResult || damage <= 0) {
+		return {
+			damage,
+			state: disabledState,
+		};
+	}
+
 	const postSwingStacks = beforeStacks + MACE_REVERBERATION_PER_SWING;
 	const cap = attacker.reverberationCap || 0;
 	const overflow = Math.max(0, Math.min(postSwingStacks - cap, MACE_REVERBERATION_PER_SWING));
 	let bonusDamage = 0;
 
-	if (hitResult && damage > 0 && postSwingStacks >= cap) {
+	if (postSwingStacks >= cap) {
 		bonusDamage = Math.floor(damage * (cap + overflow) * attacker.reverberationRate);
 		damage += bonusDamage;
 	}
@@ -205,6 +212,153 @@ function formatReverberationSegment(log) {
 	}
 
 	return '';
+}
+
+/**
+ * Resolve spear counter mechanics when an enemy hits the player.
+ * Handles Steady absorption (reduces incoming damage) and fires the counter if charge is full.
+ * Mutates target.spearCounterCharge when the counter fires.
+ * @param {Object} target - The defending actor (spear wielder)
+ * @param {Object} attacker - The attacking actor (enemy)
+ * @param {Object} tracker - The attack tracker (contains attack value)
+ * @param {number} damage - Incoming damage after prior reductions
+ * @returns {{ damage: number, absorbed: number, counterFired: boolean, counterHit: boolean, counterDamage: number }}
+ */
+function applySpearCounter(target, attacker, tracker, damage) {
+	const result = {
+		damage,
+		absorbed: 0,
+		counterFired: false,
+		counterHit: false,
+		counterDamage: 0,
+	};
+
+	if (!target.counterEnabled) return result;
+
+	const spearAtks = target.attacks.filter(a => a.isSpear).map(a => a.attack);
+	const spearAtk = spearAtks.length > 0 ? Math.max(...spearAtks) : 0;
+	const E = tracker.attack || 0;
+	if (spearAtk <= 0 || E <= 0) return result;
+
+	const harmonicBase = (spearAtk * E) / (spearAtk + E);
+
+	// Apply Steady absorption before damage lands (only meaningful on hit)
+	if (target.counterS > 0 && damage > 0) {
+		result.absorbed = Math.floor(target.counterS * harmonicBase);
+		result.damage = Math.max(0, result.damage - result.absorbed);
+	}
+
+	// Counter guard: M > 0 and charge fully loaded
+	if (target.counterM > 0 && (target.spearCounterCharge || 0) >= 3) {
+		result.counterFired = true;
+		target.spearCounterCharge = 0;
+
+		// Accuracy check (best spear accuracy vs enemy evade)
+		const spearAccs = target.attacks.filter(a => a.isSpear).map(a => a.accuracy);
+		const bestSpearAcc = spearAccs.length > 0 ? Math.max(...spearAccs) : 0;
+		const counterEvade = attacker.evade || 1;
+		const cRate = counterEvade / bestSpearAcc;
+		let counterHitRate = 100;
+		if (cRate >= 4) {
+			counterHitRate = 0;
+		}
+		else {
+			const cx = (cRate - 1) / 3;
+			counterHitRate = ((1 - cx) / (1 + cx)) * 100;
+		}
+		result.counterHit = Math.floor(Math.random() * 100) < counterHitRate;
+		if (result.counterHit) {
+			result.counterDamage = Math.max(0, Math.floor(target.counterM * harmonicBase) - attacker.defense);
+		}
+	}
+
+	return result;
+}
+
+/**
+ * Process mechanic state that occurs before the hit roll fires.
+ * Handles shortbow focus stack wipe when the enemy attacks.
+ * @param {Object} attacker - The attacking actor
+ * @param {Object} target - The defending actor
+ * @param {Object} tracker - The attack tracker
+ * @returns {{ focusStacksLost: number }}
+ */
+function beforeAttack(attacker, target, tracker) {
+	let focusStacksLost = 0;
+	// Shortbow: wipe player stacks when enemy fires (any attack, hit or miss)
+	if (tracker.actorId !== 'player' && target.sbowActive) {
+		focusStacksLost = target.focusStacks || 0;
+		target.focusStacks = 0;
+		target.evade = target.baseEvade;
+	}
+	return { focusStacksLost };
+}
+
+/**
+ * Process mechanic state mutations after a successful non-shield hit lands.
+ * Handles spear counter charge gain and shortbow focus stack gain.
+ * @param {Object} attacker - The attacking actor
+ * @param {Object} target - The defending actor
+ * @param {Object} tracker - The attack tracker
+ */
+function afterAttack(attacker, target, tracker) {
+	// Increment spear counter charge when player lands any hit
+	if (tracker.actorId === 'player' && attacker.spearCounterCharge != null) {
+		attacker.spearCounterCharge = Math.min(3, attacker.spearCounterCharge + 1);
+	}
+	// Shortbow: build one evasion/momentum stack when player lands a hit with a shortbow
+	if (tracker.actorId === 'player' && attacker.sbowActive && tracker.isShortbow) {
+		attacker.focusStacks = (attacker.focusStacks || 0) + 1;
+	}
+}
+
+/**
+ * Resolve rapier parry mechanics when the parry-wielder receives a hit.
+ * Handles parry tier calculation, damage reduction, and riposte setup.
+ * Mutates target.parryPower (degrades on every incoming hit).
+ * @param {Object} target - The defending actor (rapier wielder)
+ * @param {Object} attacker - The attacking actor
+ * @param {number} damage - Incoming damage after prior reductions
+ * @returns {{ damage: number, parryTier: string|null, parryReduced: number, riposteDamage: number }}
+ */
+function applyRapierParry(target, attacker, damage) {
+	const result = {
+		damage,
+		parryTier: null,
+		parryReduced: 0,
+		riposteDamage: 0,
+	};
+	if (!(damage > 0 && target.parryEnabled && target.parryPower > 0)) return result;
+
+	const ratio = Math.max(1, damage / (target.parryPower * 2));
+	const rawChance = Math.pow(0.6, ratio);
+	const parryChance = Math.min(target.parryPmax, rawChance);
+	const parryRoll = Math.random();
+	let reductionFraction = 0;
+	if (parryRoll < parryChance * 0.10) {
+		result.parryTier = 'perfect';
+		reductionFraction = 1.0;
+	}
+	else if (parryRoll < parryChance * 0.40) {
+		result.parryTier = 'good';
+		reductionFraction = 0.75;
+	}
+	else if (parryRoll < parryChance) {
+		result.parryTier = 'basic';
+		reductionFraction = 0.50;
+	}
+	if (result.parryTier) {
+		result.parryReduced = Math.floor(damage * reductionFraction);
+		result.damage -= result.parryReduced;
+		if (target.riposteMultiplier > 0) {
+			const rapierAtks = target.attacks.filter(a => a.isRapier).map(a => a.attack);
+			const rapierAtk = rapierAtks.length > 0 ? Math.max(...rapierAtks) : 0;
+			result.riposteDamage = Math.max(0, Math.floor(rapierAtk * target.riposteMultiplier) - attacker.defense);
+		}
+	}
+	// Degrade ParryPower on every incoming hit regardless of outcome
+	target.parryPower = Math.floor(target.parryPower * 0.3);
+	return result;
 }
 
 /**
@@ -274,6 +428,10 @@ function calculateDamage(attacker, tracker, target, ignoreDefense = false, critM
 
 async function runInitTracker(actors, options = {}) {
 	const maxTicks = options.maxTicks || 400;
+	const riggingAttackers = options.riggingAttackers || [];
+	const riggingSnipers = options.riggingSnipers || [];
+	const COVERING_FIRE_INTERVAL = 20;
+	const SNIPER_FIRE_INTERVAL = 20;
 	const combatLog = [];
 
 	// Track initiative and HP for each attack
@@ -308,23 +466,25 @@ async function runInitTracker(actors, options = {}) {
 		for (const tracker of attackTrackers) {
 			tracker.initiative += tracker.speed;
 			while (tracker.initiative >= tracker.cooldown) {
-				// Only two actors: actors[0] and actors[1]
 				const attacker = actorMap[tracker.actorId];
-				const target = tracker.actorId === actors[0].id ? actorMap[actors[1].id] : actorMap[actors[0].id];
-				if (!attacker || !target || target.hp <= 0) break;
+				if (!attacker || attacker.hp <= 0) break;
+				let targetId = options.pairings
+					? options.pairings[tracker.actorId]
+					: (tracker.actorId === actors[0].id ? actors[1].id : actors[0].id);
+				let target = actorMap[targetId];
+				// Paired target is dead — fall back to any living opponent
+				if (options.teams && (!target || target.hp <= 0)) {
+					const myTeam = options.teams[tracker.actorId];
+					target = Object.values(actorMap).find(a => options.teams[a.id] !== myTeam && a.hp > 0);
+				}
+				if (!target || target.hp <= 0) break;
 
 				// === Call skill triggers: Before Attack ===
 				if (options.handleBeforeAttackSkills) {
 					await options.handleBeforeAttackSkills(attacker, target, tracker, options);
 				}
 
-				// Shortbow: wipe player stacks when enemy fires (any attack, hit or miss)
-				let focusStacksLost = 0;
-				if (tracker.actorId !== 'player' && target.sbowActive) {
-					focusStacksLost = target.focusStacks || 0;
-					target.focusStacks = 0;
-					target.evade = target.baseEvade;
-				}
+				const { focusStacksLost } = beforeAttack(attacker, target, tracker);
 
 				// Calculate hit rate
 				const tohit = tracker.accuracy || 0;
@@ -411,7 +571,15 @@ async function runInitTracker(actors, options = {}) {
 						reverberationCap = reverberationResult.state.cap;
 						reverberationOverflow = reverberationResult.state.overflow;
 						reverberationBonusDamage = reverberationResult.state.bonusDamage;
-						
+
+						// === Spear counter: fires before mitigation (raw damage) ===
+						const spearResult = applySpearCounter(target, attacker, tracker, damage);
+						damage = spearResult.damage;
+						spearAbsorbed = spearResult.absorbed;
+						spearCounterFired = spearResult.counterFired;
+						spearCounterHit = spearResult.counterHit;
+						spearCounterDamage = spearResult.counterDamage;
+
 						// === Apply shield damage reduction ===
 						if (target.shieldStrength > 0 && damage > 0) {
 							if (target.shieldIsGreatshield) {
@@ -430,85 +598,16 @@ async function runInitTracker(actors, options = {}) {
 						}
 						
 						// === Parry mechanics (rapier) ===
-						if (damage > 0 && target.parryEnabled && target.parryPower > 0) {
-							const ratio = Math.max(1, damage / (target.parryPower * 2));
-							const rawChance = Math.pow(0.6, ratio);
-							const parryChance = Math.min(target.parryPmax, rawChance);
-							const parryRoll = Math.random();
-							let reductionFraction = 0;
-							if (parryRoll < parryChance * 0.10) {
-								parryTier = 'perfect';
-								reductionFraction = 1.0;
-							}
-							else if (parryRoll < parryChance * 0.40) {
-								parryTier = 'good';
-								reductionFraction = 0.75;
-							}
-							else if (parryRoll < parryChance) {
-								parryTier = 'basic';
-								reductionFraction = 0.50;
-							}
-							if (parryTier) {
-								parryReduced = Math.floor(damage * reductionFraction);
-								damage -= parryReduced;
-								if (target.riposteMultiplier > 0) {
-									const rapierAtks = target.attacks.filter(a => a.isRapier).map(a => a.attack);
-									const rapierAtk = rapierAtks.length > 0 ? Math.max(...rapierAtks) : 0;
-									riposteDamage = Math.max(0, Math.floor(rapierAtk * target.riposteMultiplier) - attacker.defense);
-								}
-							}
-							// Degrade ParryPower on every incoming hit regardless of outcome
-							target.parryPower = Math.floor(target.parryPower * 0.3);
-						}
-
-						// === Spear counter mechanics (fires when enemy hits player) ===
-						if (target.counterEnabled) {
-							const spearAtks = target.attacks.filter(a => a.isSpear).map(a => a.attack);
-							const spearAtk = spearAtks.length > 0 ? Math.max(...spearAtks) : 0;
-							const E = tracker.attack || 0;
-							if (spearAtk > 0 && E > 0) {
-								const harmonicBase = (spearAtk * E) / (spearAtk + E);
-								// Apply Steady absorption before damage lands
-								if (target.counterS > 0) {
-									spearAbsorbed = Math.floor(target.counterS * harmonicBase);
-									damage = Math.max(0, damage - spearAbsorbed);
-								}
-								// Counter guard: M > 0 and charge fully loaded
-								if (target.counterM > 0 && (target.spearCounterCharge || 0) >= 3) {
-									spearCounterFired = true;
-									target.spearCounterCharge = 0;
-									// Accuracy check (best spear accuracy vs enemy evade)
-									const spearAccs = target.attacks.filter(a => a.isSpear).map(a => a.accuracy);
-									const bestSpearAcc = spearAccs.length > 0 ? Math.max(...spearAccs) : 0;
-									const counterEvade = attacker.evade || 1;
-									const cRate = counterEvade / bestSpearAcc;
-									let counterHitRate = 100;
-									if (cRate >= 4) {
-										counterHitRate = 0;
-									}
-									else {
-										const cx = (cRate - 1) / 3;
-										counterHitRate = ((1 - cx) / (1 + cx)) * 100;
-									}
-									spearCounterHit = Math.floor(Math.random() * 100) < counterHitRate;
-									if (spearCounterHit) {
-										spearCounterDamage = Math.max(0, Math.floor(target.counterM * harmonicBase) - attacker.defense);
-									}
-								}
-							}
-						}
+						const parryResult = applyRapierParry(target, attacker, damage);
+						damage = parryResult.damage;
+						parryTier = parryResult.parryTier;
+						parryReduced = parryResult.parryReduced;
+						riposteDamage = parryResult.riposteDamage;
 
 						// Protected user: HP cannot drop below 1 in combat
 						const hpFloor = target.userId === '275992469764833280' ? 1 : 0;
 						target.hp = Math.max(hpFloor, target.hp - damage);
-						// Increment spear counter charge when player lands any hit
-						if (tracker.actorId === 'player' && attacker.spearCounterCharge != null) {
-							attacker.spearCounterCharge = Math.min(3, attacker.spearCounterCharge + 1);
-						}
-						// Shortbow: build one evasion/momentum stack when player lands a hit with a shortbow
-						if (tracker.actorId === 'player' && attacker.sbowActive && tracker.isShortbow) {
-							attacker.focusStacks = (attacker.focusStacks || 0) + 1;
-						}
+						afterAttack(attacker, target, tracker);
 					}
 				}
 				else {
@@ -518,6 +617,12 @@ async function runInitTracker(actors, options = {}) {
 					reverberationCap = reverberationResult.state.cap;
 					reverberationOverflow = reverberationResult.state.overflow;
 					reverberationBonusDamage = reverberationResult.state.bonusDamage;
+					// === Spear counter: also fires on miss ===
+					const spearMissResult = applySpearCounter(target, attacker, tracker, 0);
+					spearAbsorbed = spearMissResult.absorbed;
+					spearCounterFired = spearMissResult.counterFired;
+					spearCounterHit = spearMissResult.counterHit;
+					spearCounterDamage = spearMissResult.counterDamage;
 				}
 				// === Call skill triggers: After Attack ===
 				if (options.handleAfterAttackSkills) {
@@ -646,12 +751,397 @@ async function runInitTracker(actors, options = {}) {
 			}
 		}
 
-		// End combat if all but one actor is dead
-		const alive = Object.values(actorMap).filter(a => a.hp > 0);
-		if (alive.length <= 1) break;
+		// === Covering fire: rigging bowmen fire every 200 ticks ===
+		if (riggingAttackers.length > 0 && tick % COVERING_FIRE_INTERVAL === 0) {
+			const enemyActor = actorMap[actors[1].id];
+			if (enemyActor && enemyActor.hp > 0) {
+				// Build cumulative slot table (slot size = speed / cooldown * 1000)
+				let cumulative = 0;
+				const slots = riggingAttackers.map(ra => {
+					const slotSize = Math.round((ra.speed / ra.cooldown) * 1000);
+					cumulative += slotSize;
+					return { ra, high: cumulative };
+				});
+				const roll = Math.floor(Math.random() * 1000);
+				if (roll < cumulative) {
+					const hit = slots.find(s => roll < s.high);
+					if (hit) {
+						const { ra } = hit;
+						const fireDmg = Math.max(1, ra.attack - (enemyActor.defense || 0));
+						enemyActor.hp = Math.max(0, enemyActor.hp - fireDmg);
+						combatLog.push({
+							tick,
+							type: 'covering_fire',
+							attackerName: ra.name,
+							damage: fireDmg,
+							target: enemyActor.name || enemyActor.id,
+							targetHp: enemyActor.hp,
+						});
+					}
+				}
+			}
+		}
+
+		// === Sniper fire: undefended rigging snipers fire at the player every 30 ticks ===
+		// triggerChance = morale-based roll; on trigger the shot always lands
+		if (riggingSnipers.length > 0 && tick % SNIPER_FIRE_INTERVAL === 0) {
+			const playerActor = actorMap[actors[0].id];
+			if (playerActor && playerActor.hp > 0) {
+				for (const sniper of riggingSnipers) {
+					if (Math.random() < sniper.triggerChance) {
+						const sniperDmg = sniper.minDmg + Math.floor(Math.random() * (sniper.maxDmg - sniper.minDmg + 1));
+						playerActor.hp = Math.max(0, playerActor.hp - sniperDmg);
+						combatLog.push({
+							tick,
+							type: 'sniper_fire',
+							damage: sniperDmg,
+							target: playerActor.name || playerActor.id,
+							targetHp: playerActor.hp,
+						});
+					}
+				}
+			}
+		}
+
+		// End combat when all actors on one team are dead (team mode) or all but one alive (1v1)
+		if (options.teams) {
+			const teamHp = {};
+			for (const [id, actor] of Object.entries(actorMap)) {
+				const team = options.teams[id];
+				if (team !== undefined) teamHp[team] = (teamHp[team] ?? 0) + actor.hp;
+			}
+			if (Object.values(teamHp).some(hp => hp <= 0)) break;
+		}
+		else {
+			const alive = Object.values(actorMap).filter(a => a.hp > 0);
+			if (alive.length <= 1) break;
+		}
 	}
 
 	return { combatLog, actors: actorMap };
+}
+
+/**
+ * Build player and enemy actor objects for use in a shared initiative tracker.
+ * Used by teamCombat to prepare each pair before calling runInitTracker.
+ * @param {string} playerId
+ * @param {string} enemyId
+ * @param {number} pairIndex - Used to generate unique actor IDs (player_0, enemy_0, etc.)
+ * @param {number} speedMultiplier - Applied to player attack speed (0.7 if stamina-penalised)
+ * @param {Object} opts - { enemyStartHp, enemyDamageMultiplier }
+ * @returns {{ player, enemy }}
+ */
+async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier = 1, opts = {}) {
+	const playerCombatStats = await getDefenseStat(playerId);
+	const playerAttacks = await getAttackStat(playerId);
+	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
+
+	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
+	if (!enemyBase) throw new Error('Enemy not found');
+	const enemyBaseStat = enemyBase.stat;
+	if (!enemyBaseStat) throw new Error('Enemy stats not found');
+
+	let enemyAttacks = enemyBase.attack;
+	if (!enemyAttacks || enemyAttacks.length === 0) throw new Error('Enemy has no attacks');
+	const enemyTags = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
+	if (enemyTags.includes('pick_one') && enemyAttacks.length > 1) {
+		const pickedIndex = Math.floor(Math.random() * enemyAttacks.length);
+		enemyAttacks = [enemyAttacks[pickedIndex]];
+	}
+
+	const playerBase = await characterUtility.getCharacterBase(playerId);
+	if (!playerBase) throw new Error('Player not found');
+	if ((playerBase.currentHp ?? 0) <= 0) throw new Error('Character is knocked out and cannot fight.');
+
+	const rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	const playerSpeed = rawPlayerSpeed * speedMultiplier;
+
+	// === Load rapier parry perk data ===
+	const { CharacterPerk, CharacterSkill } = require('@root/dbObject.js');
+	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
+	const rapierPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('rapier-')).map(p => p.perk_id));
+	const rapierSkillDef = contentStore.skills.findOne({ where: { subtype: 'rapier' } });
+	const rapierSkillRow = rapierSkillDef
+		? await CharacterSkill.findOne({ where: { character_id: playerId, skill_id: rapierSkillDef.id } })
+		: null;
+	const rapierSkillLevel = rapierSkillRow ? (rapierSkillRow.lv || 0) : 0;
+	const hasEnGarde = rapierPerkIds.has('rapier-prise-de-fer');
+	let parryPmax = 0;
+	for (const [id, pmax] of Object.entries(PARRY_PMAX_BY_PERK)) {
+		if (rapierPerkIds.has(id) && pmax > parryPmax) parryPmax = pmax;
+	}
+	let riposteMultiplier = 0;
+	for (const [id, mult] of Object.entries(RIPOSTE_MULT_BY_PERK)) {
+		if (rapierPerkIds.has(id) && mult > riposteMultiplier) riposteMultiplier = mult;
+	}
+
+	const player = {
+		id: `player_${pairIndex}`,
+		name: playerBase.name || 'Player',
+		userId: playerId,
+		hp: playerBase.currentHp ?? playerBase.maxHp ?? 100,
+		defense: playerCombatStats?.defense || 0,
+		evade: playerCombatStats?.evade || 0,
+		critResistance: playerCombatStats?.crit_resistance || 0,
+		shieldStrength: 0,
+		shieldIsGreatshield: false,
+		con: playerBase.con || 0,
+		str: playerBase.str || 0,
+		dex: playerBase.dex || 0,
+		maxHp: playerBase.maxHp || 100,
+		miasmaStacks: 0,
+		attacks: await Promise.all(playerAttacks.map(async (atk) => {
+			let attackName = 'Attack';
+			let isShield = false;
+			let isGreatshield = false;
+			let isLongbow = false;
+			let isRapier = false;
+			let isSpear = false;
+			let isShortbow = false;
+			let isMace = false;
+			let parryRating = 0;
+			if (atk.item_id) {
+				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
+				if (itemDetails) {
+					attackName = itemDetails.name;
+					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
+					if (subtype === 'shield') {
+						isShield = true;
+						if (itemDetails.tag) {
+							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
+							isGreatshield = tags.some(t => t && t.toLowerCase().includes('greatshield'));
+						}
+					}
+					else if (subtype === 'longbow') {
+						isLongbow = true;
+					}
+					else if (subtype === 'rapier') {
+						isRapier = true;
+						parryRating = itemDetails.weapon.parry_rating || 0;
+					}
+					else if (subtype === 'spear') {
+						isSpear = true;
+					}
+					else if (subtype === 'shortbow') {
+						isShortbow = true;
+					}
+					else if (subtype === 'mace') {
+						isMace = true;
+					}
+				}
+			}
+			else {
+				attackName = 'Unarmed';
+			}
+			return {
+				id: atk.item_id || atk.id,
+				name: attackName,
+				speed: playerSpeed,
+				cooldown: atk.cooldown || 80,
+				attack: atk.attack || 0,
+				accuracy: atk.accuracy || 0,
+				crit: atk.critical || 0,
+				isShield,
+				isGreatshield,
+				isRapier,
+				isSpear,
+				isShortbow,
+				isMace,
+				parryRating,
+				baseSbowSpeed: isShortbow ? playerSpeed : 0,
+				initBonus: isLongbow ? 8 * (playerBase.dex || 0) : 0,
+			};
+		})),
+	};
+
+	// === Rapier parry state ===
+	const rapierAttackEntries = player.attacks.filter(a => a.isRapier);
+	const hasRapierEquipped = rapierAttackEntries.length > 0;
+	player.parryEnabled = hasEnGarde && hasRapierEquipped;
+	if (player.parryEnabled) {
+		const rapierParryRating = Math.max(...rapierAttackEntries.map(a => a.parryRating || 0), 0);
+		let maxParryPower = Math.floor((playerBase.dex || 0) * rapierParryRating * (1 + rapierSkillLevel * 0.04));
+		if (rapierAttackEntries.length >= 2) maxParryPower = Math.floor(maxParryPower / 2);
+		player.maxParryPower = maxParryPower;
+		player.parryPower = maxParryPower;
+		player.parryPmax = parryPmax > 0 ? parryPmax : 0.40;
+		player.riposteMultiplier = riposteMultiplier;
+	}
+	else {
+		player.maxParryPower = 0;
+		player.parryPower = 0;
+		player.parryPmax = 0;
+		player.riposteMultiplier = 0;
+	}
+
+	// === Spear counter state ===
+	const spearPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('spear-')).map(p => p.perk_id));
+	const hasBrace = spearPerkIds.has('spear-brace');
+	let sumThornM = 0;
+	let sumSteadyM = 0;
+	let sumSteadyS = 0;
+	for (const [id, val] of Object.entries(SPEAR_THORN_M_BY_PERK)) {
+		if (spearPerkIds.has(id)) sumThornM = Math.max(sumThornM, val);
+	}
+	for (const [id, val] of Object.entries(SPEAR_STEADY_M_BY_PERK)) {
+		if (spearPerkIds.has(id)) sumSteadyM = Math.max(sumSteadyM, val);
+	}
+	for (const [id, val] of Object.entries(SPEAR_STEADY_S_BY_PERK)) {
+		if (spearPerkIds.has(id)) sumSteadyS = Math.max(sumSteadyS, val);
+	}
+	const spearAttackEntries = player.attacks.filter(a => a.isSpear);
+	const hasSpearEquipped = spearAttackEntries.length > 0;
+	player.counterEnabled = hasBrace && hasSpearEquipped;
+	player.counterM = hasBrace ? Math.max(0, 1.0 + sumThornM - sumSteadyM) : 0;
+	player.counterS = hasBrace ? sumSteadyS : 0;
+	player.spearCounterCharge = 3;
+	let spearCounterPerkName = 'Counter';
+	for (const [id, name] of Object.entries(SPEAR_STEADY_NAME_BY_PERK)) {
+		if (spearPerkIds.has(id)) { spearCounterPerkName = name; break; }
+	}
+	player.spearCounterPerkName = spearCounterPerkName;
+
+	// === Shortbow evasion/momentum state ===
+	const sbowPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('sbow-')).map(p => p.perk_id));
+	let sbowEvasionPerStack = 0;
+	for (const [id, val] of Object.entries(SBOW_EVASION_BY_PERK)) {
+		if (sbowPerkIds.has(id) && val > sbowEvasionPerStack) sbowEvasionPerStack = val;
+	}
+	let sbowMomentumPerStack = 0;
+	for (const [id, val] of Object.entries(SBOW_MOMENTUM_BY_PERK)) {
+		if (sbowPerkIds.has(id) && val > sbowMomentumPerStack) sbowMomentumPerStack = val;
+	}
+	const shortbowAttackEntries = player.attacks.filter(a => a.isShortbow);
+	const hasShortbowEquipped = shortbowAttackEntries.length > 0;
+	const sbowActive = hasShortbowEquipped && (sbowEvasionPerStack > 0 || sbowMomentumPerStack > 0);
+	player.sbowActive = sbowActive;
+	player.focusStacks = 0;
+	player.sbowEvasionPerStack = sbowActive ? sbowEvasionPerStack : 0;
+	player.sbowMomentumPerStack = sbowActive ? sbowMomentumPerStack : 0;
+	player.baseEvade = player.evade;
+
+	// === Mace Reverberation state ===
+	const macePerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('mace-')).map(p => p.perk_id));
+	const maceProfile = resolveMaceProfile(macePerkIds);
+	const maceAttackEntries = player.attacks.filter(a => a.isMace);
+	const hasMaceEquipped = maceAttackEntries.length > 0;
+	player.reverberationEnabled = maceProfile.enabled && hasMaceEquipped;
+	player.reverberationCap = player.reverberationEnabled ? maceProfile.cap : 0;
+	player.reverberationRate = player.reverberationEnabled ? maceProfile.rate : 0;
+	player.reverberationTotalAccumulated = 0;
+
+	const enemy = {
+		id: `enemy_${pairIndex}`,
+		name: enemyBase.name || enemyBase.fullname || 'Unknown Enemy',
+		hp: opts.enemyStartHp != null ? opts.enemyStartHp : (enemyBaseStat.health || 100),
+		defense: enemyBaseStat.defense || 0,
+		evade: enemyBaseStat.evade || 0,
+		critResistance: enemyBaseStat.crit_resistance || 0,
+		shieldStrength: 0,
+		shieldIsGreatshield: false,
+		attacks: enemyAttacks.map(atk => {
+			const atkTags = Array.isArray(atk.tags) ? atk.tags.map(t => String(t).toLowerCase()) : [];
+			const atkIsShield = atkTags.includes('shield') || atkTags.includes('greatshield');
+			const atkIsGreatshield = atkTags.includes('greatshield');
+			const dmgMult = opts.enemyDamageMultiplier ?? 1;
+			return {
+				id: atk.id,
+				name: atk.name || 'Attack',
+				speed: enemyBaseStat.speed || 12,
+				cooldown: Math.max(10, atk.cooldown || 90),
+				attack: Math.round((atk.base_damage || 0) * dmgMult),
+				accuracy: atk.accuracy || 0,
+				crit: atk.critical_chance || 0,
+				isShield: atkIsShield,
+				isGreatshield: atkIsGreatshield,
+			};
+		}),
+	};
+
+	return { player, enemy };
+}
+
+/**
+ * Run a team vs team combat — all actors share one initiative tracker.
+ * Pairs are fixed (each player fights only their assigned enemy).
+ * Combat ends when all actors on one team reach 0 HP.
+ * @param {Array} pairs - [{ playerId, enemyId, speedMultiplier? }]
+ * @param {Object} options
+ * @returns {{ combatLog, finalStates, battleReport, battleReportPages, pairOutcomes }}
+ */
+async function teamCombat(pairs, options = {}) {
+	if (!pairs || pairs.length === 0) throw new Error('teamCombat requires at least one pair');
+
+	// Build actor objects for all pairs in parallel
+	const builtPairs = await Promise.all(
+		pairs.map((pair, i) => buildCombatActors(pair.playerId, pair.enemyId, i, pair.speedMultiplier ?? 1, {})),
+	);
+
+	// Assemble all actors and build pairings / teams maps
+	const allActors = [];
+	const pairings = {};
+	const teams = {};
+	for (let i = 0; i < builtPairs.length; i++) {
+		const { player, enemy } = builtPairs[i];
+		allActors.push(player, enemy);
+		pairings[player.id] = enemy.id;
+		pairings[enemy.id] = player.id;
+		teams[player.id] = 'player';
+		teams[enemy.id] = 'enemy';
+	}
+
+	await handleCombatBeginSkills(allActors);
+
+	const { combatLog, actors } = await runInitTracker(allActors, {
+		maxTicks: options.maxTicks || 400,
+		pairings,
+		teams,
+		handleBeforeAttackSkills,
+		handleAfterAttackSkills,
+	});
+
+	await handleCombatEndSkills(Object.values(actors));
+
+	// Per-pair: resolve final states and determine win conditions
+	const pairStates = builtPairs.map(({ player }, i) => {
+		const finalPlayer = actors[`player_${i}`];
+		const finalEnemy = actors[`enemy_${i}`];
+		const playerWon = (finalPlayer?.hp ?? 0) > 0 && (finalEnemy?.hp ?? 1) <= 0;
+		return { player, finalPlayer, finalEnemy, playerWon, playerId: pairs[i].playerId, enemyId: pairs[i].enemyId };
+	});
+
+	// Rewards are only distributed if the entire team wins
+	const teamVictory = pairStates.every(s => s.playerWon);
+
+	const pairOutcomes = await Promise.all(pairStates.map(async ({ player, finalPlayer, finalEnemy, playerWon, playerId, enemyId }) => {
+		if (finalPlayer) {
+			await characterUtility.setCharacterStat(playerId, 'currentHp', finalPlayer.hp);
+		}
+
+		let lootResults = { gold: 0, exp: 0, items: [], playerVictory: false, leveledUp: false, weaponSkillXp: {}, armorSkillXp: {} };
+		if (teamVictory) {
+			lootResults = await handleCombatEnd(
+				playerId, enemyId,
+				{ player: finalPlayer, enemy: finalEnemy },
+				combatLog, player.attacks,
+			);
+		}
+		return { playerId, enemyId, playerWon, finalPlayer, finalEnemy, lootResults };
+	}));
+
+	// Use first player's combat log setting for report format
+	const combatLogSetting = await getCharacterSetting(pairs[0].playerId, 'combat_log') || 'short';
+
+	// Combined report — rewards section omitted (loot already applied per-pair above)
+	const battleReportResult = writeBattleReport(combatLog, actors, null, combatLogSetting);
+
+	return {
+		combatLog,
+		finalStates: actors,
+		battleReport: battleReportResult.pages ? battleReportResult.pages[0] : battleReportResult,
+		battleReportPages: battleReportResult.pages || [battleReportResult],
+		pairOutcomes,
+	};
 }
 
 async function mainCombat(playerId, enemyId, options = {}) {
@@ -693,10 +1183,12 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	}
 
 	// Get player's agility/speed from combat stats
-	const playerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	// options.playerSpeedMultiplier halves speed when the fighter couldn't pay stamina
+	const rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	const playerSpeed = rawPlayerSpeed * (options.playerSpeedMultiplier ?? 1);
 
 	// === Load rapier parry perk data ===
-	const { CharacterPerk, CharacterSkill } = require('@root/dbObject.js');
+	const { CharacterPerk, CharacterSkill, CharacterFlag } = require('@root/dbObject.js');
 	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
 	const rapierPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('rapier-')).map(p => p.perk_id));
 	const rapierSkillDef = contentStore.skills.findOne({ where: { subtype: 'rapier' } });
@@ -714,6 +1206,12 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	let riposteMultiplier = 0;
 	for (const [id, mult] of Object.entries(RIPOSTE_MULT_BY_PERK)) {
 		if (rapierPerkIds.has(id) && mult > riposteMultiplier) riposteMultiplier = mult;
+	}
+
+	// Apply boarding_disoriented accuracy penalty if the character flag is active
+	const boardingFlag = await CharacterFlag.findOne({ where: { character_id: playerId, flag_name: 'boarding_disoriented' } });
+	if (boardingFlag && boardingFlag.flag_value > 0) {
+		options.playerAccuracyMultiplier = (options.playerAccuracyMultiplier ?? 1) * 0.8;
 	}
 
 	const player = {
@@ -790,7 +1288,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				// Use cooldown from database
 				cooldown: atk.cooldown || 80,
 				attack: atk.attack || 0,
-				accuracy: atk.accuracy || 0,
+				accuracy: (atk.accuracy || 0) * (options.playerAccuracyMultiplier ?? 1),
 				crit: atk.critical || 0,
 				isShield: isShield,
 				isGreatshield: isGreatshield,
@@ -901,15 +1399,21 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		shieldStrength: 0,
 		shieldIsGreatshield: false,
 		attacks: enemyAttacks.map(atk => {
+			const atkTags = Array.isArray(atk.tags) ? atk.tags.map(t => String(t).toLowerCase()) : [];
+			const atkIsShield = atkTags.includes('shield') || atkTags.includes('greatshield');
+			const atkIsGreatshield = atkTags.includes('greatshield');
+			const dmgMult = options.enemyDamageMultiplier ?? 1;
 			return {
 				id: atk.id,
 				name: atk.name || 'Attack',
-				// Use enemy's speed from base stats
-				speed: enemyBaseStat.speed || 12,
+				// Use enemy's speed from base stats, scaled by morale speed bonus
+				speed: (enemyBaseStat.speed || 12) * (options.enemySpeedMultiplier ?? 1),
 				cooldown: Math.max(10, atk.cooldown || 90),
-				attack: atk.base_damage || 0,
+				attack: Math.round((atk.base_damage || 0) * dmgMult),
 				accuracy: atk.accuracy || 0,
 				crit: atk.critical_chance || 0,
+				isShield: atkIsShield,
+				isGreatshield: atkIsGreatshield,
 			};
 		}),
 	};
@@ -932,6 +1436,8 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		{
 			maxTicks: 400,
 			ambientEffect,
+			riggingAttackers: options.riggingAttackers || [],
+			riggingSnipers: options.riggingSnipers || [],
 			handleBeforeAttackSkills,
 			handleAfterAttackSkills,
 		},
@@ -1524,6 +2030,24 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 			groupedLogs.push({ type: 'counter', log });
 			continue;
 		}
+		// Covering fire entries are never grouped — flush current group and insert standalone
+		if (log.type === 'covering_fire') {
+			if (currentGroup) {
+				groupedLogs.push(currentGroup);
+				currentGroup = null;
+			}
+			groupedLogs.push({ type: 'covering_fire', log });
+			continue;
+		}
+		// Sniper fire entries are never grouped — flush current group and insert standalone
+		if (log.type === 'sniper_fire') {
+			if (currentGroup) {
+				groupedLogs.push(currentGroup);
+				currentGroup = null;
+			}
+			groupedLogs.push({ type: 'sniper_fire', log });
+			continue;
+		}
 		if (currentGroup &&
 			currentGroup.attacker === log.attacker &&
 			currentGroup.target === log.target &&
@@ -1624,6 +2148,22 @@ function writeBattleReport(combatLog, actors, lootResults = null, combatLogSetti
 				const cName = log.perkName || 'Counter';
 					actionLines.push(`${EMOJI.BULLET} ${EMOJI.SWORD} **${cName}!** ${log.attacker} thrusts back for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
 			}
+			lastAttacker = null;
+			continue;
+		}
+
+		// Render covering fire lines
+		if (group.type === 'covering_fire') {
+			const { log } = group;
+			actionLines.push(`${EMOJI.BULLET} ${EMOJI.FOCUS} **Covering Fire!** ${log.attackerName} fires from the rigging for **${log.damage}** damage! | ${log.target} HP: ${log.targetHp}`);
+			lastAttacker = null;
+			continue;
+		}
+
+		// Render sniper fire lines
+		if (group.type === 'sniper_fire') {
+			const { log } = group;
+			actionLines.push(`${EMOJI.BULLET} ${EMOJI.WARNING} **Sniper Fire!** A shot from the unguarded rigging strikes **${log.target}** for **${log.damage}** damage! | HP: ${log.targetHp}`);
 			lastAttacker = null;
 			continue;
 		}
@@ -2121,10 +2661,12 @@ module.exports = {
 	calculateDamage,
 	runInitTracker,
 	mainCombat,
+	teamCombat,
 	writeBattleReport,
 	handleCombatBeginSkills,
 	handleBeforeAttackSkills,
 	handleAfterAttackSkills,
 	handleCombatEndSkills,
 	handleCombatEnd,
+	resolveMaceProfile,
 };

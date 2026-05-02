@@ -1,7 +1,8 @@
-const { ActionRowBuilder, ButtonBuilder, MessageFlags } = require('discord.js');
-const { CharacterItem } = require('@root/dbObject.js');
+const { ActionRowBuilder, ButtonBuilder, StringSelectMenuBuilder, ComponentType, MessageFlags } = require('discord.js');
+const { CharacterItem, CharacterBase, CharacterStatus } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const getCharacterUtility = () => require('./characterUtility');
+const { EMOJI } = require('../enums');
 
 /**
  * Builds an embed object for displaying item details
@@ -107,7 +108,7 @@ function buildItemActionButtons(item, isEquipped = false, isEquippable = false) 
 		components.push(equipButton);
 	}
 	else {
-		const actionButton = new ActionRowBuilder().addComponents(
+		const rowButtons = [
 			new ButtonBuilder()
 				.setCustomId(`discard_item_${item.id}`)
 				.setLabel('Discard')
@@ -116,8 +117,16 @@ function buildItemActionButtons(item, isEquipped = false, isEquippable = false) 
 				.setCustomId(`close_item_${item.id}`)
 				.setLabel('Close')
 				.setStyle('Secondary'),
-		);
-		components.push(actionButton);
+		];
+		if (item.tag && Array.isArray(item.tag) && item.tag.includes('usable')) {
+			rowButtons.unshift(
+				new ButtonBuilder()
+					.setCustomId(`use_item_${item.id}`)
+					.setLabel('Use')
+					.setStyle('Primary'),
+			);
+		}
+		components.push(new ActionRowBuilder().addComponents(...rowButtons));
 	}
 
 	return components;
@@ -172,29 +181,196 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				return true;
 			}
 
-			const characterItem = await CharacterItem.findOne({
-				where: { character_id: character.id, item_id: item.id },
+			const confirmRow = new ActionRowBuilder().addComponents(
+				new ButtonBuilder()
+					.setCustomId(`confirm_discard_${item.id}`)
+					.setLabel('Confirm')
+					.setStyle('Danger'),
+				new ButtonBuilder()
+					.setCustomId(`cancel_discard_${item.id}`)
+					.setLabel('Cancel')
+					.setStyle('Secondary'),
+			);
+
+			await btnInteraction.reply({
+				content: `Are you sure you want to discard **${item.name}**? This cannot be undone.`,
+				flags: MessageFlags.Ephemeral,
+				components: [confirmRow],
 			});
-			if (characterItem) {
-				if (characterItem.amount > 1) {
-					characterItem.amount -= 1;
-					await characterItem.save();
-					await btnInteraction.reply({ content: `You discarded 1 ${item.name}. You have ${characterItem.amount} left.`, flags: MessageFlags.Ephemeral });
+
+			const confirmMessage = await btnInteraction.fetchReply();
+			const confirmCollector = confirmMessage.createMessageComponentCollector({
+				componentType: ComponentType.Button,
+				filter: i => i.user.id === btnInteraction.user.id,
+				time: 30_000,
+				max: 1,
+			});
+
+			confirmCollector.on('collect', async confirmI => {
+				if (confirmI.customId === `confirm_discard_${item.id}`) {
+					const result = await getCharacterUtility().removeCharacterItem(character.id, item.id, 1);
+					if (result.success) {
+						const remaining = await CharacterItem.findOne({
+							where: { character_id: character.id, item_id: item.id },
+						});
+						if (remaining) {
+							await confirmI.update({ content: `You discarded 1 ${item.name}. You have ${remaining.amount} left.`, components: [] });
+						}
+						else {
+							await confirmI.update({ content: `You discarded ${item.name}.`, components: [] });
+						}
+					}
+					else {
+						await confirmI.update({ content: 'You do not have this item in your inventory.', components: [] });
+					}
+					if (onComplete) onComplete();
 				}
-				else {
-					await characterItem.destroy();
-					await btnInteraction.reply({ content: `You discarded ${item.name}.`, flags: MessageFlags.Ephemeral });
+				else if (confirmI.customId === `cancel_discard_${item.id}`) {
+					await confirmI.update({ content: 'Discard cancelled.', components: [] });
 				}
-			}
-			else {
-				await btnInteraction.reply({ content: 'You do not have this item in your inventory.', flags: MessageFlags.Ephemeral });
-			}
-			if (onComplete) onComplete();
+			});
+
+			confirmCollector.on('end', async (collected) => {
+				if (collected.size === 0) {
+					try {
+						await btnInteraction.editReply({ content: 'Discard cancelled (timed out).', components: [] });
+					}
+					catch { /* interaction may have expired */ }
+				}
+			});
+
 			return true;
 		}
 		else if (customId === `close_item_${item.id}`) {
 			await btnInteraction.deferUpdate();
 			if (onComplete) onComplete();
+			return true;
+		}
+		else if (customId === `use_item_${item.id}`) {
+			if (item.id !== 'med_kit') return false;
+
+			if (!character) {
+				await btnInteraction.reply({ content: 'No character found for your account.', flags: MessageFlags.Ephemeral });
+				if (onComplete) onComplete();
+				return true;
+			}
+
+			if ((character.currentStamina || 0) < 5) {
+				await btnInteraction.reply({
+					content: `${EMOJI.FAILURE} You need at least 5 stamina to use the Med Kit. (Current: ${character.currentStamina || 0})`,
+					flags: MessageFlags.Ephemeral,
+				});
+				if (onComplete) onComplete();
+				return true;
+			}
+
+			const nearbyCharacters = await CharacterBase.findAll({
+				where: { location_id: character.location_id },
+				attributes: ['id', 'name', 'currentHp', 'maxHp'],
+			});
+
+			if (!nearbyCharacters || nearbyCharacters.length === 0) {
+				await btnInteraction.reply({
+					content: `${EMOJI.FAILURE} There is no one at your location to heal.`,
+					flags: MessageFlags.Ephemeral,
+				});
+				if (onComplete) onComplete();
+				return true;
+			}
+
+			const selectOptions = nearbyCharacters.slice(0, 25).map(c => ({
+				label: (c.name || c.id).substring(0, 100),
+				value: c.id,
+				description: `HP: ${c.currentHp || 0} / ${c.maxHp || 0}`,
+			}));
+
+			const selectRow = new ActionRowBuilder().addComponents(
+				new StringSelectMenuBuilder()
+					.setCustomId(`med_kit_target_${item.id}`)
+					.setPlaceholder('Select a target to heal...')
+					.addOptions(selectOptions),
+			);
+
+			await btnInteraction.reply({
+				content: `${EMOJI.INFO} Who do you want to heal? (Costs 5 stamina)`,
+				flags: MessageFlags.Ephemeral,
+				components: [selectRow],
+			});
+
+			const selectMessage = await btnInteraction.fetchReply();
+			const selectCollector = selectMessage.createMessageComponentCollector({
+				componentType: ComponentType.StringSelect,
+				filter: i => i.user.id === btnInteraction.user.id,
+				time: 30_000,
+				max: 1,
+			});
+
+			selectCollector.on('collect', async selectI => {
+				const targetId = selectI.values[0];
+				const target = await CharacterBase.findByPk(targetId);
+				if (!target) {
+					await selectI.update({ content: `${EMOJI.FAILURE} Target not found.`, components: [] });
+					if (onComplete) onComplete();
+					return;
+				}
+
+				const now = new Date();
+				const cooldownRow = await CharacterStatus.findOne({ where: { character_id: target.id, status_id: 'medkit_cooldown' } });
+				if (cooldownRow && cooldownRow.expires_at && new Date(cooldownRow.expires_at) > now) {
+					const expiresTs = Math.floor(new Date(cooldownRow.expires_at).getTime() / 1000);
+					const isSelfCd = target.id === character.id;
+					const cdLabel = isSelfCd ? 'You have' : `**${target.name}** has`;
+					await selectI.update({
+						content: `${EMOJI.FAILURE} ${cdLabel} already received Med Kit treatment recently. Can be used again <t:${expiresTs}:R>.`,
+						components: [],
+					});
+					if (onComplete) onComplete();
+					return;
+				}
+
+				const healAmount = Math.floor((target.maxHp || 0) * 0.2);
+				const newHp = Math.min(target.maxHp || 0, (target.currentHp || 0) + healAmount);
+
+				await CharacterBase.update({ currentHp: newHp }, { where: { id: target.id } });
+				await CharacterBase.update(
+					{ currentStamina: Math.max(0, (character.currentStamina || 0) - 5) },
+					{ where: { id: character.id } },
+				);
+				await getCharacterUtility().removeCharacterItem(character.id, item.id, 1);
+
+				const cooldownExpires = new Date(Date.now() + 3 * 60 * 60 * 1000);
+				const [cdRow, cdCreated] = await CharacterStatus.findOrCreate({
+					where: { character_id: target.id, status_id: 'medkit_cooldown' },
+					defaults: {
+						category: 'neutral',
+						scope: 'persistent',
+						duration_unit: 'seconds',
+						expires_at: cooldownExpires,
+						source: 'medkit',
+					},
+				});
+				if (!cdCreated) {
+					await cdRow.update({ expires_at: cooldownExpires });
+				}
+
+				const isSelf = target.id === character.id;
+				const targetLabel = isSelf ? 'yourself' : `**${target.name}**`;
+				await selectI.update({
+					content: `${EMOJI.SUCCESS} Healed ${targetLabel} for **${healAmount} HP**. (${target.currentHp || 0} \u2192 ${newHp}/${target.maxHp || 0})`,
+					components: [],
+				});
+				if (onComplete) onComplete();
+			});
+
+			selectCollector.on('end', async (collected) => {
+				if (collected.size === 0) {
+					try {
+						await btnInteraction.editReply({ content: 'Med Kit use cancelled (timed out).', components: [] });
+					}
+					catch { /* interaction may have expired */ }
+				}
+			});
+
 			return true;
 		}
 

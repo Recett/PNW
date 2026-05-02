@@ -53,6 +53,9 @@ const NpcPurchase = npcModels.npcPurchase(sequelize);
 const enemyModels = require('./models/enemy/enemyModel.js');
 const EnemyInstance = enemyModels.enemyInstance(sequelize);
 
+// Encounter model (runtime; battle random encounters)
+const PendingEncounter = require('./models/encounter/pendingEncounterModel')(sequelize);
+
 // System and other models
 const SystemSetting = require('./models/system/systemModel.js')(sequelize);
 
@@ -260,6 +263,7 @@ module.exports = {
 	LocationEnemy,
 
 	EnemyInstance,
+	PendingEncounter,
 
 	// Active NPC model (runtime purchase tracking)
 	NpcPurchase,

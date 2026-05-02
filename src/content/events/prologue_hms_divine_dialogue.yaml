@@ -11,6 +11,17 @@
     next: york-first-meeting
 
     check:
+      - name: hms_divine_battle_initialized
+        type: flag
+        flag_data:
+          flag_name: global.hms_divine_battle_initialized
+          flag_value: 1
+          is_global_flag: true
+        is_required: false
+        silent: true
+        on_success: york-battle-hub
+        execution_order: -1
+
       - name: quartermaster-york_known
         type: flag
         flag_data:

@@ -263,6 +263,23 @@ class EventProcessor {
 				// Execute actions based on combat result
 				await this.executeActionsByTrigger(eventId, session, combatResult.result);
 
+				// Universal battle rule: any combat defeat during an active HMS Divine battle
+				// routes the player back to living quarters and short-circuits the event chain.
+				if (combatResult.result === 'defeat' && characterId) {
+					try {
+						const battleUtil = require('./battleUtility');
+						const isBattleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+						if (isBattleActive) {
+							const locationUtil = require('@utility/locationUtility.js');
+							await locationUtil.moveCharacterToLocation(characterId, battleUtil.BOONG_SINH_HOAT_ID, interaction.guild);
+							return; // Skip on_defeat event chain — player is already routed
+						}
+					}
+					catch (moveErr) {
+						console.error('[Battle] Failed to move defeated player to living quarters:', moveErr);
+					}
+				}
+
 				// Auto-proceed to next event after combat (skip showing intermediate message)
 				if (nextEventId && nextEventId !== '0' && nextEventId.trim() !== '') {
 					return await this.processEvent(nextEventId, interaction, characterId, {
@@ -446,6 +463,26 @@ class EventProcessor {
 			if (combat.ambient_effect) {
 				combatOptions.ambientEffect = combat.ambient_effect;
 			}
+			if (combat.special_rules?.accuracy_penalty_player != null) {
+				combatOptions.playerAccuracyMultiplier = (combatOptions.playerAccuracyMultiplier ?? 1) * combat.special_rules.accuracy_penalty_player;
+			}
+			// Apply HMS Divine battle modifiers when the battle is active
+			{
+				const battleUtil = require('./battleUtility');
+				const isBattleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+				if (isBattleActive) {
+					// Armory debuff applies universally to all event combats during the battle
+					combatOptions.enemyDamageMultiplier = await battleUtil.getArmoryDamageMultiplier(null);
+
+					const character = await characterUtil.getCharacterBase(session.characterId);
+					const locationId = character?.location_id;
+					if (locationId) {
+						const moraleMultipliers = await battleUtil.getMoraleSpeedMultipliers(locationId);
+						combatOptions.playerSpeedMultiplier = (combatOptions.playerSpeedMultiplier ?? 1) * moraleMultipliers.playerSpeedMultiplier;
+						combatOptions.enemySpeedMultiplier = (combatOptions.enemySpeedMultiplier ?? 1) * moraleMultipliers.enemySpeedMultiplier;
+					}
+				}
+			}
 			const combatResult = await combatUtil.mainCombat(session.characterId, enemyId, combatOptions);
 
 			// Persist enemy HP if enemy survived the encounter
@@ -469,6 +506,57 @@ class EventProcessor {
 			if (playerWon && !enemyWon) {
 				result = 'victory';
 				message = combat.victory_message || 'You won the battle!';
+
+				// Boss kill: morale boost, drain reduction, and channel announcement
+				if (enemyTags.includes('unique_per_voyage')) {
+					try {
+						const battleUtil = require('./battleUtility');
+
+						// +10 morale for boss kill
+						const moraleDelta = battleUtil.ENEMY_MORALE_VALUES[enemyId] ?? 10;
+						await battleUtil.updateMorale(moraleDelta);
+
+						// Permanently reduce drain baseline by 2 per boss killed
+						const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
+						await battleUtil.setFlag('hms_divine_drain_reduction', (currentReduction || 0) + 2);
+					}
+					catch (bossErr) {
+						console.error('[Boss Kill] Failed to apply morale/flag:', bossErr);
+					}
+
+					// Announce to the battle channel
+					try {
+						const character = await characterUtil.getCharacterBase(session.characterId);
+						const charName = character?.fullname || character?.name || 'A fighter';
+						const enemyName = enemyBase?.name || enemyId;
+						const killText = enemyBase?.kill_announcement || `**${charName}** has struck down **${enemyName}**.`;
+						const channel = session.interaction?.channel;
+						if (channel) {
+							const announceEmbed = new Discord.EmbedBuilder()
+								.setColor(0xC0392B)
+								.setTitle(`${EMOJI.SKULL} ${enemyName} has fallen!`)
+								.setDescription(killText);
+							await channel.send({ embeds: [announceEmbed] });
+						}
+					}
+					catch (announceErr) {
+						console.error('[Boss Kill] Failed to post announcement:', announceErr);
+					}
+				}
+
+				// Main deck foothold: post server-wide announcement on final wave victory
+				if (combat.special_rules?.foothold_announcement) {
+					try {
+						const battleUtil = require('./battleUtility');
+						const guild = session.interaction?.guild;
+						if (guild) {
+							await battleUtil.postMainDeckFootholdAnnouncement(guild);
+						}
+					}
+					catch (footholdErr) {
+						console.error('[Main Deck] Failed to post foothold announcement:', footholdErr);
+					}
+				}
 			}
 			else if (enemyWon && !playerWon) {
 				result = 'defeat';
@@ -1164,7 +1252,10 @@ class EventProcessor {
 			return;
 		}
 
-		const channelId = channels[channelKey.toUpperCase()];
+		const channelId = channels[channelKey.toUpperCase()] ?? await (async () => {
+			const SystemSettingUtil = require('@utility/systemSetting.js');
+			return await SystemSettingUtil.get('channel.' + channelKey.toLowerCase());
+		})();
 		if (!channelId) {
 			console.error(`[Narrate] Unknown channel key '${channelKey}' in narrate action`);
 			return;
@@ -1683,6 +1774,13 @@ class EventProcessor {
 
 		const { location, silent, custom_message } = action;
 		let location_id = location; // YAML uses 'location' instead of 'location_id'
+
+		// Resolve flag-referenced location: location: "flag:location_id_arb_main_deck"
+		if (typeof location_id === 'string' && location_id.startsWith('flag:')) {
+			const flagKey = location_id.slice(5);
+			const flagRow = await GlobalFlag.findOne({ where: { flag_name: flagKey } });
+			location_id = flagRow ? Number(flagRow.flag_value) : null;
+		}
 
 		if (location === 'adjacent_random') {
 			const character = await characterUtil.getCharacterBase(session.characterId);

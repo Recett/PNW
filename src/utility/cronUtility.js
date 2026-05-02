@@ -2,6 +2,7 @@ const { CronJob } = require('cron');
 
 // This job runs every day at 00:00 (midnight)
 const { CronLog, NpcPurchase, GlobalFlag } = require('@root/dbObject.js');
+const battleUtil = require('@utility/battleUtility.js');
 const contentStore = require('@root/contentStore.js');
 const taskUtility = require('./taskUtility');
 const { getCronMonitor } = require('./cronMonitor');
@@ -25,6 +26,7 @@ const hourlyJob = makeCronJob('0 * * * *', async () => {
 	await performPendingDeleteCleanup();
 	await performGalebyCycle();
 	await performHourlyTasks();
+	await performBattleHourlyTasks();
 });
 
 // This job runs every Sunday at 00:00 — resets NPC shop purchase counts
@@ -42,7 +44,61 @@ const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
 	await performHealthCheck();
 });
 
+// This job runs every 8 hours — HMS Divine battle cycle / cannon phase (only active during battle)
+const battleCycleJob = makeCronJob('0 */8 * * *', async () => {
+	if (!_discordClient) return;
+	await performHMSDivineBattleCycle();
+});
+
+// This job runs every minute — check if an armory wave is due and fire it
+// This job runs every 30 minutes — spawn random encounters and clean up expired ones
+const encounterSpawnJob = makeCronJob('0,30 * * * *', async () => {
+	if (!_discordClient) return;
+	await performEncounterSpawn();
+});
+
 // Do NOT start the job automatically
+
+async function performEncounterSpawn() {
+	const jobName = 'encounter_spawn';
+	const monitor = getCronMonitor();
+	let tracker = null;
+	try {
+		tracker = await monitor.startExecution(jobName, {
+			description: 'Spawn random encounters and resolve expired ones',
+			expected_duration_ms: 10000,
+		});
+		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
+
+		const guild = _discordClient.guilds.cache.first() || null;
+		if (!guild) return;
+
+		await battleUtil.resolveExpiredEncounters(guild);
+		await battleUtil.spawnEncounters(guild);
+
+		const logRow = await CronLog.findOne({ where: { job_name: jobName } });
+		await logRow.update({
+			status: 'stopped',
+			execution_count: (logRow.execution_count || 0) + 1,
+			success_count: (logRow.success_count || 0) + 1,
+		});
+		await monitor.completeExecution(tracker.id, {});
+	}
+	catch (error) {
+		console.error('[EncounterSpawn] Error:', error);
+		if (tracker) await monitor.failExecution(tracker.id, error);
+		const logRow = await CronLog.findOne({ where: { job_name: jobName } });
+		if (logRow) {
+			await logRow.update({
+				status: 'error',
+				execution_count: (logRow.execution_count || 0) + 1,
+				error_count: (logRow.error_count || 0) + 1,
+				last_error: error.message,
+				last_error_at: new Date(),
+			});
+		}
+	}
+}
 
 async function performCronJob() {
 	const jobName = 'midnight_job';
@@ -95,35 +151,71 @@ async function performCharacterRegen() {
 		});
 		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
 
-		const nowSeconds = Math.floor(Date.now() / 1000);
+		const battleActiveRecord = await GlobalFlag.findOne({ where: { flag: 'global.hms_divine_battle_active' } });
+		const isBattle = battleActiveRecord && parseInt(battleActiveRecord.value) === 1;
 
-		const staminaResult = await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
-			WHERE maxStamina IS NOT NULL 
-				AND currentStamina IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
-		`);
-		monitor.logDatabaseOperation(tracker.id, staminaResult[1] || 0);
+		let staminaCount = 0;
+		let hpCount = 0;
 
-		// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
-		// await CharacterBase.sequelize.query(`
-		// 	UPDATE character_bases SET currentHp = 1
-		// 	WHERE id IN (SELECT character_id FROM character_statuses
-		// 		WHERE status_id = 'knocked_out' AND expires_at <= datetime('now')) AND currentHp <= 0;
-		// `);
-		// await CharacterBase.sequelize.query(`
-		// 	DELETE FROM character_statuses WHERE status_id = 'knocked_out' AND expires_at <= datetime('now');
-		// `);
+		if (isBattle) {
+			// === Battle ruleset ===
+			// Stamina +20% for all players in battle zones
+			const s1 = await CharacterBase.sequelize.query(`
+				UPDATE character_bases
+				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+				WHERE maxStamina IS NOT NULL
+					AND currentStamina IS NOT NULL
+					AND location_id IN (
+						SELECT id FROM location_bases
+						WHERE id IN (${battleUtil.HMS_ZONE_IDS.join(',')})
+							OR (tag IS NOT NULL AND (tag LIKE '%hms_divine_arbrance%' OR tag LIKE '%hms_divine_rigging%'))
+					);
+			`);
+			staminaCount += s1[1] || 0;
 
-		const hpResult = await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
-			WHERE maxHp IS NOT NULL 
-				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
-		`);
-		monitor.logDatabaseOperation(tracker.id, hpResult[1] || 0);
+			// Stamina extra +20% for Boong Sinh Hoat (doubles rate to +40% total)
+			const s2 = await CharacterBase.sequelize.query(`
+				UPDATE character_bases
+				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+				WHERE maxStamina IS NOT NULL
+					AND currentStamina IS NOT NULL
+					AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
+			`);
+			staminaCount += s2[1] || 0;
+
+			// HP +50% for Boong Sinh Hoat; 0-HP players recover only 1 HP (forced rest tick)
+			const h1 = await CharacterBase.sequelize.query(`
+				UPDATE character_bases
+				SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.50 + 0.999) AS INTEGER) END)
+				WHERE maxHp IS NOT NULL
+					AND currentHp IS NOT NULL
+					AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
+			`);
+			hpCount += h1[1] || 0;
+		}
+		else {
+			// === Normal ruleset ===
+			// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
+			const s1 = await CharacterBase.sequelize.query(`
+				UPDATE character_bases
+				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
+				WHERE maxStamina IS NOT NULL
+					AND currentStamina IS NOT NULL
+					AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
+			`);
+			staminaCount += s1[1] || 0;
+
+			const h1 = await CharacterBase.sequelize.query(`
+				UPDATE character_bases
+				SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
+				WHERE maxHp IS NOT NULL
+					AND currentHp IS NOT NULL
+					AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
+			`);
+			hpCount += h1[1] || 0;
+		}
+
+		monitor.logDatabaseOperation(tracker.id, staminaCount + hpCount);
 
 		const job = await CronLog.findOne({ where: { job_name: jobName } });
 		await job.update({
@@ -132,8 +224,9 @@ async function performCharacterRegen() {
 			success_count: (job.success_count || 0) + 1,
 		});
 		await monitor.completeExecution(tracker.id, {
-			stamina_updates: staminaResult[1] || 0,
-			hp_updates: hpResult[1] || 0,
+			battle_mode: isBattle,
+			stamina_updates: staminaCount,
+			hp_updates: hpCount,
 		});
 	}
 	catch (error) {
@@ -548,33 +641,50 @@ async function startCronJob(client) {
 				last_run: runTime,
 			});
 
-			await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
-			WHERE maxStamina IS NOT NULL 
-				AND currentStamina IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
-		`);
-			// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
-			const catchUpNow = Math.floor(runTime instanceof Date ? runTime.getTime() / 1000 : Date.now() / 1000);
-			// await CharacterBase.sequelize.query(`
-			// 	UPDATE character_bases SET currentHp = 1
-			// 	WHERE id IN (SELECT character_id FROM character_statuses
-			// 		WHERE status_id = 'knocked_out' AND expires_at <= datetime(${catchUpNow}, 'unixepoch')) AND currentHp <= 0;
-			// `);
-			// await CharacterBase.sequelize.query(`
-			// 	DELETE FROM character_statuses WHERE status_id = 'knocked_out'
-			// 		AND expires_at <= datetime(${catchUpNow}, 'unixepoch');
-			// `);
+			const battleActiveRecord = await GlobalFlag.findOne({ where: { flag: 'global.hms_divine_battle_active' } });
+			const isBattle = battleActiveRecord && parseInt(battleActiveRecord.value) === 1;
 
-			// Increase every character's currentHp by 20% of maxHp, up to maxHp (only in town locations)
-			await CharacterBase.sequelize.query(`
-			UPDATE character_bases
-			SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
-			WHERE maxHp IS NOT NULL 
-				AND currentHp IS NOT NULL
-				AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
-		`);
+			if (isBattle) {
+				// Battle ruleset catch-up
+				await CharacterBase.sequelize.query(`
+					UPDATE character_bases
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
+						AND location_id IN (
+							SELECT id FROM location_bases
+							WHERE id IN (${battleUtil.HMS_ZONE_IDS.join(',')})
+								OR (tag IS NOT NULL AND (tag LIKE '%hms_divine_arbrance%' OR tag LIKE '%hms_divine_rigging%'))
+						);
+				`);
+				await CharacterBase.sequelize.query(`
+					UPDATE character_bases
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
+						AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
+				`);
+				await CharacterBase.sequelize.query(`
+					UPDATE character_bases
+					SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.50 + 0.999) AS INTEGER) END)
+					WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL
+						AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
+				`);
+			}
+			else {
+				// Normal ruleset catch-up
+				// TODO: KO mechanic temporarily disabled
+				await CharacterBase.sequelize.query(`
+					UPDATE character_bases
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
+					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
+						AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
+				`);
+				await CharacterBase.sequelize.query(`
+					UPDATE character_bases
+					SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
+					WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL
+						AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
+				`);
+			}
 
 			// Increment execution count for catch-up runs
 			const job = await CronLog.findOne({ where: { job_name: jobName } });
@@ -702,6 +812,14 @@ async function startCronJob(client) {
 	healthMonitorJob.start();
 	console.log('Health monitor cron job started (runs every 30 minutes).');
 
+	// Start HMS Divine battle cycle job (fires every 12 hours at 00:00 and 12:00)
+	battleCycleJob.start();
+	console.log('Battle cycle cron job started (HMS Divine, runs every 8 hours).');
+
+	// Start random encounter spawn/expiry job (fires every 30 minutes during battle)
+	encounterSpawnJob.start();
+	console.log('Encounter spawn cron job started (HMS Divine, runs every 30 minutes).');
+
 	// Run pending deletion cleanup immediately on startup to catch any stragglers from previous session
 	performPendingDeleteCleanup().catch(e => console.error('[PendingDeleteCleanup] Startup run failed:', e));
 
@@ -709,6 +827,48 @@ async function startCronJob(client) {
 	const { loadLocationActivityMessages } = require('@utility/locationUtility.js');
 	loadLocationActivityMessages().catch(e => console.error('[LocationActivity] Startup restore failed:', e));
 
+	// Armory wave restart recovery: if next_run is past, fire immediately; otherwise restore setTimeout
+	(async () => {
+		try {
+			const waveLog = await CronLog.findOne({ where: { job_name: 'armory_wave_spawn' } });
+			if (waveLog && waveLog.status === 'running' && waveLog.next_run) {
+				const guild = _discordClient && _discordClient.guilds.cache.first();
+				if (guild) {
+					const remaining = new Date(waveLog.next_run).getTime() - Date.now();
+					if (remaining <= 0) {
+						console.log('[Armory] Restart catch-up: wave overdue, firing spawnArmoryWave now.');
+						await battleUtil.spawnArmoryWave(guild);
+					}
+					else {
+						battleUtil.scheduleArmoryWave(guild, remaining);
+						console.log(`[Armory] Restart recovery: next wave in ${Math.round(remaining / 60000)}m, setTimeout restored.`);
+					}
+				}
+			}
+		}
+		catch (e) {
+			console.error('[Armory] Restart recovery failed:', e);
+		}
+	})();
+
+}
+
+async function performHMSDivineBattleCycle() {
+	if (!_discordClient) return;
+	await battleUtil.performHMSDivineBattleCycle(_discordClient);
+}
+
+async function performBattleHourlyTasks() {
+	const battleActive = await GlobalFlag.findOne({ where: { flag: 'global.hms_divine_battle_active' } });
+	if (!battleActive || parseInt(battleActive.value) !== 1) return;
+
+	// Regen is handled by performCharacterRegen (sole authority)
+	// This function only handles battle-specific morale drain
+	const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
+	const drainReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
+	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction);
+	await battleUtil.updateMorale(moraleDrain);
+	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
 }
 
 module.exports = {
@@ -717,7 +877,11 @@ module.exports = {
 	weeklyStockResetJob,
 	dailyTaskJob,
 	healthMonitorJob,
+	battleCycleJob,
+	encounterSpawnJob,
 	startCronJob,
 	resetNpcStockPurchases,
 	performHealthCheck,
+	performHMSDivineBattleCycle,
+	performBattleHourlyTasks,
 };

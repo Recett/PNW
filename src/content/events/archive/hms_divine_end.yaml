@@ -1,0 +1,183 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────
+  # HMS DIVINE BATTLE — END OUTCOMES
+  # Triggered by battleUtility.endBattle() via runActionsOnly().
+  # battleUtility selects which tier to fire based on HMS HP totals.
+  # Flags cleared and locations restored happen in endBattle() code,
+  # NOT here — these are narrative posts to the BATTLE channel only.
+  # ─────────────────────────────────────────────────────────────
+
+  # ── TIER 1: >700 HMS HP — Minor damage, repelled with ease ───
+  - id: hms-divine-end-tier1
+    name: "Kết Quả Trận — Cấp 1: Ít Thiệt Hại"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x27ae60
+        title: "✅ Arbrance Đã Bị Đẩy Lùi"
+        text: |
+          Tàu Arbrance tụt hàng. Bóng nó nhắt dần vào khói mù xa.
+
+          HMS Divine đã giữ vững. Thiệt hại — nếu có — không đáng kể. Các boong vẫn nguyên vẹn. Đại tá Vorne đứng trên boong trên, mắt hướng ra khơi xa.
+
+          "Được rồi."
+
+          York đã cất ghi chú. Danh sách thiệt hại còn ngắn.
+
+          *Tiếng biển trở lại bình thường.*
+
+          **Trận chiến kết thúc. HMS Divine không cần đại tu.**
+
+      - type: stat
+        stat_name: xp
+        value: 200
+        operation: add
+        silent: false
+
+  # ── TIER 2: 400–700 HMS HP — Moderate damage, repairs needed ─
+  - id: hms-divine-end-tier2
+    name: "Kết Quả Trận — Cấp 2: Cần SỪa Chữa"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0xf39c12
+        title: "🛠️ Arbrance Rút — HMS Divine Cần SỪa"
+        text: |
+          Tàu Arbrance lui về. Súng im. Nhưng HMS Divine không ra khỏi trận mà nguyên vẹn.
+
+          Pháo của Arbrance đả trúng. Gỗ sàn vài chỗ đã vỡ. Boong trên một phần sẽ phải thay.
+
+          York ghi nhanh lên mảnh giấy nhàu: cột buồm phụ nứt, tấm chắn sóng mạn bắc hỏng. Hành trình tiếp theo cần một dừng để sỪa chữa.
+
+          "Đánh được. Không phải chưa có thiệt hại — nhưng đánh được."
+
+          **Trận chiết thúc. Dự án sỪa tàu sẽ được khởi chạy.**
+
+      - type: stat
+        stat_name: xp
+        value: 300
+        operation: add
+        silent: false
+
+  # ── TIER 3: 200–400 HMS HP — Significant damage ──────────────
+  - id: hms-divine-end-tier3
+    name: "Kết Quả Trận — Cấp 3: Thiệt Hại Đáng Kể"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0xe67e22
+        title: "⚠️ Arbrance Rút — Thiệt Hại Nặng"
+        text: |
+          Tàu Arbrance cút nhưng dấu vết nó để lại trên HMS Divine không nhữ.
+
+          Ba boong đều nhận đạn. Gỗ và sắt nhưa vào nhau. Một khẩu pháo bị tế xịt ra ngoài. Cột buồm chính có một vết nứt dọc dài.
+
+          York đứng giữa đống gỗ đổ. Mặt không lộ gì.
+
+          "Giữ được. Nhưng không được để lần sau tái diễn cái này."
+
+          *Các supplies trên tàu giảm đáng kể. Phần hành trình tiếp theo có thể bị ảnh hưởng.*
+
+          **Trận chiết thúc. HMS Divine cần sỪa chữa đển mức khứn cấp.**
+
+      - type: flag
+        flag_name: global.hms_divine_supply_loss
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: stat
+        stat_name: xp
+        value: 400
+        operation: add
+        silent: false
+
+  # ── TIER 4: 1–200 HMS HP — Hull severely damaged ─────────────
+  - id: hms-divine-end-tier4
+    name: "Kết Quả Trận — Cấp 4: Thiệt Hại Nặng Đợi"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0xe74c3c
+        title: "🔥 Arbrance Rú — HMS Divine Gần Đắ"
+        text: |
+          Tàu Arbrance rút sau khi đã gây đủ thiệt hại cho nhiệm vụ của nó.
+
+          HMS Divine vẫn nổi. Nhưng ít hơn một chút đƳ. Khoang đáy tàu đang chừa nước. Bơm hết công suất. Ngắt vài nhaún có chiều đều ra ngoài.
+
+          Đại tá Vorne nhìn xuống khoang tháo nước. Không nói.
+
+          York gắp bản đồ lại. "Chúng ta cần đình cảng gần nhất. Ông đừ để bọn ơn trên biết chi tiết."
+
+          *Nhiều thứ cần mua lại. Nhiều thứ sẽ không có lại.*
+
+          **Trận chiết thúc. HMS Divine chỉ vỻa giữ được mạng. Thiệt hại nhiều thứ trừc tiếp.**
+
+      - type: flag
+        flag_name: global.hms_divine_supply_loss
+        flag_value: 2
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: stat
+        stat_name: xp
+        value: 500
+        operation: add
+        silent: false
+
+  # ── TIER 5: HMS HP ≤ 0 — HMS Divine sunk, Defeat ─────────────
+  - id: hms-divine-end-tier5
+    name: "Kết Quả Trận — Cấp 5: Đại Thại Bại"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x2c3e50
+        title: "🚢 HMS Divine Đã Chìm"
+        text: |
+          Đế chỉ có thể xảy ra nếu ai đó để nó xảy ra.
+
+          Khoang đáy tàu vỡ. Nước vào không hắn bị ngăn lại được nữa. HMS Divine đủ xủ. Nghưng. Không ai đử nước ở độ sâu này đứng vững được lâu.
+
+          Lắn cuối cùng người ta nhìn thấy đại tá Vorne — đứng trên boong trên, mắt hướng ra khơi. Không chạy. Không khóc. Chỉ đứng.
+
+          York Waylan không có đƳ. Đi đâu không ai biết.
+
+          *Vương quốc Shuleria mất một con tàu. Và những người trên đó.*
+
+          **Trận chiết thúc. HMS Divine không còn tồn tại.**
+
+      - type: flag
+        flag_name: global.hms_divine_sunk
+        flag_value: 1
+        flag_operation: set
+        flag_type: global
+        silent: true
+      - type: flag
+        flag_name: global.hms_divine_supply_loss
+        flag_value: 3
+        flag_operation: set
+        flag_type: global
+        silent: true
+
+      - type: narrate
+        channel: storyboard
+        color: 0x2c3e50
+        title: "🚢 HMS Divine Đã Chìm"
+        text: |
+          Con tàu không còn nữa. Điều gì xảy ra tiếp theo chưa có lời giải thích.

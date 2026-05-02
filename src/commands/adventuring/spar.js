@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } = require('discord.js');
-const { CharacterBase } = require('@root/dbObject.js');
+const { CharacterBase, CharacterPerk } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const combatUtil = require('@utility/combatUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
@@ -27,7 +27,7 @@ async function buildPlayerActor(playerId, actorId) {
 
 	const speed = combatStats ? (combatStats.agi || combatStats.agility || 15) : 15;
 
-	return {
+	const actor = {
 		id: actorId,
 		name: base.name || 'Unknown',
 		hp: base.maxHp ?? 100,
@@ -40,17 +40,22 @@ async function buildPlayerActor(playerId, actorId) {
 			let attackName = 'Unarmed';
 			let isShield = false;
 			let isGreatshield = false;
+			let isMace = false;
 
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
 					attackName = itemDetails.name;
-					if (itemDetails.weapon?.subtype?.toLowerCase() === 'shield') {
+					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
+					if (subtype === 'shield') {
 						isShield = true;
 						if (itemDetails.tag) {
 							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
 							isGreatshield = tags.some(t => t?.toLowerCase().includes('greatshield'));
 						}
+					}
+					else if (subtype === 'mace') {
+						isMace = true;
 					}
 				}
 			}
@@ -65,9 +70,22 @@ async function buildPlayerActor(playerId, actorId) {
 				crit: atk.critical || 0,
 				isShield,
 				isGreatshield,
+				isMace,
 			};
 		})),
 	};
+
+	// === Mace Reverberation setup ===
+	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
+	const macePerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('mace-')).map(p => p.perk_id));
+	const maceProfile = combatUtil.resolveMaceProfile(macePerkIds);
+	const hasMaceEquipped = actor.attacks.some(a => a.isMace);
+	actor.reverberationEnabled = maceProfile.enabled && hasMaceEquipped;
+	actor.reverberationCap = actor.reverberationEnabled ? maceProfile.cap : 0;
+	actor.reverberationRate = actor.reverberationEnabled ? maceProfile.rate : 0;
+	actor.reverberationTotalAccumulated = 0;
+
+	return actor;
 }
 
 module.exports = {

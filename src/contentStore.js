@@ -413,6 +413,7 @@ const store = {
 		this.projects = new ContentCollection('projects', loadDirectory('projects', 'projects', loadOptions));
 		this.statuses = new ContentCollection('statuses', loadDirectory('statuses', 'statuses', loadOptions));
 		this.tasks = new ContentCollection('tasks', loadDirectory('tasks', 'tasks', loadOptions));
+		this.hazards = new ContentCollection('hazards', loadDirectory('hazards', 'hazards', loadOptions));
 
 		// Lazy load less critical collections
 		if (lazy && this._lazyCollections.has('objects')) {
@@ -451,7 +452,8 @@ const store = {
 			`${this.projects.size} projects, ` +
 			`${this.houseUpgrades?.size ?? 'lazy'} house_upgrades, ` +
 			`${this.statuses.size} statuses, ` +
-			`${this.tasks.size} tasks`,
+			`${this.tasks.size} tasks, ` +
+			`${this.hazards.size} hazards`,
 		);
 
 		// Run cross-reference validation
@@ -485,7 +487,7 @@ const store = {
 		this.items = new ContentCollection('items', allItems);
 
 		// Load critical collections in parallel
-		const [enemies, events, narrations, npcs, skills, perks, quests, resourceNodes, projects, tasks] = await Promise.all([
+		const [enemies, events, narrations, npcs, skills, perks, quests, resourceNodes, projects, tasks, hazards] = await Promise.all([
 			loadDirectory('enemies', 'enemies', loadOptions),
 			loadDirectory('events', 'events', loadOptions),
 			loadDirectory('narrations', 'narrations', loadOptions),
@@ -495,7 +497,8 @@ const store = {
 			loadDirectory('quests', 'quests', loadOptions),
 			loadDirectory('resource_nodes', 'resource_nodes', loadOptions),
 			loadDirectory('projects', 'projects', loadOptions),
-			loadDirectory('tasks', 'tasks', loadOptions)
+			loadDirectory('tasks', 'tasks', loadOptions),
+			loadDirectory('hazards', 'hazards', loadOptions)
 		]);
 
 		this.enemies = new ContentCollection('enemies', enemies);
@@ -508,6 +511,7 @@ const store = {
 		this.resourceNodes = new ContentCollection('resource_nodes', resourceNodes);
 		this.projects = new ContentCollection('projects', projects);
 		this.tasks = new ContentCollection('tasks', tasks);
+		this.hazards = new ContentCollection('hazards', hazards);
 
 		const statuses = await loadDirectory('statuses', 'statuses', loadOptions);
 		this.statuses = new ContentCollection('statuses', statuses);
@@ -553,7 +557,8 @@ const store = {
 			`${this.projects.size} projects, ` +
 			`${this.houseUpgrades?.size ?? 'lazy'} house_upgrades, ` +
 			`${this.statuses.size} statuses, ` +
-			`${this.tasks.size} tasks`,
+			`${this.tasks.size} tasks, ` +
+			`${this.hazards.size} hazards`,
 		);
 
 		// Run cross-reference validation

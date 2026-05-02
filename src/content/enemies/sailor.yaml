@@ -1,84 +1,160 @@
 enemies:
 
-  - id: enemy_sailor
+  # ─── COMMON ─────────────────────────────────────────────────────
+
+  - id: sailor
     name: Sailor
     unknown_name: Enemy Sailor
-    description: A crewman armed with a boarding pike. He wears a densely stitched canvas jack treated with pitch, capable of turning aside glancing blows.
-    level: 5
+    description: >
+      A crewman armed with a cutlass and a belaying pin. Canvas jack
+      treated with pitch. Built to hold a line, not win a duel.
+    level: 3
     enemy_type: humanoid
     status: active
     stat:
-      health: 55
-      defense: 4
+      health: 35
+      defense: 1
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 12
+      speed: 12
+    attack:
+      - id: cutlass_swing
+        name: Cutlass Swing
+        base_damage: 14
+        accuracy: 10
+        critical_chance: 5
+        cooldown: 100
+    reward:
+      exp: 50
+
+  - id: cutthroat
+    name: Cutthroat
+    unknown_name: Fast Knife
+    description: >
+      Unarmored, fast, and entirely uninterested in a fair fight.
+      High evasion, low staying power. Dangerous when ignored.
+    level: 3
+    enemy_type: humanoid
+    status: active
+    stat:
+      health: 30
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 20
+      speed: 20
+    attack:
+      - id: knife_slash
+        name: Knife Slash
+        base_damage: 10
+        accuracy: 14
+        critical_chance: 18
+        cooldown: 60
+    reward:
+      exp: 50
+
+  - id: boarder
+    name: Boarder
+    unknown_name: Armed Crewman
+    description: >
+      A crewman carrying a boarding axe and a buckler. Slow, hard to
+      put down. The axe is short enough for the room and heavy enough
+      to matter when it lands.
+    level: 4
+    enemy_type: humanoid
+    status: active
+    stat:
+      health: 40
+      defense: 0
       defense_percent: 0
       crit_resistance: 5
       evade: 10
-      speed: 12
+      speed: 10
     attack:
-      - id: pike_thrust
-        name: Pike Thrust
-        base_damage: 15
-        accuracy: 14
-        critical_chance: 5
-        cooldown: 90
+      - id: axe_chop
+        name: Boarding Axe
+        base_damage: 16
+        accuracy: 8
+        critical_chance: 8
+        cooldown: 120
+      - id: shield_block
+        name: Shield
+        base_damage: 8
+        accuracy: 0
+        critical_chance: 0
+        cooldown: 300
+        tags: [shield]
+    reward:
+      exp: 50
 
   - id: man_at_arms
     name: Man-at-Arms
     unknown_name: Heavy Boarder
-    description: A hardened mercenary wearing a heavy brigandine—iron plates riveted inside tough leather—and a steel sallet.
-    level: 7
-    enemy_type: humanoid
-    status: active
-    stat:
-      health: 85
-      defense: 10
-      defense_percent: 0
-      crit_resistance: 50
-      evade: 0
-      speed: 6
-    attack:
-      - id: poleaxe_strike
-        name: Poleaxe Strike
-        base_damage: 15
-        accuracy: 12
-        critical_chance: 10
-        cooldown: 120
-
-  - id: enemy_crossbowman
-    name: Crossbowman
-    unknown_name: Ranged Boarder
-    description: A combatant equipped with a heavy steel arbalest. Wears a simple leather jerkin for mobility.
-    level: 6
-    enemy_type: humanoid
-    status: active
-    stat:
-      health: 45
-      defense: 2
-      defense_percent: 0
-      crit_resistance: 0
-      evade: 8
-      speed: 8
-    attack:
-      - id: crossbow_bolt
-        name: Heavy Bolt
-        base_damage: 35
-        accuracy: 20
-        critical_chance: 15
-        cooldown: 200
-
-  - id: enemy_skirmisher
-    name: Skirmisher
-    unknown_name: Light Infantry
-    description: An unarmored combatant relying entirely on speed, armed with a fast arming sword.
-    level: 6
+    description: >
+      A hardened mercenary wearing a heavy brigandine — iron plates
+      riveted inside tough leather — and a steel sallet.
+    level: 5
     enemy_type: humanoid
     status: active
     stat:
       health: 60
+      defense: 8
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 8
+      speed: 8
+    attack:
+      - id: poleaxe_strike
+        name: Poleaxe Strike
+        base_damage: 20
+        accuracy: 8
+        critical_chance: 10
+        cooldown: 150
+    reward:
+      exp: 50
+
+  - id: crossbowman
+    name: Crossbowman
+    unknown_name: Ranged Boarder
+    description: >
+      A combatant equipped with a heavy steel arbalest. Wears a simple
+      leather jerkin for mobility.
+    level: 4
+    enemy_type: humanoid
+    status: active
+    stat:
+      health: 40
+      defense: 0
+      defense_percent: 0
+      crit_resistance: 0
+      evade: 10
+      speed: 10
+    attack:
+      - id: crossbow_bolt
+        name: Heavy Bolt
+        base_damage: 30
+        accuracy: 15
+        critical_chance: 15
+        cooldown: 300   
+    reward:
+      exp: 50
+
+  - id: swashbuckler
+    name: Swashbuckler
+    unknown_name: Light Infantry
+    description: >
+      An unarmored combatant relying entirely on speed, armed with a
+      fast arming sword.
+    level: 5
+    enemy_type: humanoid
+    status: active
+    stat:
+      health: 50
       defense: 1
       defense_percent: 0
-      crit_resistance: 10
-      evade: 22
+      crit_resistance: 5
+      evade: 15
       speed: 18
     attack:
       - id: sword_strike
@@ -87,125 +163,258 @@ enemies:
         accuracy: 16
         critical_chance: 20
         cooldown: 80
+      - id: buckler
+        name: Buckler
+        base_damage: 10
+        accuracy: 0
+        critical_chance: 0
+        cooldown: 200
+        tags: [shield]
+    reward:
+      exp: 50
 
-        enemies:
+  - id: veteran_sailor
+    name: Veteran Sailor
+    unknown_name: Seasoned Boarder
+    description: >
+      A crewman who has done this before. Fights with a cutlass and
+      knows how to use the room against you.
+    level: 5
+    enemy_type: humanoid
+    status: active
+    stat:
+      health: 70
+      defense: 4
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 14
+      speed: 14
+    attack:
+      - id: cutlass_slash_vet
+        name: Cutlass Slash
+        base_damage: 18
+        accuracy: 12
+        critical_chance: 8
+        cooldown: 100
+    reward:
+      exp: 50
+
+# ─── BOSS ───────────────────────────────────────────────────────
 
   - id: enemy_boatswain
     name: Boatswain
     unknown_name: The Enforcer
-    description: Armed with a tarred starter rope. He lacks armor but uses his superior speed to overwhelm a defender's guard.
+    description: >
+      Armed with a tarred starter rope weighted at the end. No armor,
+      no interest in defense. He uses speed and reach to keep a
+      defender off-balance and never lets them set their footing.
+    level: 6
+    enemy_type: humanoid
+    status: active
+    tag:
+      - unique_per_voyage
+    stat:
+      health: 130
+      defense: 4
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 16
+      speed: 16
+    attack:
+      - id: knotted_rope_lash
+        name: Discipline
+        base_damage: 16
+        accuracy: 18
+        critical_chance: 15
+        cooldown: 100
+    reward:
+      exp: 200
+
+  - id: master_at_arms
+    name: Master-at-Arms
+    unknown_name: Elite Marine
+    description: >
+      The ship's primary combat instructor. Heavy brigandine, pollaxe,
+      and the patience of someone who has taught a hundred men how to
+      die badly.
+    level: 7
+    enemy_type: humanoid
+    status: active
+    tag:
+      - unique_per_voyage
+    stat:
+      health: 150
+      defense: 10
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 6
+      speed: 8
+    attack:
+      - id: pollaxe_cleave
+        name: Heavy Cleave
+        base_damage: 24
+        accuracy: 10
+        critical_chance: 15
+        cooldown: 120
+    reward:
+      exp: 200
+
+  - id: master_gunner
+    name: Master Gunner
+    unknown_name: Siege Master
+    description: >
+      Clad in a fire-retardant leather apron, armed with a cast-brass
+      handgonne. The weapon is slow to reload and devastating at
+      close range. He knows exactly how close is close enough.
     level: 8
     enemy_type: humanoid
     status: active
     tag:
       - unique_per_voyage
     stat:
-      health: 125
-      defense: 3
-      defense_percent: 0
-      crit_resistance: 10
-      evade: 15
-      speed: 14
-    attack:
-      - id: knotted_rope_lash
-        name: Discipline
-        base_damage: 15
-        accuracy: 22
-        critical_chance: 15
-        cooldown: 80
-
-  - id: master_at_arms
-    name: Master-at-Arms
-    unknown_name: Elite Marine
-    description: The ship's primary combat instructor. He wears a heavy brigandine and wields a pollaxe, favoring crushing force over speed.
-    level: 9
-    enemy_type: humanoid
-    status: active
-    tag:
-      - unique_per_voyage
-    stat:
-      health: 140
-      defense: 8
-      defense_percent: 0
-      crit_resistance: 30
-      evade: 5
-      speed: 8
-    attack:
-      - id: pollaxe_cleave
-        name: Heavy Cleave
-        base_damage: 17
-        accuracy: 16
-        critical_chance: 15
-        cooldown: 110
-
-  - id: master_gunner
-    name: Master Gunner
-    unknown_name: Siege Master
-    description: Clad in a fire-retardant leather apron. He uses a cast-brass handgonne at point-blank range.
-    level: 10
-    enemy_type: humanoid
-    status: active
-    tag:
-      - unique_per_voyage
-    stat:
-      health: 115
-      defense: 5
+      health: 120
+      defense: 0
       defense_percent: 5
-      crit_resistance: 10
-      evade: 5
-      speed: 8
+      crit_resistance: 5
+      evade: 10
+      speed: 10
     attack:
       - id: handgonne_blast
         name: Point-Blank Blast
-        base_damage: 48
+        base_damage: 50
         accuracy: 18
         critical_chance: 10
-        cooldown: 280
+        cooldown: 300
+    reward:
+      exp: 200
 
   - id: enemy_first_mate
     name: First Mate
     unknown_name: The Duelist
-    description: A high-ranking officer who eschews heavy armor for speed. He wields an arming sword with surgical precision, specializing in parrying and swift counter-strokes.
-    level: 9
+    description: >
+      A high-ranking officer who has survived long enough to be
+      selective about how he fights. Light armor, fast blade, high
+      evasion. He reads the fight before committing to it.
+    level: 7
     enemy_type: humanoid
     status: active
     tag:
       - unique_per_voyage
     stat:
-      health: 70
-      defense: 2
+      health: 100
+      defense: 0
       defense_percent: 0
-      crit_resistance: 20
-      evade: 25
-      speed: 15
+      crit_resistance: 5
+      evade: 12
+      speed: 12
     attack:
-      - id: precision_slash
-        name: Precision Slash
-        base_damage: 14
-        accuracy: 25
-        critical_chance: 20
-        cooldown: 70
+      - id: first_mate_cutlass
+        name: Cutlass Slash
+        base_damage: 18
+        accuracy: 12
+        critical_chance: 15
+        cooldown: 100
+      - id: first_mate_crossbow
+        name: Crossbow Shot
+        base_damage: 35
+        accuracy: 14
+        critical_chance: 12
+        cooldown: 300
+    reward:
+      exp: 200
 
   - id: enemy_captain
     name: Ship's Captain
     unknown_name: The Commander
-    description: A veteran of a dozen naval campaigns clad in a heavy Milanese breastplate. He moves with the slow, terrifying confidence of a man who knows his equipment is impenetrable and his strike is final.
-    level: 10
+    description: >
+      A veteran of a dozen naval campaigns.
+    level: 8
     enemy_type: humanoid
     status: active
     tag:
       - unique_per_voyage
     stat:
-      health: 120
-      defense: 11
-      defense_percent: 5
-      crit_resistance: 40
-      evade: 5
-      speed: 5
+      health: 200
+      defense: 5
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 12
+      speed: 12
     attack:
-      - id: commander_broadsword
-        name: Crushing Stroke
-        base_damage: 34
-        accuracy: 18
-        critical_chance: 15
+      - id: captain_cutlass
+        name: Cutlass Slash
+        base_damage: 22
+        accuracy: 12
+        critical_chance: 12
+        cooldown: 110
+      - id: captain_kite_shield
+        name: Kite Shield
+        base_damage: 30
+        accuracy: 0
+        critical_chance: 0
+        cooldown: 600
+        tags: [greatshield]
+    reward:
+      exp: 200
+      item:
+        - id: kite_shield
+          quantity: 1
+          chance: 1
+  - id: enemy_head_guard
+    name: Head Guard
+    unknown_name: The Enforcer
+    description: >
+      The officer who keeps order below decks by sheer force of presence
+      and heavier armour than anyone else on board. Trained under the
+      Master-at-Arms and has since surpassed him. He does not teach.
+      He demonstrates.
+    level: 7
+    enemy_type: humanoid
+    status: active
+    tag:
+      - unique_per_voyage
+    stat:
+      health: 100
+      defense: 14
+      defense_percent: 0
+      crit_resistance: 8
+      evade: 4
+      speed: 7
+    attack:
+      - id: head_guard_poleaxe
+        name: Poleaxe Strike
+        base_damage: 22
+        accuracy: 10
+        critical_chance: 12
         cooldown: 150
+    reward:
+      exp: 280
+
+  - id: quartermaster
+    name: Quartermaster
+    unknown_name: The Retaker
+    description: >
+      The officer responsible for these stores. He knows every corner
+      of this room. Carries a heavy crossbow for the opening exchange
+      and a boarding axe for the rest of the fight.
+    level: 7
+    enemy_type: humanoid
+    status: active
+    tag:
+      - unique_per_voyage
+    stat:
+      health: 160
+      defense: 2
+      defense_percent: 0
+      crit_resistance: 5
+      evade: 14
+      speed: 14
+    attack:
+      - id: boarding_axe_qm
+        name: Cutlass
+        base_damage: 16
+        accuracy: 8
+        critical_chance: 10
+        cooldown: 100
+    reward:
+      exp: 200

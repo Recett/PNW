@@ -20,31 +20,31 @@ events:
     event_type: encounter
 
     message:
-      text: "York glances at whatever you're carrying. \"Got something for the stores? I'll take it off your hands — fair price.\""
+      text: "York liếc qua những gì ${2p} đang mang. \"Có gì cho kho không? ${npc_1p} lấy hết — giá công bằng.\""
 
     option:
       - id: york-turnin-rat
-        text: "Hand over rat meat"
+        text: "Giao thịt chuột"
         next: york-turnin-qty-rat
         display_order: 0
       - id: york-turnin-herring
-        text: "Hand over herring"
+        text: "Giao cá trích"
         next: york-turnin-qty-herring
         display_order: 1
       - id: york-turnin-mackerel
-        text: "Hand over mackerel"
+        text: "Giao cá thu"
         next: york-turnin-qty-mackerel
         display_order: 2
       - id: york-turnin-crab
-        text: "Hand over crab meat"
+        text: "Giao thịt cua"
         next: york-turnin-qty-crab
         display_order: 3
       - id: york-turnin-shark
-        text: "Hand over shark meat"
+        text: "Giao thịt cá mập"
         next: york-turnin-qty-shark
         display_order: 4
       - id: york-turnin-leave
-        text: "Nothing right now"
+        text: "Không có gì lúc này"
         next: york-turnin-farewell
         display_order: 5
 
@@ -59,8 +59,8 @@ events:
         variable_name: qty
         source_type: input
         is_numeric: true
-        input_label: "How many rat meat?"
-        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        input_label: "Bao nhiêu thịt chuột?"
+        input_placeholder: "Nhập số lượng (vd. 1, 5, 10)"
         silent: true
 
   - id: york-turnin-qty-herring
@@ -72,8 +72,8 @@ events:
         variable_name: qty
         source_type: input
         is_numeric: true
-        input_label: "How many herring?"
-        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        input_label: "Bao nhiêu cá trích?"
+        input_placeholder: "Nhập số lượng (vd. 1, 5, 10)"
         silent: true
 
   - id: york-turnin-qty-mackerel
@@ -85,8 +85,8 @@ events:
         variable_name: qty
         source_type: input
         is_numeric: true
-        input_label: "How many mackerel?"
-        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        input_label: "Bao nhiêu cá thu?"
+        input_placeholder: "Nhập số lượng (vd. 1, 5, 10)"
         silent: true
 
   - id: york-turnin-qty-crab
@@ -98,8 +98,8 @@ events:
         variable_name: qty
         source_type: input
         is_numeric: true
-        input_label: "How many crab meat?"
-        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        input_label: "Bao nhiêu thịt cua?"
+        input_placeholder: "Nhập số lượng (vd. 1, 5, 10)"
         silent: true
 
   - id: york-turnin-qty-shark
@@ -111,8 +111,8 @@ events:
         variable_name: qty
         source_type: input
         is_numeric: true
-        input_label: "How many shark meat?"
-        input_placeholder: "Enter amount (e.g. 1, 5, 10)"
+        input_label: "Bao nhiêu thịt cá mập?"
+        input_placeholder: "Nhập số lượng (vd. 1, 5, 10)"
         silent: true
 
   # ── RAT MEAT ───────────────────────────────────
@@ -136,7 +136,7 @@ events:
     event_type: encounter
 
     message:
-      text: "York wrinkles his nose. \"Rat, then. It all goes in the pot.\" He tosses you the coins."
+      text: "York nhíu mũi lại. \"Thịt chuột à. Thôi, vào nồi hết.\" Ông ta ném tiền cho ${2p}."
 
     action:
       - type: sell
@@ -148,7 +148,7 @@ events:
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: "Food stock +${qty * 4}."
+        custom_message: "Lương thực +${qty * 4}."
 
   # ── HERRING ────────────────────────────────────
 
@@ -171,7 +171,7 @@ events:
     event_type: encounter
 
     message:
-      text: "\"Herring. Good.\" York marks it in his ledger and counts out the coins without looking up."
+      text: "\"Cá trích. Tốt.\" York ghi vào sổ cái rồi đếm tiền ra mà không cần nhìn lên."
 
     action:
       - type: sell
@@ -183,7 +183,7 @@ events:
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: "Food stock +${qty * 6}."
+        custom_message: "Lương thực +${qty * 6}."
 
   # ── MACKEREL ───────────────────────────────────
 
@@ -206,7 +206,7 @@ events:
     event_type: encounter
 
     message:
-      text: "York lifts the mackerel, squeezes it once. \"This'll do.\" The coins land on the table."
+      text: "York cầm con cá thu lên, bóp thử một cái. \"Ổn đó.\""
 
     action:
       - type: sell
@@ -218,7 +218,7 @@ events:
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: "Food stock +${qty * 6}."
+        custom_message: "Lương thực +${qty * 6}."
 
   # ── CRAB MEAT ──────────────────────────────────
 
@@ -241,7 +241,7 @@ events:
     event_type: encounter
 
     message:
-      text: "York raises an eyebrow. \"Crab? From where?\" He doesn't wait for an answer. The coins follow."
+      text: "York nhướng mày. \"Cua? Từ đâu ra?\""
 
     action:
       - type: sell
@@ -253,7 +253,7 @@ events:
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: "Food stock +${qty * 8}."
+        custom_message: "Lương thực +${qty * 8}."
 
   # ── SHARK MEAT ─────────────────────────────────
 
@@ -276,7 +276,7 @@ events:
     event_type: encounter
 
     message:
-      text: "York stares at the shark meat for a moment. Then at you. \"Don't make a habit of nearly dying.\" The coins are generous."
+      text: "York nhìn chằm chằm vào thịt cá mập một lúc. Rồi nhìn ${2p}. \"Đừng có thành thói quen suýt chết.\" Tiền lần này rộng rãi hơn."
 
     action:
       - type: sell
@@ -288,20 +288,21 @@ events:
         flag_operation: add
         flag_type: global
         silent: false
-        custom_message: "Food stock +${qty * 8}."
+        custom_message: "Lương thực +${qty * 8}."
 
   # ── SHARED OUTCOMES ────────────────────────────
 
   - id: york-turnin-no-item
     name: "York — Item not found"
     event_type: encounter
+    next: york-turnin-menu
 
     message:
-      text: "York checks your pack and shakes his head. \"You don't have that many.\""
+      text: "York kiểm tra túi của ${2p} rồi lắc đầu. \"${2p} không có nhiều thế đâu.\""
 
   - id: york-turnin-farewell
     name: "York — Farewell"
     event_type: encounter
 
     message:
-      text: "\"Right. Come back when you've got something.\""
+      text: "\"Thôi được. Lúc nào ${2p} có gì thì quay lại.\""

@@ -92,6 +92,19 @@ other_items:
       initialTrait:
         - Chewy
 
+  - id: med_kit
+    name: Med Kit
+    description: A compact medical kit. Use it to heal yourself or an ally in your location for 20% of their maximum HP. Costs 5 stamina to use.
+    item_type: consumable
+    value: 50
+    tag:
+      - usable
+      - healing
+    metadata:
+      max_stack: 1
+      stackable: false
+      tradeable: false
+
   - id: bilge-key
     name: Bilge Key
     description: A heavy iron key. It unlocks the bilge hatch.

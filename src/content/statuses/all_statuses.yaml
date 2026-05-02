@@ -1,4 +1,13 @@
 statuses:
+  - id: "medkit_cooldown"
+    name: "Med Kit Cooldown"
+    description: "Recently used a Med Kit. Cannot use another for 3 hours."
+    category: "neutral"
+    scope: "persistent"
+    stackable: false
+    duration_unit: "seconds"
+    default_duration: 10800
+
   - id: "bleed"                          # Required: Kebab-case unique identifier
     name: "Bleeding"                     # Required: Display name
     description: "Deals damage each tick."  # Optional

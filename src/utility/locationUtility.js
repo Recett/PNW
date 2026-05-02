@@ -1,4 +1,4 @@
-const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting, CharacterStatus } = require('@root/dbObject.js');
+const { CharacterBase, LocationBase, LocationContain, LocationCluster, LocationLink, SystemSetting, CharacterStatus, PendingEncounter } = require('@root/dbObject.js');
 const contentStore = require('@root/contentStore.js');
 const { Op } = require('sequelize');
 const { EmbedBuilder } = require('discord.js');
@@ -368,6 +368,10 @@ async function updateLocationRoles({ guild, memberId, newLocationId }) {
 async function moveCharacterToLocation(characterId, newLocationId, guild, delayMs = null) {
 	const member = await guild.members.fetch(characterId);
 
+	// Capture old location before moving
+	const oldChar = await CharacterBase.findByPk(characterId);
+	const oldLocationId = oldChar ? oldChar.location_id : null;
+
 	// Get destination location data
 	const newLoc = newLocationId ? await LocationBase.findByPk(newLocationId) : null;
 
@@ -439,7 +443,56 @@ async function moveCharacterToLocation(characterId, newLocationId, guild, delayM
 		);
 	}
 
-	return { newLocation: newLoc };
+	// Cancel any pending encounter the character had at their old location
+	let cancelledEncounters = 0;
+	if (oldLocationId && oldLocationId !== newLocationId) {
+		try {
+			const pendingEncounters = await PendingEncounter.findAll({
+				where: {
+					target_player_id: characterId,
+					location_id: oldLocationId,
+					status: 'pending',
+				},
+			});
+			for (const enc of pendingEncounters) {
+				// Wave encounters are handled by onArmoryPlayerDeparted (retarget logic)
+				if (enc.wave_id != null) continue;
+				await enc.update({ status: 'cancelled' });
+				cancelledEncounters++;
+				if (guild && enc.channel_id && enc.message_id) {
+					const channel = await guild.channels.fetch(enc.channel_id).catch(() => null);
+					if (channel) {
+						const msg = await channel.messages.fetch(enc.message_id).catch(() => null);
+						if (msg) {
+							await msg.delete().catch(() => {});
+						}
+					}
+				}
+			}
+		}
+		catch (e) {
+			console.error('[Encounter] Failed to cancel encounters on move:', e);
+		}
+	}
+
+	// Armory hooks: arrival schedules first wave (30 min), departure fires retaken immediately
+	if (guild && oldLocationId && oldLocationId !== newLocationId) {
+		const oldLocForArmory = await LocationBase.findByPk(oldLocationId);
+		if (oldLocForArmory && Array.isArray(oldLocForArmory.tag) && oldLocForArmory.tag.includes('arb_armory')) {
+			const battleUtil = require('@utility/battleUtility.js');
+			battleUtil.onArmoryPlayerDeparted(oldLocationId, characterId, guild.client).catch(e =>
+				console.error('[Armory] Failed departure hook:', e)
+			);
+		}
+	}
+	if (guild && newLoc && Array.isArray(newLoc.tag) && newLoc.tag.includes('arb_armory')) {
+		const battleUtil = require('@utility/battleUtility.js');
+		battleUtil.onArmoryPlayerArrived(guild, characterId).catch(e =>
+			console.error('[Armory] Failed arrival hook:', e)
+		);
+	}
+
+	return { newLocation: newLoc, cancelledEncounters };
 }
 
 /**

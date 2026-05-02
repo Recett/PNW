@@ -1,0 +1,50 @@
+events:
+
+  # ─────────────────────────────────────────────────────────────
+  # HMS DIVINE BATTLE — CYCLE INTERLUDE
+  # Triggered by battleUtility.performHMSDivineBattleCycle()
+  # via runActionsOnly(). Posted to the BATTLE channel.
+  # ─────────────────────────────────────────────────────────────
+
+  - id: york-cycle-report
+    name: "York — Báo Cáo Chiếu Đợt"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x2980b9
+        title: "⏱️ Chu Kỳ Chiến — Báo Cáo"
+        text: |
+          York lướt qua danh sách. Ngón tay dừ lại ở vài dòng.
+
+          "Chúng ta đã giữ được đến đây. Pháo trên tàu địch đã nhả. Boong chúng ta nhận thiệt hại. Củng được tính được.
+
+          Mình vẫn còn đó. Arbrance vẫn còn đó. Trận chưa xong."
+
+          *Ông gấp tờ giấy lại.*
+
+          "Nghứ ngơi nếu cần. Chu kỳ tiếp theo sẽ tới sớm."
+
+  # ─────────────────────────────────────────────────────────────
+  # CANNON EXCHANGE REPORT — Posted by runCannonExchange()
+  # Brief mid-cycle narration showing the volley exchange result.
+  # ─────────────────────────────────────────────────────────────
+
+  - id: hms-divine-cannon-volley
+    name: "Pháo Kích Đổi Chống"
+    event_type: system
+    is_active: true
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x7f8c8d
+        title: "💨 Tiếng Pháo — Từ Cả Hai Phía"
+        text: |
+          Pháo từ tàu Arbrance nổ. HMS Divine rüng. Pháo từ HMS Divine trả lửi.
+
+          Khói lắp đầy khoảng cách giữa hai tàu.
+
+          *Sự thiệt hại đã được ghi nhận.*

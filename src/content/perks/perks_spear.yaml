@@ -1,7 +1,7 @@
 perks:
   - id: spear-brace
     name: Brace
-    description: "Unlocks the counter system. Every 3 incoming hits, your spear automatically strikes back."
+    description: "Unlocks the counter system. Automatically strikes back when hit. Recharges after landing 3 hits. Counter damage scales with both your spear attack and the enemy's attack power."
     category: combat
     skill: spear
     skill_level_required: 1
