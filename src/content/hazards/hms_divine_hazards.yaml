@@ -2,17 +2,23 @@ hazards:
   - id: musket_shot
     label: "Musket Shot"
     stat: agi
-    difficulty_mod: 1.5
+    difficulty_mod: 4.0
+    resist_stat: con
+    resist_mod: 4.0
     min_dmg: 8
     max_dmg: 15
     flavor_hit: "A musket ball tears through the air and catches {target}!"
     flavor_dodge: "{target} ducks just in time as a musket ball whizzes past!"
+    flavor_resist: "A musket ball grazes {target} — painful, but not a killing blow."
 
   - id: cannon_debris
     label: "Cannon Debris"
-    stat: con
-    difficulty_mod: 1.5
+    stat: str
+    difficulty_mod: 4.0
+    resist_stat: con
+    resist_mod: 4.0
     min_dmg: 10
     max_dmg: 18
     flavor_hit: "A chunk of cannon debris slams into {target}!"
-    flavor_dodge: "{target} braces and survives the debris shower unharmed!"
+    flavor_dodge: "{target} shoves the debris aside and survives the shower unharmed!"
+    flavor_resist: "Debris crashes into {target}, but they weather the worst of it."

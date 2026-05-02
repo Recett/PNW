@@ -1551,11 +1551,27 @@ async function resolveHazard(guild, targetChar, hazardId, locationBase) {
 	}
 	else {
 		const dmg = hazard.min_dmg + Math.floor(Math.random() * (hazard.max_dmg - hazard.min_dmg + 1));
-		const newHp = Math.max(0, (targetChar.currentHp ?? 0) - dmg);
+		let finalDmg = dmg;
+		let resisted = false;
+		if (hazard.resist_stat) {
+			const resistValue = targetChar[hazard.resist_stat] ?? 0;
+			const resistRoll = Math.floor(Math.random() * 1000) + 1;
+			const resistThreshold = Math.floor(resistValue * (hazard.resist_mod ?? 1) * 10);
+			if (resistRoll <= resistThreshold) {
+				finalDmg = Math.floor(dmg / 2);
+				resisted = true;
+			}
+		}
+		const newHp = Math.max(0, (targetChar.currentHp ?? 0) - finalDmg);
 		await targetChar.update({ currentHp: newHp });
 		await updateMorale(1);
-		message = hazard.flavor_hit.replace('{target}', `<@${targetChar.id}>`);
-		message = `${EMOJI.WARNING} ${message} (-${dmg} HP)`;
+		const hitFlavor = (resisted && hazard.flavor_resist) ? hazard.flavor_resist : hazard.flavor_hit;
+		message = hitFlavor.replace('{target}', `<@${targetChar.id}>`);
+		message = `${EMOJI.WARNING} ${message} (-${finalDmg} HP)`;
+		if (newHp <= 0) {
+			await locationUtil.moveCharacterToLocation(targetChar.id, BOONG_SINH_HOAT_ID, guild);
+			message += `\n${EMOJI.FAILURE} <@${targetChar.id}> has been knocked out and dragged back to the living quarters.`;
+		}
 	}
 
 	if (locationBase && locationBase.channel) {

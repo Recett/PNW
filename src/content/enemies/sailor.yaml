@@ -214,7 +214,7 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 130
+      health: 100
       defense: 4
       defense_percent: 0
       crit_resistance: 5
@@ -252,7 +252,7 @@ enemies:
     attack:
       - id: pollaxe_cleave
         name: Heavy Cleave
-        base_damage: 24
+        base_damage: 22
         accuracy: 10
         critical_chance: 15
         cooldown: 120
