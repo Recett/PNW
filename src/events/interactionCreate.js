@@ -744,7 +744,6 @@ async function handleOfficerCabinInteraction(interaction) {
 	}
 
 	// Apply morale updates — individual per fight
-	const allWon = fightResults.every(f => f.won);
 	let moraleDelta = 0;
 	for (const { def, won } of fightResults) {
 		if (won) {
