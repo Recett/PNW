@@ -792,7 +792,7 @@ async function updateMorale(delta) {
  */
 function calcMoraleDrain(morale, drainReduction = 0) {
 	if (morale >= 0) {
-		return -(Math.max(1, 10 - drainReduction) + morale * 0.15);
+		return -(Math.max(1, 10 - drainReduction) + morale * 0.30);
 	}
 	// Negative morale: dampened baseline drain by bracket
 	if (morale >= -20) return Math.min(-1, -10 + drainReduction);
@@ -1553,6 +1553,7 @@ async function resolveHazard(guild, targetChar, hazardId, locationBase) {
 		const dmg = hazard.min_dmg + Math.floor(Math.random() * (hazard.max_dmg - hazard.min_dmg + 1));
 		const newHp = Math.max(0, (targetChar.currentHp ?? 0) - dmg);
 		await targetChar.update({ currentHp: newHp });
+		await updateMorale(1);
 		message = hazard.flavor_hit.replace('{target}', `<@${targetChar.id}>`);
 		message = `${EMOJI.WARNING} ${message} (-${dmg} HP)`;
 	}
@@ -1695,9 +1696,11 @@ async function spawnEncounters(guild) {
 				});
 
 				try {
+					const spawnEnemyData = contentStore.enemies.findByPk(String(enemyId));
+					const spawnEnemyLabel = spawnEnemyData?.name || enemyId.replace(/-/g, ' ');
 					const embed = new EmbedBuilder()
 						.setTitle(`${EMOJI.SWORD} Under Attack!`)
-						.setDescription(`A **${enemyId.replace(/-/g, ' ')}** has engaged <@${target.id}>.`)
+						.setDescription(`A **${spawnEnemyLabel}** has engaged <@${target.id}>.`)
 						.setFooter({ text: 'Expires in 30 minutes' });
 
 					const row = new ActionRowBuilder().addComponents(
@@ -1785,7 +1788,8 @@ async function resolveExpiredEncounters(guild) {
 				enemySpeedMultiplier: moraleMultipliers.enemySpeedMultiplier,
 			});
 			const won = (result?.finalState?.player?.hp ?? 0) > 0 && (result?.finalState?.enemy?.hp ?? 1) <= 0;
-			const enemyLabel = record.enemy_id.replace(/-/g, ' ');
+			const autoEnemyData = contentStore.enemies.findByPk(String(record.enemy_id));
+			const enemyLabel = autoEnemyData?.name || record.enemy_id.replace(/-/g, ' ');
 
 			// Update battle morale based on auto-resolve result
 			const moraleDelta = won ? (ENEMY_MORALE_VALUES[record.enemy_id] ?? 1) : -3;

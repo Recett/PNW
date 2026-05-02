@@ -434,6 +434,7 @@ async function handleEncounterFightInteraction(interaction) {
 	const { PendingEncounter } = require('@root/dbObject.js');
 	const characterUtil = require('@utility/characterUtility.js');
 	const combatUtil = require('@utility/combatUtility.js');
+	const contentStore = require('@root/contentStore.js');
 	const { EMOJI } = require('../enums');
 	const { MessageFlags, EmbedBuilder } = require('discord.js');
 
@@ -483,14 +484,23 @@ async function handleEncounterFightInteraction(interaction) {
 
 	// Run combat, passing any retained enemy HP from a prior lost round
 	// If fighter couldn't pay stamina, their speed is halved
-	const result = await combatUtil.mainCombat(fighterId, record.enemy_id, {
-		enemyStartHp: record.enemy_current_hp ?? undefined,
-		enemyDamageMultiplier,
-		playerSpeedMultiplier: (canPayStamina ? 1 : 0.7) * moraleMultipliers.playerSpeedMultiplier,
-		enemySpeedMultiplier: moraleMultipliers.enemySpeedMultiplier,
-	});
+	let result;
+	try {
+		result = await combatUtil.mainCombat(fighterId, record.enemy_id, {
+			enemyStartHp: record.enemy_current_hp ?? undefined,
+			enemyDamageMultiplier,
+			playerSpeedMultiplier: (canPayStamina ? 1 : 0.7) * moraleMultipliers.playerSpeedMultiplier,
+			enemySpeedMultiplier: moraleMultipliers.enemySpeedMultiplier,
+		});
+	}
+	catch (combatErr) {
+		console.error('[Encounter] mainCombat threw:', combatErr);
+		await interaction.editReply({ content: `${EMOJI.FAILURE} Combat error: ${combatErr.message}` });
+		return true;
+	}
 	const won = (result?.finalState?.player?.hp ?? 0) > 0 && (result?.finalState?.enemy?.hp ?? 1) <= 0;
-	const enemyLabel = record.enemy_id.replace(/-/g, ' ');
+	const enemyData = contentStore.enemies.findByPk(String(record.enemy_id));
+	const enemyLabel = enemyData?.name || record.enemy_id.replace(/-/g, ' ');
 
 	// Post result to zone channel
 	try {
@@ -557,8 +567,6 @@ async function handleEncounterFightInteraction(interaction) {
 				const channel = interaction.guild?.channels.cache.get(record.channel_id);
 				if (channel) {
 					const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-					const contentStore = require('@root/contentStore.js');
-					const enemyData = contentStore.enemies.findByPk(String(record.enemy_id));
 					const enemyMaxHp = enemyData?.stat?.health || 100;
 
 					const weakenedEmbed = new EmbedBuilder()
