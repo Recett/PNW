@@ -99,11 +99,11 @@ const ARBRANCE_ZONE_DEFS = [
 const SPAWN_ZONE_DEFS = [
 	{ key: 'arb_main_deck', hazards: ['musket_shot', 'cannon_debris'] },
 	{ key: 'arb_rigging', hazards: ['musket_shot'], halfSpawn: true },
-	{ key: 'hms_rigging', hazards: ['cannon_debris'], hmsZone: true, halfSpawn: true },
+	{ key: 'hms_rigging', hazards: ['cannon_debris'], hmsZone: true, halfSpawn: true, hpFlag: 'global.hms_divine_rigging_hp' },
 	// HMS Top Deck
-	{ id: BOONG_TREN_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true },
+	{ id: BOONG_TREN_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, hpFlag: 'global.hms_divine_top_deck_hp' },
 	// HMS Main Deck — breach condition only
-	{ id: BOONG_CHINH_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true },
+	{ id: BOONG_CHINH_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true, hpFlag: 'global.hms_divine_top_deck_hp' },
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -1658,12 +1658,13 @@ async function spawnEncounters(guild) {
 		if (!players.length) {
 			// Undefended HMS zone: each unchallenged spawn deals -2 morale and -10 ship HP
 			if (zoneDef.hmsZone) {
+				const zoneHpFlag = zoneDef.hpFlag ?? 'global.hms_divine_top_deck_hp';
 				for (let s = 0; s < spawnCount; s++) {
 					if (Math.random() < ENCOUNTER_ENEMY_CHANCE) {
 						await updateMorale(-2);
-						const currentDeckHp = await getFlag('global.hms_divine_top_deck_hp');
-						await setFlag('global.hms_divine_top_deck_hp', Math.max(0, currentDeckHp - 10));
-						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale, -10 ship HP (was ${currentDeckHp}).`);
+						const currentZoneHp = await getFlag(zoneHpFlag);
+						await setFlag(zoneHpFlag, Math.max(0, currentZoneHp - 10));
+						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale, -10 ${zoneHpFlag} (was ${currentZoneHp}).`);
 					}
 				}
 			}
@@ -1808,7 +1809,9 @@ async function resolveExpiredEncounters(guild) {
 			const enemyLabel = autoEnemyData?.name || record.enemy_id.replace(/-/g, ' ');
 
 			// Update battle morale based on auto-resolve result
-			const moraleDelta = won ? (ENEMY_MORALE_VALUES[record.enemy_id] ?? 1) : -3;
+			const autoBaseGain = ENEMY_MORALE_VALUES[record.enemy_id] ?? 1;
+			const autoOnHmsZone = HMS_ZONE_IDS.includes(record.location_id);
+			const moraleDelta = won ? (autoOnHmsZone ? autoBaseGain * 2 : autoBaseGain) : -3;
 			await updateMorale(moraleDelta);
 			// Boss kill: permanently reduce drain baseline by 2
 			if (won && BOSS_ENEMIES.has(record.enemy_id)) {

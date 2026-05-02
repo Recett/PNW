@@ -521,8 +521,10 @@ async function handleEncounterFightInteraction(interaction) {
 	// Update battle morale based on encounter result
 	try {
 		const battleUtil = require('@utility/battleUtility.js');
+		const baseGain = battleUtil.ENEMY_MORALE_VALUES[record.enemy_id] ?? 1;
+		const onHmsZone = battleUtil.HMS_ZONE_IDS.includes(record.location_id);
 		const moraleDelta = won
-			? (battleUtil.ENEMY_MORALE_VALUES[record.enemy_id] ?? 1)
+			? (onHmsZone ? baseGain * 2 : baseGain)
 			: -3;
 		await battleUtil.updateMorale(moraleDelta);
 		// Boss kill: permanently reduce drain baseline by 2
