@@ -160,17 +160,23 @@ async function performCharacterRegen() {
 
 		if (isBattle) {
 			// === Battle ruleset ===
+			// Resolve all battle zone IDs: static HMS zones + dynamic arbrance + dynamic HMS rigging
+			const arbranceZoneIds = await battleUtil.getArbranceZoneIds();
+			const hmsRigging = await battleUtil.getHMSRiggingLocation();
+			const allBattleZoneIds = [
+				...battleUtil.HMS_ZONE_IDS,
+				...Object.values(arbranceZoneIds).filter(Boolean),
+				...(hmsRigging ? [hmsRigging.id] : []),
+			];
+			const uniqueBattleZoneIds = [...new Set(allBattleZoneIds)];
+
 			// Stamina +20% for all players in battle zones
 			const s1 = await CharacterBase.sequelize.query(`
 				UPDATE character_bases
 				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
 				WHERE maxStamina IS NOT NULL
 					AND currentStamina IS NOT NULL
-					AND location_id IN (
-						SELECT id FROM location_bases
-						WHERE id IN (${battleUtil.HMS_ZONE_IDS.join(',')})
-							OR (tag IS NOT NULL AND (tag LIKE '%hms_divine_arbrance%' OR tag LIKE '%hms_divine_rigging%'))
-					);
+					AND location_id IN (${uniqueBattleZoneIds.join(',')});
 			`);
 			staminaCount += s1[1] || 0;
 

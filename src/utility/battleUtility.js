@@ -2,7 +2,7 @@
 
 const { Op } = require('sequelize');
 const {
-	GlobalFlag, LocationBase, LocationCluster, LocationLink,
+	GlobalFlag, LocationBase, LocationLink,
 	LocationContain, CharacterBase, PendingEncounter, LocationEnemySpawn, CronLog,
 } = require('@root/dbObject.js');
 const locationUtil = require('@utility/locationUtility.js');
@@ -13,10 +13,14 @@ const gamecon = require('@root/Data/gamecon.json');
 // CONSTANTS
 // ──────────────────────────────────────────────────────────────
 
-const HMS_ZONE_IDS = [4, 5, 6, 7, 8]; // All HMS Divine zones
-const BOONG_TREN_ID = 4;              // Top Deck — crossing point to Arbrance
-const BOONG_CHINH_ID = 5;             // Main Deck — York's original location
-const BOONG_SINH_HOAT_ID = 6;         // Living Quarters — battle rally point
+// All HMS Divine zones
+const HMS_ZONE_IDS = [4, 5, 6, 7, 8];
+// Top Deck — crossing point to Arbrance
+const BOONG_TREN_ID = 4;
+// Main Deck — York's original location
+const BOONG_CHINH_ID = 5;
+// Living Quarters — battle rally point
+const BOONG_SINH_HOAT_ID = 6;
 
 const ARBRANCE_CLUSTER_ID = 'cluster_arbrance';
 
@@ -83,21 +87,23 @@ const ZONE_MORALE_THRESHOLDS = {
 
 // Arbrance zone definitions — created by ensureArbranceLocations()
 const ARBRANCE_ZONE_DEFS = [
-	{ key: 'arb_main_deck',        name: 'Boong Ch\u00EDnh La Dauphine',    channelName: 'boong-chinh-la-dauphine' },
-	{ key: 'arb_cannon_deck',      name: 'Boong Ph\u00E1o La Dauphine',    channelName: 'boong-phao-la-dauphine' },
-	{ key: 'arb_armory',           name: 'Kho V\u0169 Kh\u00ED La Dauphine', channelName: 'kho-vu-khi-la-dauphine' },
+	{ key: 'arb_main_deck', name: 'Boong Ch\u00EDnh La Dauphine', channelName: 'boong-chinh-la-dauphine' },
+	{ key: 'arb_cannon_deck', name: 'Boong Ph\u00E1o La Dauphine', channelName: 'boong-phao-la-dauphine' },
+	{ key: 'arb_armory', name: 'Kho V\u0169 Kh\u00ED La Dauphine', channelName: 'kho-vu-khi-la-dauphine' },
 	{ key: 'arb_officer_quarters', name: 'Khoang S\u0129 Quan La Dauphine', channelName: 'khoang-si-quan-la-dauphine' },
-	{ key: 'arb_rigging',          name: 'C\u1ED9t Bu\u1ED3m La Dauphine', channelName: 'cot-buom-la-dauphine' },
+	{ key: 'arb_rigging', name: 'C\u1ED9t Bu\u1ED3m La Dauphine', channelName: 'cot-buom-la-dauphine' },
 ];
 
 // Zones that participate in random encounter spawning and their hazard pools.
 // Use `key` for flag-resolved Arbrance/rigging locations, `id` for static hardcoded locations.
 const SPAWN_ZONE_DEFS = [
-	{ key: 'arb_main_deck',  hazards: ['musket_shot', 'cannon_debris'] },
-	{ key: 'arb_rigging',    hazards: ['musket_shot'],    halfSpawn: true },
-	{ key: 'hms_rigging',    hazards: ['cannon_debris'],  hmsZone: true, halfSpawn: true },
-	{ id: BOONG_TREN_ID,     hazards: ['musket_shot', 'cannon_debris'], hmsZone: true }, // HMS Top Deck
-	{ id: BOONG_CHINH_ID,    hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true }, // HMS Main Deck — breach condition only
+	{ key: 'arb_main_deck', hazards: ['musket_shot', 'cannon_debris'] },
+	{ key: 'arb_rigging', hazards: ['musket_shot'], halfSpawn: true },
+	{ key: 'hms_rigging', hazards: ['cannon_debris'], hmsZone: true, halfSpawn: true },
+	// HMS Top Deck
+	{ id: BOONG_TREN_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true },
+	// HMS Main Deck — breach condition only
+	{ id: BOONG_CHINH_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true },
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -605,11 +611,14 @@ function simulateVolley(cannonPower, attackerMobility, defenderMobility) {
 
 	let topDeck = 0, cannonDeck = 0, rigging = 0, misses = 0;
 	for (let i = 0; i < shots; i++) {
-		if (Math.random() >= hitRate) { misses++; continue; }
+		if (Math.random() >= hitRate) {
+			misses++;
+			continue;
+		}
 		const roll = Math.random();
-		if (roll < 0.5)       topDeck    += 10;
-		else if (roll < 0.8)  cannonDeck += 10;
-		else                  rigging    += 10;
+		if (roll < 0.5) topDeck += 10;
+		else if (roll < 0.8) cannonDeck += 10;
+		else rigging += 10;
 	}
 	return { topDeck, cannonDeck, rigging, shots, misses, hits: shots - misses };
 }
@@ -626,22 +635,22 @@ async function runCannonExchange() {
 	if (arbCannonDebuff < 1.0) console.log(`[Battle] Arb cannon debuffed to ${Math.round(arbCannonDebuff * 100)}% power (armory debuff)`);
 
 	// Apply damage to Arbrance (clamped at 0)
-	const newArbMain   = Math.max(0, state.arbMainHp   - hmsDealt.topDeck);
+	const newArbMain = Math.max(0, state.arbMainHp - hmsDealt.topDeck);
 	const newArbCannon = Math.max(0, state.arbCannonHp - hmsDealt.cannonDeck);
-	const newArbRig    = Math.max(0, state.arbRiggingHp - hmsDealt.rigging);
+	const newArbRig = Math.max(0, state.arbRiggingHp - hmsDealt.rigging);
 
 	// Apply damage to HMS Divine (clamped at 0)
-	const newHmsDeck   = Math.max(0, state.hmsDeckHp    - arbDealt.topDeck);
-	const newHmsCannon = Math.max(0, state.hmsCannonHp  - arbDealt.cannonDeck);
-	const newHmsRig    = Math.max(0, state.hmsRiggingHp - arbDealt.rigging);
+	const newHmsDeck = Math.max(0, state.hmsDeckHp - arbDealt.topDeck);
+	const newHmsCannon = Math.max(0, state.hmsCannonHp - arbDealt.cannonDeck);
+	const newHmsRig = Math.max(0, state.hmsRiggingHp - arbDealt.rigging);
 
 	await Promise.all([
-		setFlag('global.arb_main_deck_hp',         newArbMain),
-		setFlag('global.arb_cannon_deck_hp',        newArbCannon),
-		setFlag('global.arb_rigging_hp',            newArbRig),
-		setFlag('global.hms_divine_top_deck_hp',    newHmsDeck),
+		setFlag('global.arb_main_deck_hp', newArbMain),
+		setFlag('global.arb_cannon_deck_hp', newArbCannon),
+		setFlag('global.arb_rigging_hp', newArbRig),
+		setFlag('global.hms_divine_top_deck_hp', newHmsDeck),
 		setFlag('global.hms_divine_cannon_deck_hp', newHmsCannon),
-		setFlag('global.hms_divine_rigging_hp',     newHmsRig),
+		setFlag('global.hms_divine_rigging_hp', newHmsRig),
 	]);
 
 	// HP-based morale: every 100 HP dealt to Arbrance main deck = +2; to HMS top deck = -2
@@ -660,20 +669,20 @@ async function runCannonExchange() {
 		if (currentMorale > 0) {
 			// Positive morale damages Arbrance
 			const postArbMain = Math.max(0, newArbMain - moraleDmg);
-			const postArbRig  = Math.max(0, newArbRig  - moraleRiggingDmg);
+			const postArbRig = Math.max(0, newArbRig - moraleRiggingDmg);
 			await Promise.all([
 				setFlag('global.arb_main_deck_hp', postArbMain),
-				setFlag('global.arb_rigging_hp',   postArbRig),
+				setFlag('global.arb_rigging_hp', postArbRig),
 			]);
 			console.log(`[Battle] Morale bonus damage -> Arbrance: main=${moraleDmg} rig=${moraleRiggingDmg} (morale=${currentMorale})`);
 		}
 		else {
 			// Negative morale damages HMS Divine
 			const postHmsDeck = Math.max(0, newHmsDeck - moraleDmg);
-			const postHmsRig  = Math.max(0, newHmsRig  - moraleRiggingDmg);
+			const postHmsRig = Math.max(0, newHmsRig - moraleRiggingDmg);
 			await Promise.all([
 				setFlag('global.hms_divine_top_deck_hp', postHmsDeck),
-				setFlag('global.hms_divine_rigging_hp',  postHmsRig),
+				setFlag('global.hms_divine_rigging_hp', postHmsRig),
 			]);
 			console.log(`[Battle] Morale penalty damage -> HMS: deck=${moraleDmg} rig=${moraleRiggingDmg} (morale=${currentMorale})`);
 		}
@@ -730,7 +739,7 @@ async function postCannonReport(guild, cycleCount, hmsDealt, arbDealt) {
 				name: 'HMS Divine \u2190 Arbrance',
 				value: [
 					'```',
-					row('Top Deck',    arbDealt.topDeck,    state.hmsDeckHp,   400),
+					row('Top Deck', arbDealt.topDeck, state.hmsDeckHp, 400),
 					row('Cannon Deck', arbDealt.cannonDeck, state.hmsCannonHp, 300),
 					row('Rigging',     arbDealt.rigging,    state.hmsRiggingHp, 300),
 					`Total damage: -${hmsTotalDmg}`,
@@ -785,11 +794,11 @@ function calcMoraleDrain(morale, drainReduction = 0) {
 		return -(Math.max(1, 20 - drainReduction) + morale * 0.30);
 	}
 	// Negative morale: dampened baseline drain by bracket
-	if (morale >= -20)      return Math.min(-1, -20 + drainReduction);
+	if (morale >= -20) return Math.min(-1, -20 + drainReduction);
 	else if (morale >= -40) return Math.min(-1, -16 + drainReduction);
 	else if (morale >= -60) return Math.min(-1, -12 + drainReduction);
 	else if (morale >= -80) return Math.min(-1, -8 + drainReduction);
-	else                    return Math.min(-1, -4 + drainReduction);
+	else return Math.min(-1, -4 + drainReduction);
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -798,9 +807,9 @@ function calcMoraleDrain(morale, drainReduction = 0) {
 
 async function checkEndConditions() {
 	const state = await getBattleState();
-	if (state.hmsTotalHp <= 0)   return { ended: true, reason: 'hms_sunk' };
-	if (state.arbTotalHp <= 0)   return { ended: true, reason: 'arb_destroyed' };
-	if (state.cycleCount >= 10)  return { ended: true, reason: 'max_cycles' };
+	if (state.hmsTotalHp <= 0) return { ended: true, reason: 'hms_sunk' };
+	if (state.arbTotalHp <= 0) return { ended: true, reason: 'arb_destroyed' };
+	if (state.cycleCount >= 10) return { ended: true, reason: 'max_cycles' };
 	return { ended: false, reason: null };
 }
 
@@ -815,9 +824,9 @@ async function resolveZones() {
 	const arbranceZones = await getArbranceLocations();
 
 	const ZONE_DAMAGE = {
-		'arb_main_deck':   { flag: 'global.arb_main_deck_hp',   dmg: 50 },
+		'arb_main_deck': { flag: 'global.arb_main_deck_hp', dmg: 50 },
 		'arb_cannon_deck': { flag: 'global.arb_cannon_deck_hp', dmg: 60 },
-		'arb_rigging':     { flag: 'global.arb_rigging_hp',     dmg: 30 },
+		'arb_rigging': { flag: 'global.arb_rigging_hp', dmg: 30 },
 	};
 
 	for (const zone of arbranceZones) {
@@ -851,7 +860,6 @@ async function performHMSDivineBattleCycle(client) {
 	console.log('[Battle] Starting cycle...');
 
 	const guild = client.guilds.cache.first() || null;
-	const { runActionsOnly } = require('@utility/eventUtility.js');
 
 	// 1. Zone resolution — boarding damage from occupied Arbrance zones
 	await resolveZones();
@@ -923,28 +931,28 @@ async function performHMSDivineBattleCycle(client) {
 async function _setInitialFlags() {
 	const ts = Math.floor(Date.now() / 1000);
 	await Promise.all([
-		setFlag('global.hms_divine_battle_active',      1),
+		setFlag('global.hms_divine_battle_active', 1),
 		setFlag('global.hms_divine_battle_initialized', 1),
-		setFlag('global.hms_divine_top_deck_hp',        400),
-		setFlag('global.hms_divine_cannon_deck_hp',     300),
-		setFlag('global.hms_divine_rigging_hp',         300),
-		setFlag('global.arb_main_deck_hp',              800),
-		setFlag('global.arb_cannon_deck_hp',            450),
-		setFlag('global.arb_rigging_hp',                250),
-		setFlag('global.hms_divine_morale',             -40),
-		setFlag('global.hms_divine_cycle_count',        0),
-		setFlag('global.hms_divine_phase_start_ts',     ts),
-		setFlag('global.arb_commander_slain',           0),
-		setFlag('global.hms_divine_sunk',               0),
-		setFlag('global.hms_divine_supply_loss',        0),
-		setFlag('hms_divine_drain_reduction',           0),
-		setFlag('global.arb_armory_wins',               0),
-		setFlag('global.arb_armory_secured',            0),
-		setFlag('global.arb_armory_budget_x10',         10),
-		setFlag('global.arb_armory_wave_counter',       0),
-		setFlag('global.arb_main_deck_foothold',        0),
-		setFlag('global.hms_divine_mustering',           1),
-		setFlag('global.hms_divine_ready_count',         0),
+		setFlag('global.hms_divine_top_deck_hp', 400),
+		setFlag('global.hms_divine_cannon_deck_hp', 300),
+		setFlag('global.hms_divine_rigging_hp', 300),
+		setFlag('global.arb_main_deck_hp', 800),
+		setFlag('global.arb_cannon_deck_hp', 450),
+		setFlag('global.arb_rigging_hp', 250),
+		setFlag('global.hms_divine_morale', -40),
+		setFlag('global.hms_divine_cycle_count', 0),
+		setFlag('global.hms_divine_phase_start_ts', ts),
+		setFlag('global.arb_commander_slain', 0),
+		setFlag('global.hms_divine_sunk', 0),
+		setFlag('global.hms_divine_supply_loss', 0),
+		setFlag('hms_divine_drain_reduction', 0),
+		setFlag('global.arb_armory_wins', 0),
+		setFlag('global.arb_armory_secured', 0),
+		setFlag('global.arb_armory_budget_x10', 10),
+		setFlag('global.arb_armory_wave_counter', 0),
+		setFlag('global.arb_main_deck_foothold', 0),
+		setFlag('global.hms_divine_mustering', 1),
+		setFlag('global.hms_divine_ready_count', 0),
 	]);
 }
 
@@ -1029,7 +1037,7 @@ async function initBattle(guild, client) {
 // MUSTER SYSTEM
 // ──────────────────────────────────────────────────────────────
 
-async function sendMusterMessage(guild, client) {
+async function sendMusterMessage(guild, _client) {
 	const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 	const SystemSettingUtil = require('@utility/systemSetting.js');
 
@@ -1044,8 +1052,8 @@ async function sendMusterMessage(guild, client) {
 	const embed = new EmbedBuilder()
 		.setTitle('\u2694\ufe0f Battle Stations!')
 		.setDescription(
-			`The HMS Divine is within boarding range. All hands report to your positions!\n\n` +
-			`Click **Ready** when you are in position. Enemies will not spawn until **${MUSTER_REQUIRED} players** are ready.`
+			'The HMS Divine is within boarding range. All hands report to your positions!\n\n' +
+			`Click **Ready** when you are in position. Enemies will not spawn until **${MUSTER_REQUIRED} players** are ready.`,
 		)
 		.setFooter({ text: `0 / ${MUSTER_REQUIRED} ready` });
 
@@ -1060,7 +1068,7 @@ async function sendMusterMessage(guild, client) {
 	await SystemSettingUtil.set('message.battle_muster', `${channelId}:${msg.id}`);
 }
 
-async function activateBattleSpawns(guild, client) {
+async function activateBattleSpawns(guild, _client) {
 	const { EmbedBuilder } = require('discord.js');
 	const SystemSettingUtil = require('@utility/systemSetting.js');
 
@@ -1169,10 +1177,14 @@ async function pickEnemyForLocation(locationId) {
 // RANDOM ENCOUNTER SYSTEM
 // ──────────────────────────────────────────────────────────────
 
-const ENCOUNTER_TTL_MS = 30 * 60 * 1000;         // Regular encounters expire after 30 minutes
-const ARMORY_ENCOUNTER_TTL_MS = 15 * 60 * 1000; // Armory wave encounters expire after 15 minutes
-const ARMORY_WAVE_INTERVAL_MS = 30 * 60 * 1000; // Armory waves arrive every 30 minutes
-const ENCOUNTER_ENEMY_CHANCE = 0.7;              // 70% enemy encounter, 30% hazard
+// Regular encounters expire after 30 minutes
+const ENCOUNTER_TTL_MS = 30 * 60 * 1000;
+// Armory wave encounters expire after 15 minutes
+const ARMORY_ENCOUNTER_TTL_MS = 15 * 60 * 1000;
+// Armory waves arrive every 30 minutes
+const ARMORY_WAVE_INTERVAL_MS = 30 * 60 * 1000;
+// 70% enemy encounter, 30% hazard
+const ENCOUNTER_ENEMY_CHANCE = 0.7;
 
 // ──────────────────────────────────────────────────────────────
 // ARMORY WAVE SYSTEM

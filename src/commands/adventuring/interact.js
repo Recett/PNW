@@ -205,7 +205,7 @@ async function handleMove(interaction, userId) {
 	const allLinkedIds = Array.from(new Set([...linkedIds, ...clusterIds])).filter(id => id != character.location_id);
 	if (allLinkedIds.length === 0) return await interaction.editReply({ content: 'There are no available locations to move to from here.' });
 
-	let locations = (await Promise.all(allLinkedIds.map(id => LocationBase.findByPk(id)))).filter(loc => loc != null && !loc.hidden);
+	let locations = (await Promise.all(allLinkedIds.map(id => LocationBase.findByPk(id)))).filter(loc => loc != null && (currentLocation.hidden || !loc.hidden));
 	if (locations.length === 0) return await interaction.editReply({ content: 'There are no available locations to move to from here.' });
 
 	// If character is at 0 HP, restrict movement to town locations only

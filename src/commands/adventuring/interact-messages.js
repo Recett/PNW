@@ -16,11 +16,11 @@ const MSG = {
 	MOVE_CONFIRM_TIMEOUT:   'Move confirmation timed out.',
 
 	// ── Move: dynamic messages ────────────────────────────────────────────
-	moraleToLow:     (locationName, needed, current) => `Troop morale is too low to advance into **${locationName}**. (Required: ${needed}, Current: ${current})`,
-	tooWounded:      (curHp, maxHp)                  => `You are too wounded to leave the Sick Bay! (HP: ${curHp}/${maxHp})`,
-	notEnoughStamina:(cost)                           => `You don't have enough stamina to move. (Required: ${cost} stamina)`,
-	movedTo:         (locationName)                   => `You have moved to **${locationName}**!`,
-	enterChannel:    (channelId)                      => ` Head to <#${channelId}>`,
+	moraleToLow: (locationName, needed, current) => `Troop morale is too low to advance into **${locationName}**. (Required: ${needed}, Current: ${current})`,
+	tooWounded: (curHp, maxHp) => `You are too wounded to leave the Sick Bay! (HP: ${curHp}/${maxHp})`,
+	notEnoughStamina: (cost) => `You don't have enough stamina to move. (Required: ${cost} stamina)`,
+	movedTo: (locationName) => `You have moved to **${locationName}**!`,
+	enterChannel: (channelId) => ` Head to <#${channelId}>`,
 };
 
 module.exports = { MSG };

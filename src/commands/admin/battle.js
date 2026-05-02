@@ -3,7 +3,11 @@ const {
 	MessageFlags, PermissionFlagsBits,
 } = require('discord.js');
 const battleUtil = require('@utility/battleUtility.js');
+const { LocationEnemySpawn } = require('@root/dbObject.js');
 const { EMOJI } = require('../../enums');
+
+// HMS Top Deck is a hardcoded location ID in battleUtility
+const HMS_TOP_DECK_ID = battleUtil.BOONG_TREN_ID;
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -42,7 +46,10 @@ module.exports = {
 				.setDescription('Dry-run the spawn logic and report what each zone would do, without spawning.'))
 		.addSubcommand(sub =>
 			sub.setName('forcespawn')
-				.setDescription('Immediately trigger one encounter spawn cycle.')),
+				.setDescription('Immediately trigger one encounter spawn cycle.'))
+		.addSubcommand(sub =>
+			sub.setName('reseed-spawns')
+				.setDescription('Wipe and reinsert location_enemy_spawns rows with corrected weights (fixes man-at-arms rate).')),
 
 
 	async execute(interaction) {
@@ -60,7 +67,7 @@ module.exports = {
 				await battleUtil.assignPlayersToZones(interaction.guild);
 
 				const allCreated = [...syncArbResult.created, ...syncHmsResult.created];
-				const allFailed  = [...syncArbResult.failed,  ...syncHmsResult.failed];
+				const allFailed = [...syncArbResult.failed, ...syncHmsResult.failed];
 
 				const syncSummary = allCreated.length > 0
 					? `\nDiscord synced: ${allCreated.join(', ')}`
@@ -91,10 +98,10 @@ module.exports = {
 							value: [
 								`Active: **${state.battleActive ? 'YES' : 'NO'}**`,
 								`Initialized: **${state.battleInitialized ? 'YES' : 'NO'}**`,
-							`Cycle: **${state.cycleCount}**`,
-							`Morale: **${state.morale}**`,
-							`Mustering: **${state.mustering ? `YES (${state.readyCount} ready)` : 'NO'}**`,
-						].join('\n'),
+								`Cycle: **${state.cycleCount}**`,
+								`Morale: **${state.morale}**`,
+								`Mustering: **${state.mustering ? `YES (${state.readyCount} ready)` : 'NO'}**`,
+							].join('\n'),
 							inline: true,
 						},
 						{
@@ -170,6 +177,71 @@ module.exports = {
 				await battleUtil.spawnEncounters(interaction.guild);
 				await interaction.editReply({ content: `${EMOJI.SUCCESS} Encounter spawn cycle triggered.` });
 			}
+			else if (sub === 'reseed-spawns') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+				// Corrected spawn weights — HMS zones are beginner areas
+				const SPAWN_TEMPLATE = [
+					// ARB Main Deck
+					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'boarder', spawn_chance: 30 },
+					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
+					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'sailor', spawn_chance: 20 },
+					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'man_at_arms', spawn_chance: 15 },
+					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'crossbowman', spawn_chance: 10 },
+					// ARB Cannon Deck
+					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'boarder', spawn_chance: 45 },
+					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'man_at_arms', spawn_chance: 35 },
+					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'veteran_sailor', spawn_chance: 20 },
+					// ARB Officer Quarters
+					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'man_at_arms', spawn_chance: 50 },
+					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'veteran_sailor', spawn_chance: 35 },
+					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'boarder', spawn_chance: 15 },
+					// ARB Rigging
+					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'cutthroat', spawn_chance: 30 },
+					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
+					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'swashbuckler', spawn_chance: 25 },
+					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'crossbowman', spawn_chance: 20 },
+					// HMS Rigging — beginner area
+					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'cutthroat', spawn_chance: 55 },
+					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'sailor', spawn_chance: 35 },
+					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'swashbuckler', spawn_chance: 10 },
+					// HMS Top Deck — beginner area (hardcoded ID)
+					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'sailor', spawn_chance: 55 },
+					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'boarder', spawn_chance: 30 },
+					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'veteran_sailor', spawn_chance: 10 },
+					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'man_at_arms', spawn_chance: 5 },
+				];
+
+				// Resolve zone flag names to location IDs
+				const zoneFlags = [...new Set(SPAWN_TEMPLATE.filter(r => r.zone).map(r => r.zone))];
+				const zoneIdMap = {};
+				for (const flag of zoneFlags) {
+					const id = await battleUtil.getFlag(flag);
+					if (id) zoneIdMap[flag] = String(id);
+				}
+
+				const rows = SPAWN_TEMPLATE
+					.filter(r => r.locationId || zoneIdMap[r.zone])
+					.map(r => ({
+						location_id: r.locationId ?? zoneIdMap[r.zone],
+						enemy_base_id: r.enemy_base_id,
+						spawn_chance: r.spawn_chance,
+						is_boss: false,
+					}));
+
+				const missing = SPAWN_TEMPLATE.filter(r => r.zone && !zoneIdMap[r.zone]).map(r => r.zone);
+
+				const deleted = await LocationEnemySpawn.destroy({ where: {} });
+				await LocationEnemySpawn.bulkCreate(rows);
+
+				const lines = [
+					`Deleted: **${deleted}** old rows`,
+					`Inserted: **${rows.length}** rows`,
+				];
+				if (missing.length) lines.push(`${EMOJI.FAILURE} Unresolved zones (no location ID flag): ${[...new Set(missing)].join(', ')}`);
+
+				await interaction.editReply({ content: lines.join('\n') });
+			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
@@ -184,10 +256,10 @@ module.exports = {
 			console.error('[/battle] Error:', error);
 			const msg = `${EMOJI.FAILURE} An error occurred: ${error.message}`;
 			if (interaction.deferred || interaction.replied) {
-				await interaction.editReply({ content: msg }).catch(() => {});
+				await interaction.editReply({ content: msg }).catch(err => console.error('[/battle] reply error:', err));
 			}
 			else {
-				await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral }).catch(() => {});
+				await interaction.reply({ content: msg, flags: MessageFlags.Ephemeral }).catch(err => console.error('[/battle] reply error:', err));
 			}
 		}
 	},

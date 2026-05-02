@@ -868,7 +868,7 @@ async function processDimensionalEvent(characterId, event, sessionData, results)
 	// Move to dimensional location
 	const dimensionLocationId = event.metadata?.dimensionLocation;
 	if (dimensionLocationId) {
-		await characterUtil.updateCharacterStat(characterId, 'location_id', dimensionLocationId, 'set');
+		await characterUtil.modifyCharacterStat(characterId, 'location_id', dimensionLocationId, 'set');
 	}
 	
 	results.message = `You have entered a ${dimensionType} dimension...`;

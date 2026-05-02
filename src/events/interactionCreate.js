@@ -530,8 +530,20 @@ async function handleEncounterFightInteraction(interaction) {
 		console.error('[Encounter] Failed to update morale:', moraleErr);
 	}
 
+	// Build battle report embeds
+	const reportColor = won ? 0x27ae60 : 0xe74c3c;
+	const pages = result?.battleReportPages || [result?.battleReport || 'No combat details available.'];
+	const firstPageContent = result?.narrativeText ? `*${result.narrativeText}*\n\n${pages[0]}` : pages[0];
+	const reportEmbed = new EmbedBuilder()
+		.setTitle(`${EMOJI.SWORD} Combat`)
+		.setColor(reportColor)
+		.setDescription(firstPageContent);
+
 	if (won) {
-		await interaction.editReply({ content: `${EMOJI.SUCCESS} You defeated the **${enemyLabel}**!` });
+		await interaction.editReply({ content: `${EMOJI.SUCCESS} You defeated the **${enemyLabel}**!`, embeds: [reportEmbed] });
+		for (let i = 1; i < pages.length; i++) {
+			await interaction.followUp({ embeds: [new EmbedBuilder().setColor(reportColor).setDescription(pages[i])], flags: MessageFlags.Ephemeral });
+		}
 	}
 	else {
 		// Player lost — retain enemy HP
@@ -568,14 +580,19 @@ async function handleEncounterFightInteraction(interaction) {
 			catch (e) {
 				console.error('[Encounter] Failed to repost weakened encounter message:', e);
 			}
-
-			await interaction.editReply({ content: `${EMOJI.FAILURE} You were defeated by the **${enemyLabel}**. It lingers, weakened.` });
 		}
-		else {
-			// Knocked out — move to living quarters; departure hook handles wave encounter retarget
-			await interaction.editReply({ content: `${EMOJI.FAILURE} You were knocked out by the **${enemyLabel}**.` });
+
+		const lossMessage = playerHp > 0
+			? `${EMOJI.FAILURE} You were defeated by the **${enemyLabel}**. It lingers, weakened.`
+			: `${EMOJI.FAILURE} You were knocked out by the **${enemyLabel}**.`;
+		await interaction.editReply({ content: lossMessage, embeds: [reportEmbed] });
+		for (let i = 1; i < pages.length; i++) {
+			await interaction.followUp({ embeds: [new EmbedBuilder().setColor(reportColor).setDescription(pages[i])], flags: MessageFlags.Ephemeral });
+		}
+
+		// Knocked out — move to living quarters
+		if (playerHp <= 0) {
 			try {
-				const battleUtil = require('@utility/battleUtility.js');
 				const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
 				if (battleActive) {
 					const locationUtil = require('@utility/locationUtility.js');
