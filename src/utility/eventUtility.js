@@ -1275,14 +1275,37 @@ class EventProcessor {
 
 		const processedText = await this.processText(text, session);
 		const processedTitle = title ? await this.processText(title, session) : null;
+		const color = action.color ?? 0x2f3136;
 
-		const embed = new EmbedBuilder()
-			.setDescription(processedText)
-			.setColor(action.color ?? 0x2f3136);
+		// Split text into <=4096-char chunks on paragraph boundaries
+		const LIMIT = 4096;
+		const chunks = [];
+		if (processedText.length <= LIMIT) {
+			chunks.push(processedText);
+		}
+		else {
+			const paragraphs = processedText.split(/\n\n/);
+			let current = '';
+			for (const para of paragraphs) {
+				const addition = current.length > 0 ? `\n\n${para}` : para;
+				if (current.length + addition.length > LIMIT) {
+					if (current.length > 0) chunks.push(current);
+					current = para;
+				}
+				else {
+					current += addition;
+				}
+			}
+			if (current.length > 0) chunks.push(current);
+		}
 
-		if (processedTitle) embed.setTitle(processedTitle);
-
-		await ch.send({ embeds: [embed] });
+		for (let i = 0; i < chunks.length; i++) {
+			const embed = new EmbedBuilder()
+				.setDescription(chunks[i])
+				.setColor(color);
+			if (i === 0 && processedTitle) embed.setTitle(processedTitle);
+			await ch.send({ embeds: [embed] });
+		}
 	}
 
 	/**

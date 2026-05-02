@@ -824,8 +824,8 @@ async function handleBattleMusterInteraction(interaction) {
 		await interaction.editReply({ content: 'You do not have a character.' });
 		return true;
 	}
-	const unregistered = await CharacterFlag.findOne({ where: { character_id: userId, flag_name: 'unregistered' } });
-	if (unregistered && parseInt(unregistered.flag_value) !== 0) {
+	const unregistered = await CharacterFlag.findOne({ where: { character_id: userId, flag: 'unregistered' } });
+	if (unregistered && parseInt(unregistered.value) !== 0) {
 		await interaction.editReply({ content: 'You must complete registration first.' });
 		return true;
 	}
@@ -838,15 +838,16 @@ async function handleBattleMusterInteraction(interaction) {
 	}
 
 	// Check if already mustered
-	const alreadyMustered = await CharacterFlag.findOne({ where: { character_id: userId, flag_name: 'hms_divine_mustered' } });
-	if (alreadyMustered && parseInt(alreadyMustered.flag_value) !== 0) {
+	const alreadyMustered = await CharacterFlag.findOne({ where: { character_id: userId, flag: 'hms_divine_mustered' } });
+	if (alreadyMustered && parseInt(alreadyMustered.value) !== 0) {
 		const count = await battleUtil.getFlag('global.hms_divine_ready_count');
 		await interaction.editReply({ content: `You are already marked as ready. (${count}/${battleUtil.MUSTER_REQUIRED})` });
 		return true;
 	}
 
-	// Mark this player as mustered
-	await CharacterFlag.upsert({ character_id: userId, flag_name: 'hms_divine_mustered', flag_value: 1 });
+	// Mark this player as mustered (destroy+create to avoid composite primary key upsert issue)
+	await CharacterFlag.destroy({ where: { character_id: userId, flag: 'hms_divine_mustered' } });
+	await CharacterFlag.create({ character_id: userId, flag: 'hms_divine_mustered', value: 1 });
 
 	// Increment counter
 	const prevCount = await battleUtil.getFlag('global.hms_divine_ready_count');

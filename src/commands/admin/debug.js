@@ -65,6 +65,22 @@ module.exports = {
 						.setMaxValue(9999)),
 		)
 		.addSubcommand(sub =>
+			sub.setName('setitem')
+				.setDescription('Set item quantity to an exact amount. Omit user to fix all players.')
+				.addStringOption(opt =>
+					opt.setName('item_id')
+						.setDescription('The item ID (e.g. med_kit).')
+						.setRequired(true))
+				.addUserOption(opt =>
+					opt.setName('user')
+						.setDescription('Target player. Omit to fix all players with quantity above the cap.'))
+				.addIntegerOption(opt =>
+					opt.setName('quantity')
+						.setDescription('Quantity cap to enforce. Default: 1.')
+						.setMinValue(1)
+						.setMaxValue(9999)),
+		)
+		.addSubcommand(sub =>
 			sub.setName('finditem')
 				.setDescription('Find all players who hold a given item.')
 				.addStringOption(opt =>
@@ -202,6 +218,7 @@ module.exports = {
 
 		if (sub === 'grant') return handleGrant(interaction);
 		if (sub === 'item') return handleItem(interaction);
+		if (sub === 'setitem') return handleSetItem(interaction);
 		if (sub === 'finditem') return handleFindItem(interaction);
 		if (sub === 'orphancheck') return handleOrphanCheck(interaction);
 		if (sub === 'remapitem') return handleRemapItem(interaction);
@@ -615,6 +632,53 @@ async function handleItem(interaction) {
 			flags: MessageFlags.Ephemeral,
 		});
 	}
+}
+
+// ─── Set Item ────────────────────────────────────────────────────────────────
+
+async function handleSetItem(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const itemId = interaction.options.getString('item_id');
+	const cap = interaction.options.getInteger('quantity') ?? 1;
+	const targetUser = interaction.options.getUser('user');
+
+	// Single-player mode
+	if (targetUser) {
+		const character = await CharacterBase.findOne({ where: { id: targetUser.id } });
+		if (!character) {
+			return interaction.editReply({ content: `${EMOJI.FAILURE} No character found for ${targetUser}.` });
+		}
+
+		const existing = await CharacterItem.findOne({ where: { character_id: targetUser.id, item_id: itemId } });
+		if (!existing) {
+			return interaction.editReply({ content: `${EMOJI.WARNING} **${character.name}** does not have \`${itemId}\`.` });
+		}
+
+		const old = existing.amount;
+		if (old <= cap) {
+			return interaction.editReply({ content: `${EMOJI.WARNING} **${character.name}** already has \`${itemId}\` x**${old}** — at or below cap of **${cap}**, no change.` });
+		}
+
+		existing.amount = cap;
+		await existing.save();
+		return interaction.editReply({ content: `${EMOJI.SUCCESS} Set \`${itemId}\` on **${character.name}** from **${old}** to **${cap}**.` });
+	}
+
+	// Bulk mode — fix all players with quantity > cap
+	const { Op } = require('sequelize');
+	const rows = await CharacterItem.findAll({ where: { item_id: itemId, amount: { [Op.gt]: cap } } });
+
+	if (rows.length === 0) {
+		return interaction.editReply({ content: `${EMOJI.WARNING} No players have \`${itemId}\` with quantity above **${cap}**. Nothing to fix.` });
+	}
+
+	for (const row of rows) {
+		row.amount = cap;
+		await row.save();
+	}
+
+	return interaction.editReply({ content: `${EMOJI.SUCCESS} Reset \`${itemId}\` to **${cap}** for **${rows.length}** player(s).` });
 }
 
 // ─── Find Item ───────────────────────────────────────────────────────────────

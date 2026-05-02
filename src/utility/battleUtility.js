@@ -922,6 +922,7 @@ async function initBattle(guild, client) {
 	}
 
 	const { runActionsOnly } = require('@utility/eventUtility.js');
+	// ensureBattleChannel must run before runActionsOnly so 'channel.battle' is set
 	await runActionsOnly('hms-divine-battle-commence', '0', client).catch(err => {
 		console.error('[Battle] Failed to post commence event:', err);
 	});

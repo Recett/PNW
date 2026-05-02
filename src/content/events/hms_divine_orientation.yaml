@@ -93,11 +93,12 @@ events:
         
         Boong chính sẽ là nơi phòng thủ cuối cùng. Nếu địch tràn qua được boong trên, họ sẽ cố gắng phá hủy các khẩu pháo ở đó để giảm khả năng phản công của chúng ta."
 
-  # Med kit — check if player already has one, give if not
+  # Med kit — silent router: branch by whether player already has kit
   - id: york-battle-med-kit
     name: "York — Med Kit"
     event_type: dialogue
-    next: york-battle-hub
+    silent: true
+    next: york-battle-med-kit-give
 
     check:
       - name: "already-has-med-kit"
@@ -108,6 +109,12 @@ events:
         is_required: false
         silent: true
         on_success: "york-battle-med-kit-already-has"
+
+  # Med kit give — player does not have kit
+  - id: york-battle-med-kit-give
+    name: "York — Med Kit Give"
+    event_type: dialogue
+    next: york-battle-hub
 
     message:
       npc_speaker: quartermaster-york
@@ -120,7 +127,7 @@ events:
         "Khi nào cần sơ cứu thì dùng cái này."
     action:
       - type: flag
-        flag_name: york_med_kit_briefed
+        flag_name: char.york_med_kit_briefed
         flag_value: 1
         flag_operation: set
         flag_type: character
@@ -143,17 +150,18 @@ events:
         "Boong sinh hoạt đang được dùng làm trạm y tế. Có vật tư cơ bản ở đó, và có người trực. Ai bị thương nặng thì đưa về đó."
     action:
       - type: flag
-        flag_name: york_med_kit_briefed
+        flag_name: char.york_med_kit_briefed
         flag_value: 1
         flag_operation: set
         flag_type: character
         silent: true
 
-  # Med kit resupply — shown after briefing, player requests another kit
+  # Med kit resupply — silent router: branch by whether player already has kit
   - id: york-battle-med-kit-resupply
     name: "York — Med Kit Resupply"
     event_type: dialogue
-    next: york-battle-hub
+    silent: true
+    next: york-battle-med-kit-resupply-give
 
     check:
       - name: "already-has-med-kit-resupply"
@@ -164,6 +172,12 @@ events:
         is_required: false
         silent: true
         on_success: "york-battle-med-kit-resupply-has"
+
+  # Med kit resupply give — player does not have kit
+  - id: york-battle-med-kit-resupply-give
+    name: "York — Med Kit Resupply Give"
+    event_type: dialogue
+    next: york-battle-hub
 
     message:
       npc_speaker: quartermaster-york

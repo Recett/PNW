@@ -531,6 +531,8 @@ async function postLocationActivity(client, locationId, characterName, activityT
 		try {
 			const channel = await client.channels.fetch(channelId).catch(() => null);
 			if (!channel) return;
+			const perms = channel.permissionsFor?.(client.user);
+			if (perms && !perms.has('SendMessages')) return;
 
 			// Delete previous activity message
 			const prevMsgId = locationActivityMessages.get(channelId);
