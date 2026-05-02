@@ -786,19 +786,20 @@ async function updateMorale(delta) {
 /**
  * Compute the morale drain applied once per player phase (1 hour).
  * Positive morale drains faster; deeply negative morale drains slower.
+ * Drain values are halved relative to original to reduce aggressiveness.
  * @param {number} morale
  * @returns {number} negative delta
  */
 function calcMoraleDrain(morale, drainReduction = 0) {
 	if (morale >= 0) {
-		return -(Math.max(1, 20 - drainReduction) + morale * 0.30);
+		return -(Math.max(1, 10 - drainReduction) + morale * 0.15);
 	}
 	// Negative morale: dampened baseline drain by bracket
-	if (morale >= -20) return Math.min(-1, -20 + drainReduction);
-	else if (morale >= -40) return Math.min(-1, -16 + drainReduction);
-	else if (morale >= -60) return Math.min(-1, -12 + drainReduction);
-	else if (morale >= -80) return Math.min(-1, -8 + drainReduction);
-	else return Math.min(-1, -4 + drainReduction);
+	if (morale >= -20) return Math.min(-1, -10 + drainReduction);
+	else if (morale >= -40) return Math.min(-1, -8 + drainReduction);
+	else if (morale >= -60) return Math.min(-1, -6 + drainReduction);
+	else if (morale >= -80) return Math.min(-1, -4 + drainReduction);
+	else return Math.min(-1, -2 + drainReduction);
 }
 
 // ──────────────────────────────────────────────────────────────

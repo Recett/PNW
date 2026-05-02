@@ -90,7 +90,7 @@ Cron schedule: `'0 */8 * * *'` (every 8 hours) in `cronUtility.js`.
 **Code does:**
 - `updateMorale(delta)` in `battleUtility.js` 窶・clamps to [竏・00, +100], saves to `global.hms_divine_morale`.
 - **Starting morale:** `竏・0` (set in `_setInitialFlags`).
-- **Hourly drain:** `calcMoraleDrain(morale)` in `cronUtility.js` `performBattleHourlyTasks()` 窶・positive morale drains at `竏・20 + morale ﾃ・0.30)`; negative morale drains at dampened flat rates by bracket (竏・0 / 竏・6 / 竏・2 / 竏・ / 竏・).
+- **Hourly drain (halved 2026-05-02):** `calcMoraleDrain(morale)` in `cronUtility.js` `performBattleHourlyTasks()` — positive morale drains at `-(10 + morale * 0.15)`; negative morale drains at dampened flat rates by bracket (-10 / -8 / -6 / -4 / -2). Values were halved from original (20/0.30 and -20/-16/-12/-8/-4) to reduce drain aggressiveness.
 - **Per-cycle flat decay removed.** `performHMSDivineBattleCycle` no longer calls `updateMorale(-5)`.
 - **Combat victories:** `/fight` (fight.js) calls `updateMorale(ENEMY_MORALE_VALUES[enemyId] ?? 1)` on win, `updateMorale(-3)` on loss. Encounter fights in `interactionCreate.js` do the same. Auto-resolved expired encounters in `resolveExpiredEncounters()` also call `updateMorale`.
 - **Enemy kill values:** common=+1/+2, elite=+3, boss=+10 (table: `ENEMY_MORALE_VALUES`). Full list: `sailor`=1, `cutthroat`=1, `boarder`=2, `man_at_arms`=2, `crossbowman`=2, `swashbuckler`=2, `veteran_sailor`=3; bosses (`enemy_boatswain`, `master_at_arms`, `master_gunner`, `enemy_first_mate`, `enemy_captain`, `quartermaster`) = 10 each.
