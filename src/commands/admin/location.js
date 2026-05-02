@@ -61,6 +61,10 @@ module.exports = {
 				.addBooleanOption(option =>
 					option.setName('hidden')
 						.setDescription('Hide or show the location in move command')
+						.setRequired(false))
+				.addStringOption(option =>
+					option.setName('description')
+						.setDescription('New description for the location')
 						.setRequired(false)))
 		.addSubcommand(subcommand =>
 			subcommand
@@ -481,11 +485,13 @@ module.exports = {
 		const type = interaction.options.getString('type');
 		const lock = interaction.options.getBoolean('lock');
 		const hidden = interaction.options.getBoolean('hidden');
+		const description = interaction.options.getString('description');
 
 		if (name !== null) updates.name = name;
 		if (type !== null) updates.type = type === 'none' ? null : type;
 		if (lock !== null) updates.lock = lock;
 		if (hidden !== null) updates.hidden = hidden;
+		if (description !== null) updates.description = description;
 
 		if (Object.keys(updates).length === 0) {
 			return interaction.reply({ content: 'No fields to update.', flags: MessageFlags.Ephemeral });

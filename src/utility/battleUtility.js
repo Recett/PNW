@@ -599,15 +599,15 @@ function simulateVolley(cannonPower, attackerMobility, defenderMobility) {
 	const shots = Math.round(cannonPower / 10);
 	const hitRate = (attackerMobility + 50) / (attackerMobility + defenderMobility + 100);
 
-	let topDeck = 0, cannonDeck = 0, rigging = 0;
+	let topDeck = 0, cannonDeck = 0, rigging = 0, misses = 0;
 	for (let i = 0; i < shots; i++) {
-		if (Math.random() >= hitRate) continue;
+		if (Math.random() >= hitRate) { misses++; continue; }
 		const roll = Math.random();
 		if (roll < 0.5)       topDeck    += 10;
 		else if (roll < 0.8)  cannonDeck += 10;
 		else                  rigging    += 10;
 	}
-	return { topDeck, cannonDeck, rigging };
+	return { topDeck, cannonDeck, rigging, shots, misses, hits: shots - misses };
 }
 
 async function runCannonExchange() {
@@ -679,6 +679,84 @@ async function runCannonExchange() {
 	console.log(`[Battle] Arb volley -> HMS:      deck=${arbDealt.topDeck} cannon=${arbDealt.cannonDeck} rig=${arbDealt.rigging}`);
 
 	return { hmsDealt, arbDealt };
+}
+
+/**
+ * Post the cannon exchange report embed to the battle channel.
+ * @param {import('discord.js').Guild} guild
+ * @param {number} cycleCount - cycle number (after increment)
+ * @param {{ topDeck: number, cannonDeck: number, rigging: number }} hmsDealt - damage HMS dealt to Arbrance
+ * @param {{ topDeck: number, cannonDeck: number, rigging: number }} arbDealt - damage Arbrance dealt to HMS
+ */
+async function postCannonReport(guild, cycleCount, hmsDealt, arbDealt) {
+	const { EmbedBuilder } = require('discord.js');
+	const { EMOJI } = require('@root/enums.js');
+	const SystemSettingUtil = require('@utility/systemSetting.js');
+
+	const battleChannelId = await SystemSettingUtil.get('channel.battle');
+	const battleChannel = battleChannelId
+		? await guild.channels.fetch(String(battleChannelId)).catch(() => null)
+		: null;
+	if (!battleChannel) return;
+
+	const state = await getBattleState();
+
+	function hpBar(current, max, len = 8) {
+		const filled = Math.round((current / max) * len);
+		return '\u2588'.repeat(Math.max(0, filled)) + '\u2591'.repeat(Math.max(0, len - filled));
+	}
+
+	const hmsTotalDmg = arbDealt.topDeck + arbDealt.cannonDeck + arbDealt.rigging;
+	const arbTotalDmg = hmsDealt.topDeck + hmsDealt.cannonDeck + hmsDealt.rigging;
+	const moraleSign = state.morale >= 0 ? '+' : '';
+
+	function row(label, dmg, hp, max) {
+		return `${label.padEnd(12)} -${String(dmg).padStart(3)}  ${hpBar(hp, max)}  ${String(hp).padStart(3)}/${max}`;
+	}
+
+	function shotsLine(volley) {
+		return `Shots: ${volley.hits}/${volley.shots} hit, ${volley.misses} missed`;
+	}
+
+	const embed = new EmbedBuilder()
+		.setColor(0x8B4513)
+		.setTitle(`${EMOJI.BOOM} Cannon Volley \u2014 Cycle ${cycleCount}`)
+		.addFields(
+			{
+				name: 'HMS Divine \u2190 Arbrance',
+				value: [
+					'```',
+					row('Top Deck',    arbDealt.topDeck,    state.hmsDeckHp,   400),
+					row('Cannon Deck', arbDealt.cannonDeck, state.hmsCannonHp, 300),
+					row('Rigging',     arbDealt.rigging,    state.hmsRiggingHp, 300),
+					`Total damage: -${hmsTotalDmg}`,
+					shotsLine(arbDealt),
+					'```',
+				].join('\n'),
+				inline: false,
+			},
+			{
+				name: 'Arbrance \u2190 HMS Divine',
+				value: [
+					'```',
+					row('Main Deck',   hmsDealt.topDeck,    state.arbMainHp,   800),
+					row('Cannon Deck', hmsDealt.cannonDeck, state.arbCannonHp, 450),
+					row('Rigging',     hmsDealt.rigging,    state.arbRiggingHp, 250),
+					`Total damage: -${arbTotalDmg}`,
+					shotsLine(hmsDealt),
+					'```',
+				].join('\n'),
+				inline: false,
+			},
+			{
+				name: 'Morale',
+				value: `${moraleSign}${state.morale}`,
+				inline: false,
+			},
+		)
+		.setFooter({ text: `HMS Divine: ${state.hmsTotalHp}/1000 \u2502 Arbrance: ${state.arbTotalHp}/1500` });
+
+	await battleChannel.send({ embeds: [embed] });
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -775,11 +853,18 @@ async function performHMSDivineBattleCycle(client) {
 	await resolveZones();
 
 	// 2. Cannon exchange
-	await runCannonExchange();
+	const { hmsDealt, arbDealt } = await runCannonExchange();
 
 	// 3. Increment cycle counter
 	const cycleCount = await getFlag('global.hms_divine_cycle_count');
 	await setFlag('global.hms_divine_cycle_count', cycleCount + 1);
+
+	// 3a. Post cannon exchange report
+	if (guild) {
+		await postCannonReport(guild, cycleCount + 1, hmsDealt, arbDealt).catch(err =>
+			console.error('[Battle] Failed to post cannon report:', err),
+		);
+	}
 
 	// 4. Hale death announcement — fires once after cycle 2 completes
 	if (cycleCount + 1 === 2) {
