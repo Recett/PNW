@@ -460,7 +460,7 @@ async function handleEncounterFightInteraction(interaction) {
 
 	// All fighters pay 5 stamina. If they can't afford it they still fight but at half speed.
 	const STAMINA_COST = 5;
-	const fighter = await characterUtil.getCharacterData(fighterId);
+	const fighter = await characterUtil.getCharacterBase(fighterId);
 	if (!fighter) {
 		await interaction.reply({ content: 'You need a character to fight.', flags: MessageFlags.Ephemeral });
 		return true;
@@ -705,7 +705,7 @@ async function handleOfficerCabinInteraction(interaction) {
 
 	// Deduct stamina for each fighter and build team pairs
 	const teamPairs = await Promise.all(fights.map(async ({ fighterId, def }) => {
-		const fighter = await characterUtil.getCharacterData(fighterId);
+		const fighter = await characterUtil.getCharacterBase(fighterId);
 		let speedMultiplier = 1;
 		if (fighter && (fighter.currentStamina ?? 0) >= STAMINA_COST) {
 			await characterUtil.modifyCharacterStat(fighterId, 'currentStamina', -STAMINA_COST, 'add');
