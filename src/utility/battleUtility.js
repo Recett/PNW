@@ -7,6 +7,7 @@ const {
 } = require('@root/dbObject.js');
 const locationUtil = require('@utility/locationUtility.js');
 const contentStore = require('@root/contentStore.js');
+const gamecon = require('@root/Data/gamecon.json');
 
 // ──────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -505,20 +506,30 @@ async function unsealBattleLocations() {
 // ──────────────────────────────────────────────────────────────
 
 async function relocateNpcsForBattle() {
-	// Move York from Boong Chinh (5) → Boong Sinh Hoat (6)
+	// Remove all non-York NPCs from HMS zones
+	const removed = await LocationContain.destroy({
+		where: {
+			location_id: HMS_ZONE_IDS,
+			type: gamecon.NPC,
+			object_id: { [Op.ne]: 'quartermaster-york' },
+		},
+	});
+
+	// Move York to Living Quarters
 	await LocationContain.update(
 		{ location_id: BOONG_SINH_HOAT_ID },
 		{ where: { object_id: 'quartermaster-york' } },
 	);
-	console.log('[Battle] York moved to Boong Sinh Hoat (6)');
+	console.log(`[Battle] NPC relocation: removed ${removed} NPCs from HMS zones, York moved to Boong Sinh Hoat.`);
 }
 
 async function restoreNpcLocations() {
+	// Restore York to Main Deck
 	await LocationContain.update(
 		{ location_id: BOONG_CHINH_ID },
 		{ where: { object_id: 'quartermaster-york' } },
 	);
-	console.log('[Battle] York restored to Boong Chinh (5)');
+	console.log('[Battle] York restored to Boong Chinh.');
 }
 
 // ──────────────────────────────────────────────────────────────

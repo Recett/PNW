@@ -13,7 +13,7 @@ module.exports = {
 		.setContexts(InteractionContextType.Guild)
 		.addSubcommand(sub =>
 			sub.setName('init')
-				.setDescription('Create Arbrance locations and set up the field (no player movement or announcements).'))
+				.setDescription('Create Arbrance locations, seal the field, and rally players to Living Quarters.'))
 		.addSubcommand(sub =>
 			sub.setName('start')
 				.setDescription('Start the battle: set all flags, seal locations, rally players, and post the announcement.'))
@@ -49,6 +49,8 @@ module.exports = {
 				const syncArbResult = await battleUtil.syncArbranceLocations(interaction.guild);
 				const syncHmsResult = await battleUtil.syncHMSRiggingLocation(interaction.guild);
 				await battleUtil.sealBattleLocations();
+				await battleUtil.relocateNpcsForBattle();
+				await battleUtil.assignPlayersToZones(interaction.guild);
 
 				const allCreated = [...syncArbResult.created, ...syncHmsResult.created];
 				const allFailed  = [...syncArbResult.failed,  ...syncHmsResult.failed];
@@ -61,7 +63,7 @@ module.exports = {
 					: '';
 
 				await interaction.editReply({
-					content: `${EMOJI.SUCCESS} Arbrance locations created and sealed.${syncSummary}${failSummary}\nRun \`/battle start\` to begin the battle.`,
+					content: `${EMOJI.SUCCESS} Arbrance locations created and sealed. Players rallied to Living Quarters.${syncSummary}${failSummary}\nRun \`/battle start\` to begin the battle.`,
 				});
 			}
 			else if (sub === 'start') {
