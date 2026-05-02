@@ -20,37 +20,45 @@ class CronMonitor {
 		const startTime = new Date();
 		const memoryStart = process.memoryUsage();
 
-		// Ensure a cron_logs row exists before creating the execution log (FK constraint)
-		await CronLog.findOrCreate({
-			where: { job_name: jobName },
-			defaults: { job_name: jobName, status: 'running' },
-		});
+		let executionLogId = null;
+		try {
+			// Ensure a cron_logs row exists before creating the execution log (FK constraint)
+			await CronLog.findOrCreate({
+				where: { job_name: jobName },
+				defaults: { job_name: jobName, status: 'running' },
+			});
 
-		// Create execution log entry
-		const executionLog = await CronExecutionLog.create({
-			job_name: jobName,
-			status: 'started',
-			started_at: startTime,
-			memory_start_mb: Math.round(memoryStart.rss / 1024 / 1024 * 100) / 100,
-			execution_context: {
-				...context,
-				node_version: process.version,
-				platform: process.platform,
-				pid: process.pid,
-			},
-			server_info: {
-				uptime: process.uptime(),
-				memory: memoryStart,
-				cpu_arch: process.arch,
-			},
-		});
+			// Create execution log entry
+			const executionLog = await CronExecutionLog.create({
+				job_name: jobName,
+				status: 'started',
+				started_at: startTime,
+				memory_start_mb: Math.round(memoryStart.rss / 1024 / 1024 * 100) / 100,
+				execution_context: {
+					...context,
+					node_version: process.version,
+					platform: process.platform,
+					pid: process.pid,
+				},
+				server_info: {
+					uptime: process.uptime(),
+					memory: memoryStart,
+					cpu_arch: process.arch,
+				},
+			});
+			executionLogId = executionLog.id;
+		}
+		catch (dbErr) {
+			// DB busy or locked — continue with in-memory tracking only
+			console.warn(`[CronMonitor] Could not persist execution log for ${jobName}: ${dbErr.message}`);
+		}
 
 		// Set up execution tracker
 		const tracker = {
 			id: executionId,
 			jobName,
 			startTime,
-			executionLogId: executionLog.id,
+			executionLogId,
 			memoryStart,
 			dbOperations: 0,
 			recordsProcessed: 0,
@@ -107,28 +115,35 @@ class CronMonitor {
 		// Clean up console capture
 		this.cleanupConsoleCapture(executionId);
 
-		// Update execution log
-		await CronExecutionLog.update({
-			status: 'success',
-			finished_at: endTime,
-			duration_ms: duration,
-			memory_end_mb: Math.round(memoryEnd.rss / 1024 / 1024 * 100) / 100,
-			memory_peak_mb: Math.round(Math.max(tracker.memoryStart.rss, memoryEnd.rss) / 1024 / 1024 * 100) / 100,
-			db_operations: tracker.dbOperations,
-			records_processed: tracker.recordsProcessed,
-			console_output: tracker.consoleOutput.join('\n'),
-			warnings: tracker.warnings.length > 0 ? tracker.warnings : null,
-			execution_context: {
-				...tracker.execution_context,
-				results,
-				performance: {
-					execution_time_ms: duration,
-					memory_delta_mb: Math.round((memoryEnd.rss - tracker.memoryStart.rss) / 1024 / 1024 * 100) / 100,
-				},
-			},
-		}, {
-			where: { id: tracker.executionLogId },
-		});
+		// Update execution log (if we have one)
+		if (tracker.executionLogId) {
+			try {
+				await CronExecutionLog.update({
+					status: 'success',
+					finished_at: endTime,
+					duration_ms: duration,
+					memory_end_mb: Math.round(memoryEnd.rss / 1024 / 1024 * 100) / 100,
+					memory_peak_mb: Math.round(Math.max(tracker.memoryStart.rss, memoryEnd.rss) / 1024 / 1024 * 100) / 100,
+					db_operations: tracker.dbOperations,
+					records_processed: tracker.recordsProcessed,
+					console_output: tracker.consoleOutput.join('\n'),
+					warnings: tracker.warnings.length > 0 ? tracker.warnings : null,
+					execution_context: {
+						...tracker.execution_context,
+						results,
+						performance: {
+							execution_time_ms: duration,
+							memory_delta_mb: Math.round((memoryEnd.rss - tracker.memoryStart.rss) / 1024 / 1024 * 100) / 100,
+						},
+					},
+				}, {
+					where: { id: tracker.executionLogId },
+				});
+			}
+			catch (dbErr) {
+				console.warn(`[CronMonitor] Could not update execution log for ${executionId}: ${dbErr.message}`);
+			}
+		}
 
 		console.log(`[CronMonitor] ${EMOJI.SUCCESS} Completed execution ${executionId} in ${duration}ms`);
 		console.log(`[CronMonitor] ${EMOJI.INFO} DB operations: ${tracker.dbOperations}, Records: ${tracker.recordsProcessed}, Warnings: ${tracker.warnings.length}`);
@@ -137,7 +152,12 @@ class CronMonitor {
 		this.activeExecutions.delete(executionId);
 
 		// Update health check
-		await this.updateHealthStatus(tracker.jobName);
+		try {
+			await this.updateHealthStatus(tracker.jobName);
+		}
+		catch (dbErr) {
+			console.warn(`[CronMonitor] Could not update health status for ${tracker.jobName}: ${dbErr.message}`);
+		}
 
 		return {
 			duration,
@@ -171,30 +191,42 @@ class CronMonitor {
 		else if (error.name === 'TimeoutError') errorType = 'timeout';
 		else if (error.code === 'ECONNREFUSED') errorType = 'connection';
 
-		// Update execution log
-		await CronExecutionLog.update({
-			status: 'error',
-			finished_at: endTime,
-			duration_ms: duration,
-			memory_end_mb: Math.round(memoryEnd.rss / 1024 / 1024 * 100) / 100,
-			db_operations: tracker.dbOperations,
-			records_processed: tracker.recordsProcessed,
-			error_message: error.message,
-			error_stack: error.stack,
-			error_type: errorType,
-			console_output: tracker.consoleOutput.join('\n'),
-			warnings: tracker.warnings.length > 0 ? tracker.warnings : null,
-		}, {
-			where: { id: tracker.executionLogId },
-		});
+		// Update execution log (if we have one)
+		if (tracker.executionLogId) {
+			try {
+				await CronExecutionLog.update({
+					status: 'error',
+					finished_at: endTime,
+					duration_ms: duration,
+					memory_end_mb: Math.round(memoryEnd.rss / 1024 / 1024 * 100) / 100,
+					db_operations: tracker.dbOperations,
+					records_processed: tracker.recordsProcessed,
+					error_message: error.message,
+					error_stack: error.stack,
+					error_type: errorType,
+					console_output: tracker.consoleOutput.join('\n'),
+					warnings: tracker.warnings.length > 0 ? tracker.warnings : null,
+				}, {
+					where: { id: tracker.executionLogId },
+				});
+			}
+			catch (dbErr) {
+				console.warn(`[CronMonitor] Could not update execution log for ${executionId}: ${dbErr.message}`);
+			}
+		}
 
 		console.error(`[CronMonitor] ${EMOJI.FAILURE} Failed execution ${executionId} after ${duration}ms: ${error.message}`);
-		
+
 		// Clean up
 		this.activeExecutions.delete(executionId);
 
 		// Update health check
-		await this.updateHealthStatus(tracker.jobName, error);
+		try {
+			await this.updateHealthStatus(tracker.jobName, error);
+		}
+		catch (dbErr) {
+			console.warn(`[CronMonitor] Could not update health status for ${tracker.jobName}: ${dbErr.message}`);
+		}
 
 		return {
 			duration,

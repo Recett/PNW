@@ -39,22 +39,18 @@ const dailyTaskJob = makeCronJob('0 1 * * *', async () => {
 	await performDailyTasks();
 });
 
-// This job runs every 30 minutes — health monitoring and alerting
-const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
-	await performHealthCheck();
-});
-
 // This job runs every 8 hours — HMS Divine battle cycle / cannon phase (only active during battle)
 const battleCycleJob = makeCronJob('0 */8 * * *', async () => {
 	if (!_discordClient) return;
 	await performHMSDivineBattleCycle();
 });
 
-// This job runs every minute — check if an armory wave is due and fire it
-// This job runs every 30 minutes — spawn random encounters and clean up expired ones
-const encounterSpawnJob = makeCronJob('0,30 * * * *', async () => {
-	if (!_discordClient) return;
-	await performEncounterSpawn();
+// This job runs every 30 minutes — health monitoring, encounter spawn, and related half-hourly tasks
+// Consolidated to avoid concurrent DB writes from multiple same-schedule jobs
+const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
+	await performHealthCheck();
+	if (_discordClient) await performEncounterSpawn();
+	else console.warn('[EncounterSpawn] Skipped — Discord client not ready.');
 });
 
 // Do NOT start the job automatically
@@ -64,6 +60,7 @@ async function performEncounterSpawn() {
 	const monitor = getCronMonitor();
 	let tracker = null;
 	try {
+		console.log('[EncounterSpawn] Cycle starting...');
 		tracker = await monitor.startExecution(jobName, {
 			description: 'Spawn random encounters and resolve expired ones',
 			expected_duration_ms: 10000,
@@ -71,10 +68,14 @@ async function performEncounterSpawn() {
 		await CronLog.upsert({ job_name: jobName, status: 'running', last_run: new Date() });
 
 		const guild = _discordClient.guilds.cache.first() || null;
-		if (!guild) return;
+		if (!guild) {
+			console.warn('[EncounterSpawn] No guild found — skipping.');
+			return;
+		}
 
 		await battleUtil.resolveExpiredEncounters(guild);
 		await battleUtil.spawnEncounters(guild);
+		console.log('[EncounterSpawn] Cycle complete.');
 
 		const logRow = await CronLog.findOne({ where: { job_name: jobName } });
 		await logRow.update({
@@ -808,17 +809,13 @@ async function startCronJob(client) {
 		console.log('Daily task processor cron job started.');
 	}
 
-	// Start health monitoring job
+	// Start health monitoring + encounter spawn job (consolidated half-hourly job)
 	healthMonitorJob.start();
-	console.log('Health monitor cron job started (runs every 30 minutes).');
+	console.log('Half-hourly cron job started (health monitor + encounter spawn, runs every 30 minutes).');
 
-	// Start HMS Divine battle cycle job (fires every 12 hours at 00:00 and 12:00)
+	// Start HMS Divine battle cycle job (fires every 8 hours)
 	battleCycleJob.start();
 	console.log('Battle cycle cron job started (HMS Divine, runs every 8 hours).');
-
-	// Start random encounter spawn/expiry job (fires every 30 minutes during battle)
-	encounterSpawnJob.start();
-	console.log('Encounter spawn cron job started (HMS Divine, runs every 30 minutes).');
 
 	// Run pending deletion cleanup immediately on startup to catch any stragglers from previous session
 	performPendingDeleteCleanup().catch(e => console.error('[PendingDeleteCleanup] Startup run failed:', e));
@@ -878,7 +875,6 @@ module.exports = {
 	dailyTaskJob,
 	healthMonitorJob,
 	battleCycleJob,
-	encounterSpawnJob,
 	startCronJob,
 	resetNpcStockPurchases,
 	performHealthCheck,

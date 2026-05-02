@@ -443,6 +443,9 @@ module.exports = {
 				parentChannel.permissionOverwrites.cache,
 			);
 
+			// Grant bot access to the new channel
+			await channel.permissionOverwrites.create(guild.members.me, { ViewChannel: true, SendMessages: true });
+
 			// Set permissions for the new role
 			await channel.permissionOverwrites.create(role, tlg.permissions.textRole);
 		}
@@ -560,10 +563,18 @@ module.exports = {
 					);
 					createdChannel = true;
 
+					// Grant bot access to the new channel
+					await channel.permissionOverwrites.create(guild.members.me, { ViewChannel: true, SendMessages: true });
+
 					// Set permissions for the role on the new channel
 					if (role) {
 						await channel.permissionOverwrites.create(role, tlg.permissions.textRole);
 					}
+				}
+
+				// Ensure bot always has access to the channel
+				if (channel) {
+					await channel.permissionOverwrites.edit(guild.members.me, { ViewChannel: true, SendMessages: true });
 				}
 
 				// Sync permissions based on lock status

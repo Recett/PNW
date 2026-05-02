@@ -705,11 +705,12 @@ async function generateLocationInstance(interaction, character, location, target
 		if (Math.random() * 100 < spawn.spawn_chance) {
 			const count = Math.floor(Math.random() * (spawn.max_count - spawn.min_count + 1)) + spawn.min_count;
 			for (let i = 0; i < count; i++) {
+				const spawnHp = spawn.enemyTemplate?.stat?.health ?? 100;
 				const enemyInstance = await EnemyInstance.create({
-					enemy_base_id: spawn.enemy_base_id,
-					current_health: 100,
+					enemy_id: spawn.enemy_base_id,
+					current_hp: spawnHp,
+					max_hp: spawnHp,
 					is_alive: true,
-					created_at: new Date(),
 				});
 				await LocationInstanceEnemy.create({
 					instance_id: instance.id,

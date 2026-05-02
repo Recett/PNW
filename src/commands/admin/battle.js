@@ -36,7 +36,14 @@ module.exports = {
 						.setRequired(true)))
 		.addSubcommand(sub =>
 			sub.setName('end')
-				.setDescription('End the battle immediately, post outcome, and restore all locations.')),
+				.setDescription('End the battle immediately, post outcome, and restore all locations.'))
+		.addSubcommand(sub =>
+			sub.setName('diagnose')
+				.setDescription('Dry-run the spawn logic and report what each zone would do, without spawning.'))
+		.addSubcommand(sub =>
+			sub.setName('forcespawn')
+				.setDescription('Immediately trigger one encounter spawn cycle.')),
+
 
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand();
@@ -86,6 +93,7 @@ module.exports = {
 								`Initialized: **${state.battleInitialized ? 'YES' : 'NO'}**`,
 							`Cycle: **${state.cycleCount}**`,
 							`Morale: **${state.morale}**`,
+							`Mustering: **${state.mustering ? `YES (${state.readyCount} ready)` : 'NO'}**`,
 						].join('\n'),
 							inline: true,
 						},
@@ -143,6 +151,24 @@ module.exports = {
 				const value = interaction.options.getInteger('value');
 				await battleUtil.setFlag(flagName, value);
 				await interaction.editReply({ content: `${EMOJI.SUCCESS} Set \`${flagName}\` = \`${value}\`` });
+			}
+			else if (sub === 'diagnose') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const lines = await battleUtil.diagnoseSpawn(interaction.guild);
+				const embed = new EmbedBuilder()
+					.setTitle('Spawn Diagnose')
+					.setDescription(lines.join('\n'))
+					.setColor(0x3498db);
+				await interaction.editReply({ embeds: [embed] });
+			}
+			else if (sub === 'forcespawn') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
+				if (!battleActive) {
+					return await interaction.editReply({ content: `${EMOJI.FAILURE} No active battle.` });
+				}
+				await battleUtil.spawnEncounters(interaction.guild);
+				await interaction.editReply({ content: `${EMOJI.SUCCESS} Encounter spawn cycle triggered.` });
 			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });

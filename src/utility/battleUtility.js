@@ -124,6 +124,7 @@ async function getBattleState() {
 		arbMainHp, arbCannonHp, arbRiggingHp,
 		morale, arbCommanderSlain,
 		hmsSunk, hmsSupplyLoss,
+		mustering, readyCount,
 	] = await Promise.all([
 		getFlag('global.hms_divine_battle_active'),
 		getFlag('global.hms_divine_battle_initialized'),
@@ -138,6 +139,8 @@ async function getBattleState() {
 		getFlag('global.arb_commander_slain'),
 		getFlag('global.hms_divine_sunk'),
 		getFlag('global.hms_divine_supply_loss'),
+		getFlag('global.hms_divine_mustering'),
+		getFlag('global.hms_divine_ready_count'),
 	]);
 
 	return {
@@ -148,6 +151,7 @@ async function getBattleState() {
 		arbTotalHp: arbMainHp + arbCannonHp + arbRiggingHp,
 		morale, arbCommanderSlain,
 		hmsSunk, hmsSupplyLoss,
+		mustering, readyCount,
 	};
 }
 
@@ -1559,7 +1563,10 @@ async function resolveHazard(guild, targetChar, hazardId, locationBase) {
  */
 async function spawnEncounters(guild) {
 	const battleActive = await getFlag('global.hms_divine_battle_active');
-	if (!battleActive) return;
+	if (!battleActive) {
+		console.log('[SpawnEncounters] Battle not active — skipping.');
+		return;
+	}
 
 	// Wait for enough players to muster before spawning enemies
 	const mustering = await getFlag('global.hms_divine_mustering');
@@ -1572,6 +1579,10 @@ async function spawnEncounters(guild) {
 	const allLocations = await LocationBase.findAll();
 	const { EMOJI } = require('../enums');
 	const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+
+	let totalEncounters = 0;
+	let totalHazards = 0;
+	console.log(`[SpawnEncounters] Cycle start — morale: ${morale}, zones: ${SPAWN_ZONE_DEFS.length}`);
 
 	for (const zoneDef of SPAWN_ZONE_DEFS) {
 		// Find location by stored ID flag (key-based) or by hardcoded id
@@ -1586,12 +1597,18 @@ async function spawnEncounters(guild) {
 			const id = await getFlag(flagName);
 			if (id) location = allLocations.find(loc => loc.id === id);
 		}
-		if (!location) continue;
+		if (!location) {
+			console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — location not found, skipping.`);
+			continue;
+		}
 
 		// breachOnly zones only activate when morale < -20 AND HMS top deck HP is below half (200)
 		if (zoneDef.breachOnly) {
 			const deckHp = await getFlag('global.hms_divine_top_deck_hp');
-			if (morale >= -20 || deckHp >= 200) continue;
+			if (morale >= -20 || deckHp >= 200) {
+				console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — breachOnly not met (morale: ${morale}, deckHp: ${deckHp}), skipping.`);
+				continue;
+			}
 		}
 
 		// Spawn count: 4 base, +1 per 10 negative morale, -1 per 10 positive morale.
@@ -1600,10 +1617,14 @@ async function spawnEncounters(guild) {
 		const effectiveMorale = morale - moraleCost;
 		const rawSpawn = Math.max(0, 4 + Math.floor(-effectiveMorale / 10));
 		const spawnCount = zoneDef.halfSpawn ? Math.floor(rawSpawn / 2) : rawSpawn;
-		if (!spawnCount) continue;
+		if (!spawnCount) {
+			console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount 0 (effectiveMorale: ${effectiveMorale}), skipping.`);
+			continue;
+		}
 
 		// Find players present in this zone
 		const players = await CharacterBase.findAll({ where: { location_id: location.id } });
+		console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}`);
 		if (!players.length) {
 			// Undefended HMS zone: each unchallenged spawn deals -2 morale and -10 ship HP
 			if (zoneDef.hmsZone) {
@@ -1675,6 +1696,7 @@ async function spawnEncounters(guild) {
 
 					const msg = await channel.send({ embeds: [embed], components: [row] });
 					await record.update({ message_id: msg.id });
+					totalEncounters++;
 				}
 				catch (e) {
 					console.error('[Encounter] Failed to post encounter message:', e);
@@ -1685,9 +1707,12 @@ async function spawnEncounters(guild) {
 				if (!zoneDef.hazards.length) continue;
 				const hazardId = zoneDef.hazards[Math.floor(Math.random() * zoneDef.hazards.length)];
 				await resolveHazard(guild, target, hazardId, location);
+				totalHazards++;
 			}
 		}
 	}
+
+	console.log(`[SpawnEncounters] Done — encounters posted: ${totalEncounters}, hazards resolved: ${totalHazards}`);
 
 }
 
@@ -1997,6 +2022,77 @@ async function onArmoryPlayerDeparted(armoryLocationId, characterId, client) {
 	}
 }
 
+/**
+ * Dry-run through spawnEncounters and return a human-readable report of what
+ * each spawn zone would do, without creating any encounters or dealing any damage.
+ * @param {import('discord.js').Guild} guild
+ * @returns {Promise<string[]>} Array of status lines, one per zone
+ */
+async function diagnoseSpawn(guild) {
+	const lines = [];
+	const battleActive = await getFlag('global.hms_divine_battle_active');
+	lines.push(`battle_active: **${battleActive ? 'YES' : 'NO'}**`);
+	if (!battleActive) return lines;
+
+	const mustering = await getFlag('global.hms_divine_mustering');
+	const readyCount = await getFlag('global.hms_divine_ready_count');
+	lines.push(`mustering: **${mustering ? `YES (${readyCount}/${MUSTER_REQUIRED} ready)` : 'NO'}**`);
+	if (mustering) return lines;
+
+	const morale = await getFlag('global.hms_divine_morale');
+	const deckHp = await getFlag('global.hms_divine_top_deck_hp');
+	lines.push(`morale: **${morale}**, top deck HP: **${deckHp}**\n`);
+
+	const allLocations = await LocationBase.findAll();
+
+	for (const zoneDef of SPAWN_ZONE_DEFS) {
+		const label = zoneDef.key ?? `id:${zoneDef.id}`;
+
+		let location;
+		if (zoneDef.id != null) {
+			location = allLocations.find(loc => loc.id === zoneDef.id);
+		}
+		else if (zoneDef.key) {
+			const flagName = zoneDef.key === 'hms_rigging'
+				? 'global.location_id_hms_rigging'
+				: `global.location_id_${zoneDef.key}`;
+			const id = await getFlag(flagName);
+			if (id) location = allLocations.find(loc => loc.id === id);
+		}
+
+		if (!location) {
+			lines.push(`**${label}**: \u274C location not found`);
+			continue;
+		}
+
+		if (zoneDef.breachOnly) {
+			if (morale >= -20 || deckHp >= 200) {
+				lines.push(`**${label}**: \u23ED breach condition not met (morale=${morale}, deckHp=${deckHp})`);
+				continue;
+			}
+		}
+
+		const moraleCost = ZONE_MORALE_THRESHOLDS[zoneDef.key] ?? 0;
+		const effectiveMorale = morale - moraleCost;
+		const rawSpawn = Math.max(0, 4 + Math.floor(-effectiveMorale / 10));
+		const spawnCount = zoneDef.halfSpawn ? Math.floor(rawSpawn / 2) : rawSpawn;
+		if (!spawnCount) {
+			lines.push(`**${label}**: \u23ED spawn count is 0 (effectiveMorale=${effectiveMorale})`);
+			continue;
+		}
+
+		const players = await CharacterBase.findAll({ where: { location_id: location.id } });
+		const channelId = location.channel;
+		const channelOk = channelId ? (guild.channels.resolve(channelId) != null ? '\u2705' : '\u26A0\uFE0F not in cache') : '\u274C not set';
+
+		lines.push(
+			`**${label}** (loc ${location.id}): spawns=${spawnCount}, players=${players.length}, channel=${channelId ?? 'null'} ${channelOk}`,
+		);
+	}
+
+	return lines;
+}
+
 module.exports = {
 	// Flag helpers
 	getFlag,
@@ -2040,6 +2136,7 @@ module.exports = {
 	pickEnemyForLocation,
 	// Random encounters
 	spawnEncounters,
+	diagnoseSpawn,
 	resolveExpiredEncounters,
 	// Armory wave system
 	spawnArmoryWave,
