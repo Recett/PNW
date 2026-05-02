@@ -1209,8 +1209,8 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	}
 
 	// Apply boarding_disoriented accuracy penalty if the character flag is active
-	const boardingFlag = await CharacterFlag.findOne({ where: { character_id: playerId, flag_name: 'boarding_disoriented' } });
-	if (boardingFlag && boardingFlag.flag_value > 0) {
+	const boardingFlag = await CharacterFlag.findOne({ where: { character_id: playerId, flag: 'boarding_disoriented' } });
+	if (boardingFlag && boardingFlag.value > 0) {
 		options.playerAccuracyMultiplier = (options.playerAccuracyMultiplier ?? 1) * 0.8;
 	}
 

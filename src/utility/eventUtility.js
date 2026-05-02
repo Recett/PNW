@@ -1801,8 +1801,8 @@ class EventProcessor {
 		// Resolve flag-referenced location: location: "flag:location_id_arb_main_deck"
 		if (typeof location_id === 'string' && location_id.startsWith('flag:')) {
 			const flagKey = location_id.slice(5);
-			const flagRow = await GlobalFlag.findOne({ where: { flag_name: flagKey } });
-			location_id = flagRow ? Number(flagRow.flag_value) : null;
+			const flagRow = await GlobalFlag.findOne({ where: { flag: flagKey } });
+			location_id = flagRow ? Number(flagRow.value) : null;
 		}
 
 		if (location === 'adjacent_random') {

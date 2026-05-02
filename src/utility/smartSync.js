@@ -9,13 +9,13 @@ class SmartSync {
 	static async checkAndSync() {
 		try {
 			const lastSync = await GlobalFlag.findOne({ 
-				where: { flag_name: 'schema_last_sync' } 
+				where: { flag: 'schema_last_sync' } 
 			});
 			
 			// Get current model definitions hash
 			const currentSchemaHash = await this.getSchemaHash();
 			
-			if (!lastSync || lastSync.flag_value !== currentSchemaHash) {
+			if (!lastSync || lastSync.value !== currentSchemaHash) {
 				console.log('🔄 Schema changes detected, syncing database...');
 				
 				// Use Sequelize alter instead of full sync for safety
@@ -24,8 +24,8 @@ class SmartSync {
 				
 				// Update sync marker
 				await GlobalFlag.upsert({
-					flag_name: 'schema_last_sync',
-					flag_value: currentSchemaHash,
+					flag: 'schema_last_sync',
+					value: currentSchemaHash,
 				});
 				
 				console.log('✅ Database schema updated successfully');

@@ -957,9 +957,9 @@ async function validateSpecialEventRequirements(characterId, eventId) {
 		// Check flag requirements
 		for (const [flagName, flagValue] of Object.entries(requirements.flags)) {
 			const flag = await CharacterFlag.findOne({
-				where: { character_id: characterId, flag_name: flagName }
+				where: { character_id: characterId, flag: flagName }
 			});
-			if (!flag || flag.flag_value !== flagValue) {
+			if (!flag || flag.value !== flagValue) {
 				return { valid: false, reason: `Requires flag ${flagName}=${flagValue}` };
 			}
 		}

@@ -228,7 +228,7 @@ class LocationEventUtility {
 		if (event.flag_requirements) {
 			const flagReqs = JSON.parse(event.flag_requirements);
 			for (const [flagName, requiredValue] of Object.entries(flagReqs)) {
-				const characterFlag = character.flags?.find(f => f.flag_name === flagName);
+				const characterFlag = character.flags?.find(f => f.flag === flagName);
 				if (!characterFlag || characterFlag.value !== requiredValue) {
 					return false;
 				}
