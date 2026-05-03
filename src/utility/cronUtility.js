@@ -43,6 +43,76 @@ const dailyTaskJob = makeCronJob('0 1 * * *', async () => {
 // This stub keeps the export contract intact but the job is never started.
 const battleCycleJob = makeCronJob('0 0 31 2 *', async () => { /* disabled — countdown-driven */ });
 
+// Jobs eligible for pauseAll/resumeAll (battleCycleJob excluded — it is never running)
+const _allPausableJobs = () => [
+	{ name: 'midnight_job', instance: job },
+	{ name: 'hourly_jobs', instance: hourlyJob },
+	{ name: 'weekly_stock_reset', instance: weeklyStockResetJob },
+	{ name: 'daily_task_processor', instance: dailyTaskJob },
+	{ name: 'health_monitor', instance: healthMonitorJob },
+];
+
+// Names whose last_run is checked on startup for catch-up — stamp them with "now" on resume
+const _catchUpJobNames = [
+	'midnight_job',
+	'character_regen',
+	'weekly_stock_reset',
+	'daily_task_processor',
+];
+
+// Set of job names that were stopped by pauseAllCronJobs
+const _pausedByPauseAll = new Set();
+
+async function pauseAllCronJobs() {
+	_pausedByPauseAll.clear();
+	const now = new Date();
+	for (const { name, instance } of _allPausableJobs()) {
+		if (instance.running) {
+			instance.stop();
+			_pausedByPauseAll.add(name);
+		}
+	}
+	if (_pausedByPauseAll.size > 0) {
+		await CronLog.update(
+			{ status: 'paused', paused_at: now, updated_at: now },
+			{ where: { job_name: [..._pausedByPauseAll] } },
+		);
+	}
+	console.log(`[CronPause] Paused ${_pausedByPauseAll.size} job(s): ${[..._pausedByPauseAll].join(', ')}`);
+	return _pausedByPauseAll.size;
+}
+
+async function resumeAllCronJobs() {
+	const now = new Date();
+
+	// Stamp last_run = now so a bot restart cannot treat the pause window as missed ticks
+	await CronLog.update(
+		{ last_run: now },
+		{ where: { job_name: _catchUpJobNames } },
+	);
+
+	const toResume = [..._pausedByPauseAll];
+	let resumed = 0;
+	for (const { name, instance } of _allPausableJobs()) {
+		if (_pausedByPauseAll.has(name)) {
+			instance.start();
+			resumed++;
+		}
+	}
+
+	_pausedByPauseAll.clear();
+
+	if (toResume.length > 0) {
+		await CronLog.update(
+			{ status: 'running', paused_at: null, updated_at: now },
+			{ where: { job_name: toResume } },
+		);
+	}
+
+	console.log(`[CronResume] Resumed ${resumed} job(s).`);
+	return resumed;
+}
+
 // This job runs every 30 minutes — health monitoring, encounter spawn, and related half-hourly tasks
 // Consolidated to avoid concurrent DB writes from multiple same-schedule jobs
 const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
@@ -901,6 +971,8 @@ module.exports = {
 	healthMonitorJob,
 	battleCycleJob,
 	startCronJob,
+	pauseAllCronJobs,
+	resumeAllCronJobs,
 	resetNpcStockPurchases,
 	performHealthCheck,
 	performHMSDivineBattleCycle,

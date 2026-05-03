@@ -134,6 +134,25 @@ Cron schedule: `'0 */8 * * *'` (every 8 hours) in `cronUtility.js`.
 
 **Status:** ✅ Core mechanic matches spec. Morale updated on win/loss (see §5). See §6 (no breakthrough trigger).
 
+### 7b — Cannon Deck 3-Round Sequential Fight (arb_cannon_deck)
+
+**Design says:** `/fight` on the Cannon Deck triggers a sequential 3-round event chain (sailor → veteran_sailor → boarder) instead of a standard 1v1. After each victory the player may press on or fall back. Completing all 3 rounds drains `arb_cannon_deck_hp` by 30 and awards cumulative morale. There is also a probabilistic Master Gunner boss encounter.
+
+**Code does:** `src/commands/adventuring/fight.js` — cannon deck branch (~line 361).
+- Zone branch: `currentZone.id === parseInt(arbranceIds.arb_cannon_deck)` routes to `eventUtil.processEvent`.
+- Spawn chance for Master Gunner: `(missingHpPct / 2) / 100` — only if `arb_boss_master_gunner_defeated` is falsy.
+- Entry event: `arb-cannon-master-gunner-intro` (boss) or `arb-cannon-round-1-combat` (normal), from `src/content/events/hms_divine_cannon_deck.yaml`.
+- Event chain: round-1-combat → round-1-victory (morale +1) → round-2-combat → round-2-victory (morale +3) → round-3-combat → round-3-victory (morale +2, cannon_deck_hp −30).
+- Defeat at any round: universal battle rule in `eventUtility.js` moves player to living quarters (morale −3 from `arb-cannon-defeat` is skipped — known gap).
+- Retreat option available after each round: silent move to main deck (location 9).
+- Master Gunner victory: `processCombat` applies morale +10 and drain_reduction +2 (via `unique_per_voyage` tag); YAML sets `arb_boss_master_gunner_defeated=1` and cannon_deck_hp −100.
+- All event messages sent as **public** channel messages (`ephemeral: false` passed to `processEvent`).
+
+**Status:** ✅ Implemented. Two bugs fixed (2026-05-xx): (1) ephemeral mismatch — added `{ ephemeral: false }` to the `processEvent` call so all rounds are public; (2) duplicate boss-kill effects — removed redundant morale +10 and drain_reduction +2 from `arb-cannon-master-gunner-victory` YAML (already applied by `processCombat` for `unique_per_voyage` enemies).
+
+> **Gap — Defeat morale not applied.**
+> The universal battle defeat rule in `eventUtility.js` short-circuits the `on_defeat` chain, so the morale −3 from `arb-cannon-defeat` is never executed.
+
 ### 7a — Officer Cabin 3v3 Assault (arb_officer_quarters)
 
 **Design says:** When `/fight` is used in the Officer Quarters zone, a multi-player party mechanic triggers instead of a standard 1v1. Up to 3 players assign roles (Fight Captain, Fight First Mate, Fight Head Guard). A shared party board shows in the channel. Any role-holder presses Confirm to start all fights simultaneously.

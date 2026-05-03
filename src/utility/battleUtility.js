@@ -1228,9 +1228,13 @@ const ENCOUNTER_ENEMY_CHANCE = 0.9;
 
 // Enemy pool for armory waves. Cost is derived from level (lv3/4 = 1.0, lv5+ = 1.5).
 const ARMORY_WAVE_ENEMY_POOL = [
-	{ enemy_id: 'veteran_sailor', spawn_chance: 40 },
-	{ enemy_id: 'boarder',        spawn_chance: 35 },
-	{ enemy_id: 'man_at_arms',    spawn_chance: 25 },
+	{ enemy_id: 'sailor',         spawn_chance: 10 },
+	{ enemy_id: 'cutthroat',      spawn_chance: 10 },
+	{ enemy_id: 'boarder',        spawn_chance: 10 },
+	{ enemy_id: 'crossbowman',    spawn_chance: 10 },
+	{ enemy_id: 'man_at_arms',    spawn_chance: 10 },
+	{ enemy_id: 'swashbuckler',   spawn_chance: 10 },
+	{ enemy_id: 'veteran_sailor', spawn_chance: 10 },
 ];
 
 // In-memory timer handle — survives only while the bot is running; CronLog.next_run persists across restarts
@@ -1342,14 +1346,6 @@ async function spawnArmoryWave(guild) {
 	const waveCounter = await getFlag('global.arb_armory_wave_counter');
 	const waveId = waveCounter + 1;
 
-	if (waveId === 1) {
-		// First wave — armory was empty when players entered; announce on battle channel
-		const { runActionsOnly } = require('@utility/eventUtility.js');
-		await runActionsOnly('arb-armory-occupied', '0', guild.client).catch(e =>
-			console.error('[Armory] Failed to post occupied announce:', e)
-		);
-	}
-
 	await setFlag('global.arb_armory_wave_counter', waveId);
 
 	const target = players[Math.floor(Math.random() * players.length)];
@@ -1432,9 +1428,9 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 	const newWins = wins + 1;
 	await setFlag('global.arb_armory_wins', newWins);
 
-	// Increase budget by 0.5 (stored ×10, so +5)
+	// Increase budget by 1.0 (stored ×10, so +10)
 	const budgetX10 = await getFlag('global.arb_armory_budget_x10');
-	const newBudgetX10 = budgetX10 + 5;
+	const newBudgetX10 = budgetX10 + 10;
 	await setFlag('global.arb_armory_budget_x10', newBudgetX10);
 
 	// Win bonus morale: +N where N = current win count
@@ -1899,7 +1895,29 @@ async function onArmoryPlayerArrived(guild, characterId) {
 
 	// Gate: if wave timer is already running, this is not the kickstarter
 	const existingLog = await CronLog.findOne({ where: { job_name: 'armory_wave_spawn' } });
-	if (existingLog && existingLog.status === 'running') return;
+	if (existingLog && existingLog.status === 'running') {
+		// Post an arrival announcement for the reinforcing player
+		try {
+			const armory = await LocationBase.findByPk(ARB_ARMORY_ID);
+			if (armory && armory.channel) {
+				const { EMOJI } = require('../enums');
+				const { EmbedBuilder } = require('discord.js');
+				const channel = await guild.channels.fetch(String(armory.channel)).catch(() => null);
+				if (channel) {
+					const waveCount = await getFlag('global.arb_armory_wave_counter') || 0;
+					const embed = new EmbedBuilder()
+						.setTitle(`${EMOJI.SWORD} Ti\u1ebfp Vi\u1ec7n!`)
+						.setDescription(`<@${characterId}> \u0111\u00e3 v\u00e0o Kho V\u0169 Kh\u00ed.\n\nGiao tranh \u0111ang ti\u1ebfp di\u1ec5n \u2014 \u0111\u00e3 tr\u1ea3i qua **${waveCount}** \u0111\u1ee3t t\u1ea5n c\u00f4ng.`)
+						.setFooter({ text: 'Kho V\u0169 Kh\u00ed \u2022 Chi\u1ebfn \u0111\u1ea5u \u0111ang di\u1ec5n ra' });
+					await channel.send({ embeds: [embed] });
+				}
+			}
+		}
+		catch (e) {
+			console.error('[Armory] Failed to post reinforcement announcement:', e);
+		}
+		return;
+	}
 
 	// Persist the wave schedule so the 15-min gate and restart recovery both work
 	const nextWaveAt = new Date(Date.now() + ARMORY_WAVE_INTERVAL_MS);
@@ -1913,6 +1931,12 @@ async function onArmoryPlayerArrived(guild, characterId) {
 	});
 	scheduleArmoryWave(guild, ARMORY_WAVE_INTERVAL_MS);
 	console.log(`[Armory] First player entered — wave 1 scheduled for ${nextWaveAt.toISOString()}`);
+
+	// Announce armory breach on the battle channel
+	const { runActionsOnly } = require('@utility/eventUtility.js');
+	await runActionsOnly('arb-armory-occupied', '0', guild.client).catch(e =>
+		console.error('[Armory] Failed to post occupied announce:', e),
+	);
 
 	// Spawn an immediate veteran_sailor encounter for the kickstarting player
 	try {

@@ -369,7 +369,7 @@ module.exports = {
 				const entryEvent = (!masterGunnerDefeated && Math.random() < spawnChance)
 					? 'arb-cannon-master-gunner-intro'
 					: 'arb-cannon-round-1-combat';
-				await interaction.client.eventUtil.processEvent(entryEvent, interaction, userId);
+				await interaction.client.eventUtil.processEvent(entryEvent, interaction, userId, { ephemeral: false });
 				return;
 			}
 

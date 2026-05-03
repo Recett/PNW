@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { getCronMonitor } = require('@utility/cronMonitor.js');
 const CronJobManager = require('@utility/cronJobManager.js');
+const { pauseAllCronJobs, resumeAllCronJobs } = require('@utility/cronUtility.js');
 const { CronLog, CronExecutionLog, CronHealthCheck } = require('@root/dbObject.js');
 const { EMOJI } = require('../../enums');
 
@@ -119,7 +120,15 @@ module.exports = {
 						.setDescription('Remove data older than N days')
 						.setMinValue(7)
 						.setMaxValue(180)
-						.setRequired(true))),
+						.setRequired(true)))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('pauseall')
+				.setDescription('Pause ALL running cron jobs (no catch-up on resume)'))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('resumeall')
+				.setDescription('Resume all cron jobs paused by pauseall')),
 
 	async execute(interaction) {
 		const subcommand = interaction.options.getSubcommand();
@@ -192,6 +201,22 @@ module.exports = {
 				break;
 			}
 
+			case 'pauseall': {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const count = await pauseAllCronJobs();
+				await interaction.editReply({
+					content: `${EMOJI.WARNING} All cron jobs paused (${count} stopped). Missed ticks will be skipped on resume.`,
+				});
+				break;
+			}
+			case 'resumeall': {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const count = await resumeAllCronJobs();
+				await interaction.editReply({
+					content: `${EMOJI.SUCCESS} Cron jobs resumed (${count} restarted). No catch-up will run.`,
+				});
+				break;
+			}
 			default:
 				await interaction.reply({ content: 'Unknown subcommand.', flags: MessageFlags.Ephemeral });
 			}
