@@ -441,27 +441,31 @@ async function runTeamCombatEngine(actors, options = {}) {
 					attacker.parryPower = attacker.maxParryPower;
 				}
 
+				const isShieldAction = tracker.isShield || false;
+
+				// Calculate hit rate (shield actions always succeed)
 				const tohit = tracker.accuracy || 0;
 				const evd = target.evade || 1;
 				let hitRate = 100;
-				const rate = tohit > 0 ? (evd / tohit) : Infinity;
-				if (rate >= 4) {
-					hitRate = 0;
-				}
-				else {
-					const x = (rate - 1) / 3;
-					hitRate = ((1 - x) / (1 + x)) * 100;
+				if (!isShieldAction) {
+					const rate = tohit > 0 ? (evd / tohit) : Infinity;
+					if (rate >= 4) {
+						hitRate = 0;
+					}
+					else {
+						const x = (rate - 1) / 3;
+						hitRate = ((1 - x) / (1 + x)) * 100;
+					}
 				}
 
 				const roll = Math.floor(Math.random() * 100);
-				const hitResult = roll < hitRate;
+				const hitResult = isShieldAction || (roll < hitRate);
 				let crit = false;
 				let critResisted = false;
 				let critResistedDamage = 0;
 				let damage = 0;
 				let shieldGranted = 0;
 				let shieldAbsorbed = 0;
-				const isShieldAction = tracker.isShield || false;
 				let parryTier = null;
 				let parryReduced = 0;
 				let riposteDamage = 0;

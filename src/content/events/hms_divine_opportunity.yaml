@@ -79,20 +79,19 @@ events:
     is_active: true
 
     message:
-      title: "Kẻ Cầm Trịch"
+      title: "Kẻ chỉ huy"
       text: |
-        Một sợi dây nặng vút qua hành lang. Thủy Thủ Trưởng bước ra,
-        buộc mọi người khác phải dạt sang hai bên.
+        Ngay khi vừa hạ được kẻ địch, bạn thấy một thủy thủ trông có vẻ đứng tuổi, bộ dạng dày dặn kinh nghiệm đang cầm một cái roi. Là đốc quân của kẻ địch, nếu hạ hắn sẽ làm giảm được sĩ khí của kẻ địch.
       message_type: normal
 
     option:
       - id: fight-boatswain
-        text: "Chiến đấu với Thủy Thủ Trưởng"
+        text: "Cơ hội chỉ có một"
         next: arb-boss-boatswain-combat
         display_order: 0
 
       - id: spare-boatswain
-        text: "Rút lui"
+        text: "Thôiiii"
         display_order: 1
 
   - id: arb-boss-boatswain-combat
@@ -113,10 +112,9 @@ events:
     is_active: true
 
     message:
-      title: "Thủy Thủ Trưởng Gục Ngã"
+      title: "Đốc quân Gục Ngã"
       text: |
-        Sợi dây buông thõng và hàng ngũ boong trên tan vỡ. Bạn buộc những
-        tên thủy thủ sống sót phải tán loạn, tạo khoảng thở cho phe ta.
+        Sợi dây buông thõng và hàng ngũ boong trên tan vỡ. Kẻ địch trở nên hoảng loạn khi mất đi người chỉ huy của họ, và bạn có thể cảm thấy tinh thần của họ giảm sút.
       message_type: normal
 
     action:
@@ -141,8 +139,7 @@ events:
     message:
       title: "Bị Đẩy Lui"
       text: |
-        Thủy Thủ Trưởng liên tục làm bạn mất thăng bằng và đẩy bạn ra
-        khỏi hành lang trước khi bạn kịp lấy lại tư thế.
+        Bạn đã bị hạ gục.
       message_type: normal
 
     action:
@@ -159,20 +156,19 @@ events:
     is_active: true
 
     message:
-      title: "Thủy Quân Tinh Nhuệ"
+      title: "Chiến binh lão luyện"
       text: |
-        Giáp thép sắc cạnh và một cây rìu chiến chặn ngang hành lang.
-        Chỉ Huy Vũ Trang đứng đợi mà không vội vàng, rồi từng bước tiến lên.
+        Trong đám đông đang chiến đấu, là một chiến binh cao lớn mặc giáp nặng, cầm một cây rìu chiến. Là chỉ huy vũ trang của kẻ địch. Mỗi lần hắn vung rìu, hai ba thủy thủ Gateland bị đánh bại. Có lẽ bạn nên thách đấu hắn.
       message_type: normal
 
     option:
       - id: fight-master-at-arms
-        text: "Chiến đấu với Chỉ Huy Vũ Trang"
+        text: "Thách đấu."
         next: arb-boss-master-at-arms-combat
         display_order: 0
 
       - id: spare-master-at-arms
-        text: "Lùi bước"
+        text: "Không phải hôm nay."
         display_order: 1
 
   - id: arb-boss-master-at-arms-combat
@@ -193,10 +189,9 @@ events:
     is_active: true
 
     message:
-      title: "Chỉ Huy Vũ Trang Gục Ngã"
+      title: "Thách đấu thắng lợi"
       text: |
-        Cây rìu rơi khỏi tay hắn và hành lang mở ra. Hàng ngũ kỷ luật
-        ở khu vực này sụp đổ hoàn toàn.
+        Sau một trận chiến khốc liệt, bạn đã hạ gục được một đối thủ xứng tầm.
       message_type: normal
 
     action:
@@ -219,10 +214,11 @@ events:
     is_active: true
 
     message:
-      title: "Phòng Tuyến Giữ Vững"
+      title: "Bị đánh bại"
       text: |
-        Mọi đòn tấn công đều bị hóa giải và trả đòn. Bạn buộc phải
-        rút lui trước khi áp lực trở nên nguy hiểm.
+        Điều cuối cùng bạn nghe thấy là tiếng cười ngạo nghễ của hắn.
+
+        "Cũng giỏi lắm, nhưng chưa tài đâu."
       message_type: normal
 
     action:
@@ -239,10 +235,9 @@ events:
     is_active: true
 
     message:
-      title: "Kiếm Khách"
+      title: "Chỉ huy cao cấp"
       text: |
-        Một lưỡi kiếm nhanh lóe lên trong ánh sáng yếu ớt. Thuyền Phó
-        lượn vòng, quan sát nhịp điệu của bạn trước khi ra đòn.
+        Đứng ở trên mũi tàu, nhìn bao quát trận địa là một người đàn ông trẻ tuổi, mặc giáp nhẹ nhưng rõ ràng có địa vị. Đây hẳn là một chỉ huy cao cấp.
       message_type: normal
 
     option:
@@ -275,8 +270,7 @@ events:
     message:
       title: "Thuyền Phó Gục Ngã"
       text: |
-        Bạn bắt được hắn đúng lúc bước hụt và kết thúc cuộc đấu gọn gàng.
-        Đám thủy thủ gần đó mất phương hướng khi chỉ huy biến mất khỏi hàng ngũ.
+        Bạn lao lên và hạ gục được thuyền phó. Hắn ngã xuống, nhìn bạn bằng ánh mắt ngạc nhiên, rồi lảo đảo rút lui về phía sau.
       message_type: normal
 
     action:
@@ -301,8 +295,7 @@ events:
     message:
       title: "Không Theo Kịp"
       text: |
-        Hắn kiểm soát nhịp điệu từ đòn đầu tiên. Bạn rút lui trước
-        khi cuộc đấu trở thành thảm bại.
+        Mặc dù trận chiến chưa ngã ngũ, nhưng có vẻ thủy thủ đoàn của kẻ địch sắp sửa bao vây. Bạn buộc phải rút lui.
       message_type: normal
 
     action:
@@ -366,8 +359,6 @@ events:
       text: |
         Tên thủy thủ dày dạn ngã xuống. Người bị thương tựa vào thành
         tàu lấy lại hơi thở. Anh ta gật đầu về phía một khoảng trống trong hàng ngũ kẻ địch.
-
-        “Chúng bỏ trống một vị trí hậu trận. Chỉ một tên lính vũ trang đang giữ một mình.”
       message_type: normal
 
     action:

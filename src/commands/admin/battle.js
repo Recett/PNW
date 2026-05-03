@@ -179,28 +179,28 @@ module.exports = {
 				// Corrected spawn weights — HMS zones are beginner areas
 				const SPAWN_TEMPLATE = [
 					// ARB Main Deck
-					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'boarder', spawn_chance: 30 },
-					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
-					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'sailor', spawn_chance: 20 },
-					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'man_at_arms', spawn_chance: 15 },
-					{ zone: 'global.location_id_arb_main_deck', enemy_base_id: 'crossbowman', spawn_chance: 10 },
+					{ locationId: String(battleUtil.ARB_MAIN_DECK_ID), enemy_base_id: 'boarder', spawn_chance: 30 },
+					{ locationId: String(battleUtil.ARB_MAIN_DECK_ID), enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
+					{ locationId: String(battleUtil.ARB_MAIN_DECK_ID), enemy_base_id: 'sailor', spawn_chance: 20 },
+					{ locationId: String(battleUtil.ARB_MAIN_DECK_ID), enemy_base_id: 'man_at_arms', spawn_chance: 15 },
+					{ locationId: String(battleUtil.ARB_MAIN_DECK_ID), enemy_base_id: 'crossbowman', spawn_chance: 10 },
 					// ARB Cannon Deck
-					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'boarder', spawn_chance: 45 },
-					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'man_at_arms', spawn_chance: 35 },
-					{ zone: 'global.location_id_arb_cannon_deck', enemy_base_id: 'veteran_sailor', spawn_chance: 20 },
+					{ locationId: String(battleUtil.ARB_CANNON_DECK_ID), enemy_base_id: 'boarder', spawn_chance: 45 },
+					{ locationId: String(battleUtil.ARB_CANNON_DECK_ID), enemy_base_id: 'man_at_arms', spawn_chance: 35 },
+					{ locationId: String(battleUtil.ARB_CANNON_DECK_ID), enemy_base_id: 'veteran_sailor', spawn_chance: 20 },
 					// ARB Officer Quarters
-					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'man_at_arms', spawn_chance: 50 },
-					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'veteran_sailor', spawn_chance: 35 },
-					{ zone: 'global.location_id_arb_officer_quarters', enemy_base_id: 'boarder', spawn_chance: 15 },
+					{ locationId: String(battleUtil.ARB_OFFICER_QUARTERS_ID), enemy_base_id: 'man_at_arms', spawn_chance: 50 },
+					{ locationId: String(battleUtil.ARB_OFFICER_QUARTERS_ID), enemy_base_id: 'veteran_sailor', spawn_chance: 35 },
+					{ locationId: String(battleUtil.ARB_OFFICER_QUARTERS_ID), enemy_base_id: 'boarder', spawn_chance: 15 },
 					// ARB Rigging
-					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'cutthroat', spawn_chance: 30 },
-					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
-					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'swashbuckler', spawn_chance: 25 },
-					{ zone: 'global.location_id_arb_rigging', enemy_base_id: 'crossbowman', spawn_chance: 20 },
+					{ locationId: String(battleUtil.ARB_RIGGING_ID), enemy_base_id: 'cutthroat', spawn_chance: 30 },
+					{ locationId: String(battleUtil.ARB_RIGGING_ID), enemy_base_id: 'veteran_sailor', spawn_chance: 25 },
+					{ locationId: String(battleUtil.ARB_RIGGING_ID), enemy_base_id: 'swashbuckler', spawn_chance: 25 },
+					{ locationId: String(battleUtil.ARB_RIGGING_ID), enemy_base_id: 'crossbowman', spawn_chance: 20 },
 					// HMS Rigging — beginner area
-					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'cutthroat', spawn_chance: 55 },
-					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'sailor', spawn_chance: 35 },
-					{ zone: 'global.location_id_hms_rigging', enemy_base_id: 'swashbuckler', spawn_chance: 10 },
+					{ locationId: String(battleUtil.HMS_RIGGING_ID), enemy_base_id: 'cutthroat', spawn_chance: 55 },
+					{ locationId: String(battleUtil.HMS_RIGGING_ID), enemy_base_id: 'sailor', spawn_chance: 35 },
+					{ locationId: String(battleUtil.HMS_RIGGING_ID), enemy_base_id: 'swashbuckler', spawn_chance: 10 },
 					// HMS Top Deck — beginner area (hardcoded ID)
 					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'sailor', spawn_chance: 55 },
 					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'boarder', spawn_chance: 30 },
@@ -208,24 +208,12 @@ module.exports = {
 					{ locationId: String(HMS_TOP_DECK_ID), enemy_base_id: 'man_at_arms', spawn_chance: 5 },
 				];
 
-				// Resolve zone flag names to location IDs
-				const zoneFlags = [...new Set(SPAWN_TEMPLATE.filter(r => r.zone).map(r => r.zone))];
-				const zoneIdMap = {};
-				for (const flag of zoneFlags) {
-					const id = await battleUtil.getFlag(flag);
-					if (id) zoneIdMap[flag] = String(id);
-				}
-
-				const rows = SPAWN_TEMPLATE
-					.filter(r => r.locationId || zoneIdMap[r.zone])
-					.map(r => ({
-						location_id: r.locationId ?? zoneIdMap[r.zone],
-						enemy_base_id: r.enemy_base_id,
-						spawn_chance: r.spawn_chance,
-						is_boss: false,
-					}));
-
-				const missing = SPAWN_TEMPLATE.filter(r => r.zone && !zoneIdMap[r.zone]).map(r => r.zone);
+				const rows = SPAWN_TEMPLATE.map(r => ({
+					location_id: r.locationId,
+					enemy_base_id: r.enemy_base_id,
+					spawn_chance: r.spawn_chance,
+					is_boss: false,
+				}));
 
 				const deleted = await LocationEnemySpawn.destroy({ where: {} });
 				await LocationEnemySpawn.bulkCreate(rows);
@@ -234,7 +222,6 @@ module.exports = {
 					`Deleted: **${deleted}** old rows`,
 					`Inserted: **${rows.length}** rows`,
 				];
-				if (missing.length) lines.push(`${EMOJI.FAILURE} Unresolved zones (no location ID flag): ${[...new Set(missing)].join(', ')}`);
 
 				await interaction.editReply({ content: lines.join('\n') });
 			}
