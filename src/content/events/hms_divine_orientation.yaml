@@ -276,7 +276,7 @@ events:
       text: |
         "Tập trung vào phòng thủ ngay bây giờ. Tình hình đang rất tệ, chúng ta đang bị đẩy lùi và nếu không cẩn thận thì có thể sẽ mất kiểm soát hoàn toàn."
 
-        *(${morale})*
+        🔴 *Morale: **${morale}***
 
   # Tier 2: -50 <= x <= 0 — low
   - id: york-battle-morale-low
@@ -290,7 +290,7 @@ events:
       text: |
         "Chúng ta đang phải phòng thủ. Địch đang tấn công mạnh, chúng ta không có đủ khả năng phản công ngay bây giờ."
 
-        *(${morale})*
+        🟠 *Morale: **${morale}***
 
   # Tier 3: 0 < x <= 20 — neutral
   - id: york-battle-morale-neutral
@@ -304,7 +304,7 @@ events:
       text: |
         "Tạm thời mọi thứ đang ổn, đây là lúc chúng ta có thể phản công."
 
-        *(${morale})*
+        🟡 *Morale: **${morale}***
 
   # Tier 4: 20 < x <= 40 — good
   - id: york-battle-morale-good
@@ -318,7 +318,7 @@ events:
       text: |
         "Những đợt phản công đang phát huy tác dụng. Chúng ta đang ép được địch, và nếu tiếp tục giữ thế chủ động thì có thể sẽ phá vỡ được phòng thủ của chúng."
 
-        *(${morale})*
+        🟢 *Morale: **${morale}***
 
   # Tier 5: > 40 — high
   - id: york-battle-morale-high
@@ -332,4 +332,4 @@ events:
       text: |
         "Có vẻ như mọi thứ đang đi đúng hướng. Chúng ta đang kiểm soát hoàn toàn tình hình và nếu tiếp tục giữ thế chủ động, chiến thắng sẽ nằm trong tầm tay."
 
-        *(${morale})*
+        🔵 *Morale: **${morale}***

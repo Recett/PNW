@@ -270,13 +270,21 @@ module.exports = {
 			const currentZone = arbranceZones.find(z => z.id === character.location_id);
 			if (!currentZone) {
 				return await interaction.reply({
-					content: 'You must be aboard the enemy vessel to use this command. Cross to the Arbrance ship first.',
+					content: 'Hold your ground! Your ship must be defended. Cross to the enemy vessel when you are ready to fight.',
 					flags: MessageFlags.Ephemeral,
 				});
 			}
 
 			const enemyId = await battleUtil.pickEnemyForLocation(currentZone.id);
 			const arbranceIds = await battleUtil.getArbranceZoneIds();
+
+			// ── Armory: hold-the-ground zone — no player-initiated fights ─────────────
+			if (currentZone.id === arbranceIds.arb_armory) {
+				return await interaction.reply({
+					content: 'The armory must be secured — hold your ground and wait for the enemy to come to you.',
+					flags: MessageFlags.Ephemeral,
+				});
+			}
 
 			// ── Officer Cabin: 3v3 boss fight ──────────────────────────────────────────
 			if (currentZone.id === arbranceIds.arb_officer_quarters) {

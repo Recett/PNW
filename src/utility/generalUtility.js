@@ -342,9 +342,23 @@ function pronoun(event, age, gender) {
 	return processTextTemplate(event, age, gender);
 }
 
+/**
+ * Renders a text progress bar for a stat that ranges from -100 to 100.
+ * -100 = empty, 0 = half full, 100 = full.
+ * @param {number} value - Stat value between -100 and 100.
+ * @param {number} [width=10] - Number of segments in the bar.
+ * @returns {string} e.g. "[████░░░░░░]"
+ */
+function statBar(value, width = 10) {
+	const clamped = Math.max(-100, Math.min(100, value));
+	const filled = Math.round((clamped + 100) / 200 * width);
+	return `[${'█'.repeat(filled)}${'░'.repeat(width - filled)}]`;
+}
+
 module.exports = {
 	pronoun,
 	processTextTemplate,
+	statBar,
 	getPronoun,
 	getPlayerSelfPronoun,
 	getNpcToPlayerPronoun,

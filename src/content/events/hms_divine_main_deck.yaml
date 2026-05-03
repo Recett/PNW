@@ -53,13 +53,27 @@ events:
     option:
       - id: breach-push-forward
         text: "Xông qua hàng ngũ bảo vệ"
-        next: arb-main-deck-breach-round-1-combat
+        next: arb-main-deck-breach-transition
         display_order: 0
 
       - id: breach-hold-back
         text: "Rút lui về boong trên HMS"
         next: arb-main-deck-breach-retreat
         display_order: 1
+
+  # ── Transition: move player to main deck before combat ────────────────────────
+
+  - id: arb-main-deck-breach-transition
+    name: "Main Deck Breach — Transition"
+    event_type: normal
+    silent: true
+    is_active: true
+    next: arb-main-deck-breach-round-1-combat
+
+    action:
+      - type: move
+        location: 9
+        silent: true
 
   # ── Round 1 ──────────────────────────────────────────────────────────────────
 
@@ -201,10 +215,6 @@ events:
         flag_value: 5
         flag_operation: add
         flag_type: global
-        silent: true
-
-      - type: move
-        location: 9
         silent: true
 
   # ── Shared tail events ────────────────────────────────────────────────────────

@@ -236,7 +236,15 @@ class EventProcessor {
 
 				// Send combat log as separate message first
 				if (combatResult.battleReport) {
-					await this.sendCombatLog(interaction, combatResult, session.ephemeral);
+					// If a move action earlier in the chain set a target channel, send the log there
+					let combatLogTargetChannel = null;
+					if (session.metadata?.targetChannelId && interaction.client) {
+						const logTargetId = session.metadata.targetChannelId;
+						if (String(interaction.channelId) !== String(logTargetId)) {
+							combatLogTargetChannel = await interaction.client.channels.fetch(logTargetId).catch(() => null);
+						}
+					}
+					await this.sendCombatLog(interaction, combatResult, session.ephemeral, combatLogTargetChannel);
 				}
 
 				// Determine next event based on combat outcome
@@ -1828,6 +1836,16 @@ class EventProcessor {
 
 		await locationUtil.moveCharacterToLocation(session.characterId, location_id, session.interaction.guild);
 
+		// Store target channel for redirect if the new location has a channel in a different Discord channel
+		const newLocData = await locationUtil.getLocationBase(location_id);
+		if (newLocData?.channel && session.interaction) {
+			const currentChannelId = session.interaction.channelId;
+			if (String(newLocData.channel) !== String(currentChannelId)) {
+				session.metadata = session.metadata || {};
+				session.metadata.targetChannelId = String(newLocData.channel);
+			}
+		}
+
 		// Post move activity messages
 		const client = session.interaction?.client;
 		if (client) {
@@ -2633,7 +2651,7 @@ class EventProcessor {
 	/**
 	 * Send combat log as a separate message
 	 */
-	async sendCombatLog(interaction, combatResult, ephemeral = true) {
+	async sendCombatLog(interaction, combatResult, ephemeral = true, targetChannel = null) {
 		const color = combatResult.result === 'victory' ? 0x00ff00 : combatResult.result === 'defeat' ? 0xff0000 : 0xffff00;
 		const pages = combatResult.battleReportPages || [combatResult.battleReport || 'No combat details available.'];
 
@@ -2648,15 +2666,27 @@ class EventProcessor {
 			.setTitle(`${EMOJI.SWORD} Combat Log`)
 			.setColor(color)
 			.setDescription(firstPageContent);
-		await interaction.editReply({ embeds: [firstEmbed] });
 
-		// Send remaining pages as follow-up messages
-		for (let i = 1; i < pages.length; i++) {
-			const pageEmbed = new Discord.EmbedBuilder()
-				.setTitle(`${EMOJI.SWORD} Combat Log (${i + 1}/${pages.length})`)
-				.setColor(color)
-				.setDescription(pages[i]);
-			await interaction.followUp({ embeds: [pageEmbed], ephemeral });
+		if (targetChannel) {
+			await targetChannel.send({ embeds: [firstEmbed] });
+			for (let i = 1; i < pages.length; i++) {
+				const pageEmbed = new Discord.EmbedBuilder()
+					.setTitle(`${EMOJI.SWORD} Combat Log (${i + 1}/${pages.length})`)
+					.setColor(color)
+					.setDescription(pages[i]);
+				await targetChannel.send({ embeds: [pageEmbed] });
+			}
+		}
+		else {
+			await interaction.editReply({ embeds: [firstEmbed] });
+			// Send remaining pages as follow-up messages
+			for (let i = 1; i < pages.length; i++) {
+				const pageEmbed = new Discord.EmbedBuilder()
+					.setTitle(`${EMOJI.SWORD} Combat Log (${i + 1}/${pages.length})`)
+					.setColor(color)
+					.setDescription(pages[i]);
+				await interaction.followUp({ embeds: [pageEmbed], ephemeral });
+			}
 		}
 	}
 
@@ -2781,14 +2811,46 @@ class EventProcessor {
 		}
 		// If no options and no next event (or blank), don't add components (event ends)
 
+		// Determine if event rendering should be redirected to a different Discord channel
+		// (set by executeMoveAction when a move leads to a location with a different channel)
+		const targetChannelId = session.metadata?.targetChannelId;
+		const needsChannelRedirect = targetChannelId && String(interaction.channelId) !== String(targetChannelId);
+
 		// Send or update message
 		if (!(interaction.replied || interaction.deferred)) {
 			await interaction.deferReply({ ephemeral: session.ephemeral });
 		}
 
-		// If combat log was sent, use followUp for dialog message; otherwise editReply
+		// Render to target channel when a move sent us to a different location channel
 		let dialogMessage;
-		if (hasCombatLog) {
+		if (needsChannelRedirect) {
+			const targetChannel = await interaction.client.channels.fetch(targetChannelId).catch(() => null);
+			if (targetChannel) {
+				dialogMessage = await targetChannel.send({
+					...messageData,
+					components: components.length > 0 ? components : [],
+				});
+			}
+			else {
+				// Fallback: render in original channel if target channel is unavailable
+				if (hasCombatLog) {
+					dialogMessage = await interaction.followUp({
+						...messageData,
+						components: components.length > 0 ? components : [],
+						ephemeral: session.ephemeral,
+					});
+				}
+				else {
+					await interaction.editReply({
+						...messageData,
+						components: components.length > 0 ? components : [],
+					});
+					dialogMessage = await interaction.fetchReply();
+				}
+			}
+		}
+		// If combat log was sent, use followUp for dialog message; otherwise editReply
+		else if (hasCombatLog) {
 			dialogMessage = await interaction.followUp({
 				...messageData,
 				components: components.length > 0 ? components : [],
