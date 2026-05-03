@@ -160,23 +160,12 @@ async function performCharacterRegen() {
 
 		if (isBattle) {
 			// === Battle ruleset ===
-			// Resolve all battle zone IDs: static HMS zones + dynamic arbrance + dynamic HMS rigging
-			const arbranceZoneIds = await battleUtil.getArbranceZoneIds();
-			const hmsRigging = await battleUtil.getHMSRiggingLocation();
-			const allBattleZoneIds = [
-				...battleUtil.HMS_ZONE_IDS,
-				...Object.values(arbranceZoneIds).filter(Boolean),
-				...(hmsRigging ? [hmsRigging.id] : []),
-			];
-			const uniqueBattleZoneIds = [...new Set(allBattleZoneIds)];
-
-			// Stamina +20% for all players in battle zones
+			// Stamina +20% for ALL players (game-wide rule, not zone-specific)
 			const s1 = await CharacterBase.sequelize.query(`
 				UPDATE character_bases
 				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
 				WHERE maxStamina IS NOT NULL
-					AND currentStamina IS NOT NULL
-					AND location_id IN (${uniqueBattleZoneIds.join(',')});
+					AND currentStamina IS NOT NULL;
 			`);
 			staminaCount += s1[1] || 0;
 
@@ -197,27 +186,6 @@ async function performCharacterRegen() {
 				WHERE maxHp IS NOT NULL
 					AND currentHp IS NOT NULL
 					AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
-			`);
-			hpCount += h1[1] || 0;
-		}
-		else {
-			// === Normal ruleset ===
-			// TODO: KO mechanic temporarily disabled — wake-up and regen-block logic skipped
-			const s1 = await CharacterBase.sequelize.query(`
-				UPDATE character_bases
-				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
-				WHERE maxStamina IS NOT NULL
-					AND currentStamina IS NOT NULL
-					AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
-			`);
-			staminaCount += s1[1] || 0;
-
-			const h1 = await CharacterBase.sequelize.query(`
-				UPDATE character_bases
-				SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
-				WHERE maxHp IS NOT NULL
-					AND currentHp IS NOT NULL
-					AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 			`);
 			hpCount += h1[1] || 0;
 		}
@@ -653,16 +621,13 @@ async function startCronJob(client) {
 
 			if (isBattle) {
 				// Battle ruleset catch-up
+				// Stamina +20% for ALL players (game-wide rule, not zone-specific)
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
 					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
-					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
-						AND location_id IN (
-							SELECT id FROM location_bases
-							WHERE id IN (${battleUtil.HMS_ZONE_IDS.join(',')})
-								OR (tag IS NOT NULL AND (tag LIKE '%hms_divine_arbrance%' OR tag LIKE '%hms_divine_rigging%'))
-						);
+					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
 				`);
+				// Stamina extra +20% for Boong Sinh Hoat (total +40%)
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
 					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
