@@ -25,6 +25,15 @@ const BOONG_SINH_HOAT_ID = 6;
 
 const ARBRANCE_CLUSTER_ID = 'cluster_arbrance';
 
+// Arbrance zone IDs (confirmed from production DB)
+const ARB_MAIN_DECK_ID        = 9;
+const ARB_CANNON_DECK_ID      = 10;
+const ARB_ARMORY_ID           = 11;
+const ARB_OFFICER_QUARTERS_ID = 12;
+const ARB_RIGGING_ID          = 13;
+const HMS_RIGGING_ID          = 14;
+const ARB_ZONE_IDS = [ARB_MAIN_DECK_ID, ARB_CANNON_DECK_ID, ARB_ARMORY_ID, ARB_OFFICER_QUARTERS_ID, ARB_RIGGING_ID];
+
 // Minimum players who must click "Ready" before enemy spawning begins
 const MUSTER_REQUIRED = 6;
 
@@ -77,13 +86,13 @@ const OFFICER_ROLES = {
 // Session shape: { sessionId, assignments, names, channelId, messageId, timeout }
 const officerCabinSessions = new Map();
 
-// ── Morale: zone entry thresholds (keyed by zone definition key) ─────────────
+// ── Morale: zone entry thresholds (keyed by location ID) ───────────────────────
 const ZONE_MORALE_THRESHOLDS = {
-	'arb_main_deck':        20,
-	'arb_rigging':          20,
-	'arb_cannon_deck':      40,
-	'arb_armory':           40,
-	'arb_officer_quarters': 40,
+	[ARB_MAIN_DECK_ID]:        20,
+	[ARB_RIGGING_ID]:          20,
+	[ARB_CANNON_DECK_ID]:      40,
+	[ARB_ARMORY_ID]:           40,
+	[ARB_OFFICER_QUARTERS_ID]: 40,
 };
 
 // Arbrance zone definitions — created by ensureArbranceLocations()
@@ -98,13 +107,13 @@ const ARBRANCE_ZONE_DEFS = [
 // Zones that participate in random encounter spawning and their hazard pools.
 // Use `key` for flag-resolved Arbrance/rigging locations, `id` for static hardcoded locations.
 const SPAWN_ZONE_DEFS = [
-	{ key: 'arb_main_deck', hazards: ['musket_shot', 'cannon_debris'] },
-	{ key: 'arb_rigging', hazards: ['musket_shot'], halfSpawn: true },
-	{ key: 'hms_rigging', hazards: ['cannon_debris'], hmsZone: true, halfSpawn: true, hpFlag: 'global.hms_divine_rigging_hp' },
+	{ id: ARB_MAIN_DECK_ID,   hazards: ['musket_shot', 'cannon_debris'] },
+	{ id: ARB_RIGGING_ID,     hazards: ['musket_shot'], halfSpawn: true },
+	{ id: HMS_RIGGING_ID,     hazards: ['cannon_debris'], hmsZone: true, halfSpawn: true, hpFlag: 'global.hms_divine_rigging_hp' },
 	// HMS Top Deck
-	{ id: BOONG_TREN_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, hpFlag: 'global.hms_divine_top_deck_hp' },
+	{ id: BOONG_TREN_ID,      hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, hpFlag: 'global.hms_divine_top_deck_hp' },
 	// HMS Main Deck — breach condition only
-	{ id: BOONG_CHINH_ID, hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true, hpFlag: 'global.hms_divine_top_deck_hp' },
+	{ id: BOONG_CHINH_ID,     hazards: ['musket_shot', 'cannon_debris'], hmsZone: true, breachOnly: true, hpFlag: 'global.hms_divine_top_deck_hp' },
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -165,20 +174,18 @@ async function getBattleState() {
 // ARBRANCE LOCATION MANAGEMENT
 // ──────────────────────────────────────────────────────────────
 
-async function getArbranceZoneIds() {
-	const ids = {};
-	for (const def of ARBRANCE_ZONE_DEFS) {
-		const id = await getFlag(`global.location_id_${def.key}`);
-		if (id) ids[def.key] = id;
-	}
-	return ids;
+function getArbranceZoneIds() {
+	return {
+		arb_main_deck:        ARB_MAIN_DECK_ID,
+		arb_cannon_deck:      ARB_CANNON_DECK_ID,
+		arb_armory:           ARB_ARMORY_ID,
+		arb_officer_quarters: ARB_OFFICER_QUARTERS_ID,
+		arb_rigging:          ARB_RIGGING_ID,
+	};
 }
 
-function getMoraleRequirementForLocation(locationId, arbranceIds) {
-	for (const [key, threshold] of Object.entries(ZONE_MORALE_THRESHOLDS)) {
-		if (arbranceIds[key] === locationId) return threshold;
-	}
-	return null;
+function getMoraleRequirementForLocation(locationId) {
+	return ZONE_MORALE_THRESHOLDS[parseInt(locationId)] ?? null;
 }
 
 /**
@@ -191,8 +198,7 @@ function getMoraleRequirementForLocation(locationId, arbranceIds) {
  */
 async function getMoraleSpeedMultipliers(locationId) {
 	const rawMorale = await getFlag('global.hms_divine_morale');
-	const arbranceIds = await getArbranceZoneIds();
-	const threshold = getMoraleRequirementForLocation(locationId, arbranceIds) ?? 0;
+	const threshold = getMoraleRequirementForLocation(locationId) ?? 0;
 	const effectiveMorale = rawMorale - threshold;
 
 	if (effectiveMorale < -20) {
@@ -207,26 +213,13 @@ async function getMoraleSpeedMultipliers(locationId) {
 }
 
 async function getArbranceLocations() {
-	const arbranceIds = await getArbranceZoneIds();
-	const ids = Object.values(arbranceIds).filter(Boolean);
-	if (!ids.length) return [];
-	return LocationBase.findAll({ where: { id: ids } });
+	return LocationBase.findAll({ where: { id: ARB_ZONE_IDS } });
 }
 
 async function ensureArbranceLocations() {
 	for (const def of ARBRANCE_ZONE_DEFS) {
-		const existingId = await getFlag(`global.location_id_${def.key}`);
-		if (existingId) {
-			const existing = await LocationBase.findByPk(existingId);
-			if (existing) continue;
-		}
-		const zone = await LocationBase.create({
-			name: def.name,
-			type: 'battle',
-			hidden: true,
-		});
-		await setFlag(`global.location_id_${def.key}`, zone.id);
-		console.log('[Battle] Created Arbrance zone:', def.name);
+		const zone = await LocationBase.findByPk(getArbranceZoneIds()[def.key]);
+		if (!zone) throw new Error(`[Battle] Arbrance zone '${def.key}' (ID ${getArbranceZoneIds()[def.key]}) not found in database.`);
 	}
 }
 
@@ -241,7 +234,6 @@ async function syncArbranceLocations(guild) {
 	const { PermissionsBitField } = require('discord.js');
 
 	const zones = await getArbranceLocations();
-	const arbranceIds = await getArbranceZoneIds();
 	const parentChannel = guild.channels.resolve(tlg.alCat);
 	if (!parentChannel) {
 		throw new Error('[Battle] Parent category (alCat) not found in guild. Check tlg.json.');
@@ -268,9 +260,8 @@ async function syncArbranceLocations(guild) {
 			}
 
 			if (!channel) {
-				const zoneKey = Object.keys(arbranceIds).find(k => arbranceIds[k] === zone.id);
-				const zoneDef = ARBRANCE_ZONE_DEFS.find(d => d.key === zoneKey);
-				const channelName = zoneDef ? zoneDef.channelName : (zoneKey ? zoneKey.replace(/_/g, '-') : 'arb-zone');
+				const zoneDef = ARBRANCE_ZONE_DEFS.find(d => getArbranceZoneIds()[d.key] === zone.id);
+				const channelName = zoneDef ? zoneDef.channelName : 'arb-zone';
 				channel = await guild.channels.create({
 					name: channelName,
 					parent: tlg.alCat,
@@ -316,22 +307,12 @@ async function syncArbranceLocations(guild) {
 // ──────────────────────────────────────────────────────────────
 
 async function getHMSRiggingLocation() {
-	const id = await getFlag('global.location_id_hms_rigging');
-	if (!id) return null;
-	return LocationBase.findByPk(id);
+	return LocationBase.findByPk(HMS_RIGGING_ID);
 }
 
 async function ensureHMSRiggingLocation() {
-	let zone = await getHMSRiggingLocation();
-	if (!zone) {
-		zone = await LocationBase.create({
-			name: 'C\u1ED9t Bu\u1ED3m',
-			type: 'battle',
-			hidden: true,
-		});
-		await setFlag('global.location_id_hms_rigging', zone.id);
-		console.log(`[Battle] Created HMS rigging location (ID ${zone.id})`);
-	}
+	const zone = await getHMSRiggingLocation();
+	if (!zone) throw new Error(`[Battle] HMS Rigging location (ID ${HMS_RIGGING_ID}) not found in database.`);
 	return zone;
 }
 
@@ -427,23 +408,16 @@ async function sealBattleLocations() {
 	}
 
 	// Link Boong Trên (4) <-> arb-main-deck (boarding entry, bidirectional)
-	const sealIds = await getArbranceZoneIds();
-	const arbMainDeckId = sealIds.arb_main_deck;
-	if (arbMainDeckId) {
-		await LocationLink.findOrCreate({ where: { location_id: BOONG_TREN_ID, linked_location_id: arbMainDeckId } });
-		await LocationLink.findOrCreate({ where: { location_id: arbMainDeckId, linked_location_id: BOONG_TREN_ID } });
-		console.log(`[Battle] Linked Boong Tren <-> arb-main-deck (ID ${arbMainDeckId})`);
+	await LocationLink.findOrCreate({ where: { location_id: BOONG_TREN_ID, linked_location_id: ARB_MAIN_DECK_ID } });
+	await LocationLink.findOrCreate({ where: { location_id: ARB_MAIN_DECK_ID, linked_location_id: BOONG_TREN_ID } });
+	console.log(`[Battle] Linked Boong Tren <-> arb-main-deck (ID ${ARB_MAIN_DECK_ID})`);
 
-		// Hub-and-spoke: all Arbrance zones link to/from arb-main-deck only
-		const spokeKeys = ['arb_cannon_deck', 'arb_armory', 'arb_officer_quarters', 'arb_rigging'];
-		for (const key of spokeKeys) {
-			const spokeId = sealIds[key];
-			if (spokeId) {
-				await LocationLink.findOrCreate({ where: { location_id: arbMainDeckId, linked_location_id: spokeId } });
-				await LocationLink.findOrCreate({ where: { location_id: spokeId, linked_location_id: arbMainDeckId } });
-				console.log(`[Battle] Linked arb-main-deck <-> ${key} (ID ${spokeId})`);
-			}
-		}
+	// Hub-and-spoke: all Arbrance zones link to/from arb-main-deck only
+	const spokeIds = [ARB_CANNON_DECK_ID, ARB_ARMORY_ID, ARB_OFFICER_QUARTERS_ID, ARB_RIGGING_ID];
+	for (const spokeId of spokeIds) {
+		await LocationLink.findOrCreate({ where: { location_id: ARB_MAIN_DECK_ID, linked_location_id: spokeId } });
+		await LocationLink.findOrCreate({ where: { location_id: spokeId, linked_location_id: ARB_MAIN_DECK_ID } });
+		console.log(`[Battle] Linked arb-main-deck <-> zone ID ${spokeId}`);
 	}
 
 	// Un-hide HMS Rigging so it appears in the move menu during battle
@@ -452,17 +426,14 @@ async function sealBattleLocations() {
 
 	// Link Boong Trên (4) <-> HMS Rigging (players can climb to/from the rigging)
 	if (hmsRigging) {
-		await LocationLink.findOrCreate({ where: { location_id: BOONG_TREN_ID, linked_location_id: hmsRigging.id } });
-		await LocationLink.findOrCreate({ where: { location_id: hmsRigging.id, linked_location_id: BOONG_TREN_ID } });
-		console.log(`[Battle] Linked Boong Tren <-> HMS Rigging (ID ${hmsRigging.id})`);
+		await LocationLink.findOrCreate({ where: { location_id: BOONG_TREN_ID, linked_location_id: HMS_RIGGING_ID } });
+		await LocationLink.findOrCreate({ where: { location_id: HMS_RIGGING_ID, linked_location_id: BOONG_TREN_ID } });
+		console.log(`[Battle] Linked Boong Tren <-> HMS Rigging (ID ${HMS_RIGGING_ID})`);
 
 		// Link HMS Rigging <-> arb-rigging (rigging-to-rigging boarding point)
-		const arbRiggingId = sealIds.arb_rigging;
-		if (arbRiggingId) {
-			await LocationLink.findOrCreate({ where: { location_id: hmsRigging.id, linked_location_id: arbRiggingId } });
-			await LocationLink.findOrCreate({ where: { location_id: arbRiggingId, linked_location_id: hmsRigging.id } });
-			console.log(`[Battle] Linked HMS Rigging <-> arb-rigging (ID ${arbRiggingId})`);
-		}
+		await LocationLink.findOrCreate({ where: { location_id: HMS_RIGGING_ID, linked_location_id: ARB_RIGGING_ID } });
+		await LocationLink.findOrCreate({ where: { location_id: ARB_RIGGING_ID, linked_location_id: HMS_RIGGING_ID } });
+		console.log(`[Battle] Linked HMS Rigging <-> arb-rigging (ID ${ARB_RIGGING_ID})`);
 	}
 }
 
@@ -478,35 +449,24 @@ async function unsealBattleLocations() {
 	const hmsRiggingToHide = await getHMSRiggingLocation();
 	if (hmsRiggingToHide && !hmsRiggingToHide.hidden) await hmsRiggingToHide.update({ hidden: true });
 
-	// Remove all Arbrance hub-and-spoke links
-	const unsealIds = await getArbranceZoneIds();
-	const arbMainDeckId = unsealIds.arb_main_deck;
-	if (arbMainDeckId) {
-		// Remove Boong Trên <-> arb-main-deck
-		await LocationLink.destroy({ where: { location_id: BOONG_TREN_ID, linked_location_id: arbMainDeckId } });
-		await LocationLink.destroy({ where: { location_id: arbMainDeckId, linked_location_id: BOONG_TREN_ID } });
+	// Remove Boong Trên <-> arb-main-deck
+	await LocationLink.destroy({ where: { location_id: BOONG_TREN_ID, linked_location_id: ARB_MAIN_DECK_ID } });
+	await LocationLink.destroy({ where: { location_id: ARB_MAIN_DECK_ID, linked_location_id: BOONG_TREN_ID } });
 
-		// Remove spoke links
-		const spokeKeys = ['arb_cannon_deck', 'arb_armory', 'arb_officer_quarters', 'arb_rigging'];
-		for (const key of spokeKeys) {
-			const spokeId = unsealIds[key];
-			if (spokeId) {
-				await LocationLink.destroy({ where: { location_id: arbMainDeckId, linked_location_id: spokeId } });
-				await LocationLink.destroy({ where: { location_id: spokeId, linked_location_id: arbMainDeckId } });
-			}
-		}
+	// Remove spoke links
+	const spokeIds = [ARB_CANNON_DECK_ID, ARB_ARMORY_ID, ARB_OFFICER_QUARTERS_ID, ARB_RIGGING_ID];
+	for (const spokeId of spokeIds) {
+		await LocationLink.destroy({ where: { location_id: ARB_MAIN_DECK_ID, linked_location_id: spokeId } });
+		await LocationLink.destroy({ where: { location_id: spokeId, linked_location_id: ARB_MAIN_DECK_ID } });
 	}
 
 	// Remove Boong Trên <-> HMS Rigging and HMS Rigging <-> arb-rigging links
 	const hmsRigging = await getHMSRiggingLocation();
 	if (hmsRigging) {
-		await LocationLink.destroy({ where: { location_id: BOONG_TREN_ID, linked_location_id: hmsRigging.id } });
-		await LocationLink.destroy({ where: { location_id: hmsRigging.id, linked_location_id: BOONG_TREN_ID } });
-		const arbRiggingId = unsealIds.arb_rigging;
-		if (arbRiggingId) {
-			await LocationLink.destroy({ where: { location_id: hmsRigging.id, linked_location_id: arbRiggingId } });
-			await LocationLink.destroy({ where: { location_id: arbRiggingId, linked_location_id: hmsRigging.id } });
-		}
+		await LocationLink.destroy({ where: { location_id: BOONG_TREN_ID, linked_location_id: HMS_RIGGING_ID } });
+		await LocationLink.destroy({ where: { location_id: HMS_RIGGING_ID, linked_location_id: BOONG_TREN_ID } });
+		await LocationLink.destroy({ where: { location_id: HMS_RIGGING_ID, linked_location_id: ARB_RIGGING_ID } });
+		await LocationLink.destroy({ where: { location_id: ARB_RIGGING_ID, linked_location_id: HMS_RIGGING_ID } });
 	}
 	console.log('[Battle] Battle locations unsealed');
 }
@@ -641,12 +601,9 @@ async function applyMoraleBonusDamage(state) {
 		const moraleRiggingDmg = Math.floor(moraleDmg / 4);
 		if (currentMorale > 0) {
 			// Positive morale damages Arbrance — each zone only takes damage if players are present in it
-			const arbranceZoneIds = await getArbranceZoneIds();
-			const arbMainId = arbranceZoneIds['arb_main_deck'];
-			const arbRigId  = arbranceZoneIds['arb_rigging'];
 			const [playersOnArbMain, playersOnArbRig] = await Promise.all([
-				arbMainId ? CharacterBase.count({ where: { location_id: arbMainId } }) : Promise.resolve(0),
-				arbRigId  ? CharacterBase.count({ where: { location_id: arbRigId  } }) : Promise.resolve(0),
+				CharacterBase.count({ where: { location_id: ARB_MAIN_DECK_ID } }),
+				CharacterBase.count({ where: { location_id: ARB_RIGGING_ID } }),
 			]);
 			const moraleUpdates = [];
 			let mainDmgApplied = 0, rigDmgApplied = 0;
@@ -666,10 +623,7 @@ async function applyMoraleBonusDamage(state) {
 		else {
 			// Negative morale damages HMS Divine
 			// HMS rigging only takes damage if no players are present on it
-			const hmsRiggingLocationId = await getFlag('global.location_id_hms_rigging');
-			const playersOnHmsRigging = hmsRiggingLocationId
-				? await CharacterBase.count({ where: { location_id: hmsRiggingLocationId } })
-				: 0;
+			const playersOnHmsRigging = await CharacterBase.count({ where: { location_id: HMS_RIGGING_ID } });
 			midHmsDeck = Math.max(0, midHmsDeck - moraleDmg);
 			const moraleUpdates = [setFlag('global.hms_divine_top_deck_hp', midHmsDeck)];
 			let hmsRigDmgApplied = 0;
@@ -1346,9 +1300,8 @@ async function spawnArmoryWave(guild) {
 	const armorySecured = await getFlag('global.arb_armory_secured');
 	if (armorySecured) return null;
 
-	// Find the armory location
-	const armoryId = await getFlag('global.location_id_arb_armory');
-	const armory = armoryId ? await LocationBase.findByPk(armoryId) : null;
+	// Use constant directly — armory location is always ID ARB_ARMORY_ID
+	const armory = await LocationBase.findByPk(ARB_ARMORY_ID);
 	if (!armory || !armory.channel) return null;
 
 	// Check if players are present — safety reset if none (retaken is handled immediately on departure)
@@ -1496,8 +1449,7 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 
 	// Post announcement to armory channel
 	try {
-		const armoryAnnounceId = await getFlag('global.location_id_arb_armory');
-		const armory = armoryAnnounceId ? await LocationBase.findByPk(armoryAnnounceId) : null;
+		const armory = await LocationBase.findByPk(ARB_ARMORY_ID);
 		if (armory && armory.channel) {
 			const { EMOJI } = require('../enums');
 			const { EmbedBuilder } = require('discord.js');
@@ -1553,8 +1505,7 @@ async function getArmoryDamageMultiplier(locationId) {
 	if (armorySecured) return 0.70; // 10 wins — permanent 30% debuff
 
 	if (locationId != null) {
-		const armoryDmgId = await getFlag('global.location_id_arb_armory');
-		if (armoryDmgId && armoryDmgId === locationId) {
+		if (parseInt(locationId) === ARB_ARMORY_ID) {
 			// Ramp: 3% per wave win while players hold the armory
 			const wins = await getFlag('global.arb_armory_wins');
 			if (wins <= 0) return 1.0;
@@ -1577,10 +1528,7 @@ async function getArmoryCannonDebuff() {
 	const armorySecured = await getFlag('global.arb_armory_secured');
 	if (armorySecured) return 0.70;
 
-	const armoryCannonId = await getFlag('global.location_id_arb_armory');
-	if (!armoryCannonId) return 1.0;
-
-	const occupants = await CharacterBase.count({ where: { location_id: armoryCannonId } });
+	const occupants = await CharacterBase.count({ where: { location_id: ARB_ARMORY_ID } });
 	if (occupants === 0) return 1.0;
 
 	const wins = await getFlag('global.arb_armory_wins');
@@ -1681,20 +1629,10 @@ async function spawnEncounters(guild) {
 	console.log(`[SpawnEncounters] Cycle start — morale: ${morale}, zones: ${SPAWN_ZONE_DEFS.length}`);
 
 	for (const zoneDef of SPAWN_ZONE_DEFS) {
-		// Find location by stored ID flag (key-based) or by hardcoded id
-		let location;
-		if (zoneDef.id != null) {
-			location = allLocations.find(loc => loc.id === zoneDef.id);
-		}
-		else if (zoneDef.key) {
-			const flagName = zoneDef.key === 'hms_rigging'
-				? 'global.location_id_hms_rigging'
-				: `global.location_id_${zoneDef.key}`;
-			const id = await getFlag(flagName);
-			if (id) location = allLocations.find(loc => loc.id === id);
-		}
+		// All SPAWN_ZONE_DEFS now have hardcoded 'id' fields
+		const location = allLocations.find(loc => loc.id === zoneDef.id);
 		if (!location) {
-			console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — location not found, skipping.`);
+			console.log(`[SpawnEncounters] Zone id:${zoneDef.id} — location not found, skipping.`);
 			continue;
 		}
 
@@ -1702,19 +1640,19 @@ async function spawnEncounters(guild) {
 		if (zoneDef.breachOnly) {
 			const deckHp = await getFlag('global.hms_divine_top_deck_hp');
 			if (morale >= -20 || deckHp >= 200) {
-				console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — breachOnly not met (morale: ${morale}, deckHp: ${deckHp}), skipping.`);
+				console.log(`[SpawnEncounters] Zone id:${zoneDef.id} — breachOnly not met (morale: ${morale}, deckHp: ${deckHp}), skipping.`);
 				continue;
 			}
 		}
 
 		// Spawn count: 4 base, +1 per 10 negative morale, -1 per 10 positive morale.
 		// Zones with a morale entry cost subtract that cost before calculating.
-		const moraleCost = ZONE_MORALE_THRESHOLDS[zoneDef.key] ?? 0;
+		const moraleCost = ZONE_MORALE_THRESHOLDS[zoneDef.id] ?? 0;
 		const effectiveMorale = morale - moraleCost;
 		const rawSpawn = Math.max(0, 4 + Math.floor(-effectiveMorale / 10));
 		const spawnCount = zoneDef.halfSpawn ? Math.floor(rawSpawn / 2) : rawSpawn;
 		if (!spawnCount) {
-			console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount 0 (effectiveMorale: ${effectiveMorale}), skipping.`);
+			console.log(`[SpawnEncounters] Zone id:${zoneDef.id} — spawnCount 0 (effectiveMorale: ${effectiveMorale}), skipping.`);
 			continue;
 		}
 
@@ -1722,40 +1660,37 @@ async function spawnEncounters(guild) {
 		const players = await CharacterBase.findAll({ where: { location_id: location.id } });
 		const eligiblePlayers = players.filter(p => !ADMIN_IDS.has(p.id));
 		const adminsPresentInZone = players.length > eligiblePlayers.length;
-		console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}, eligible: ${eligiblePlayers.length}`);
+		console.log(`[SpawnEncounters] Zone id:${zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}, eligible: ${eligiblePlayers.length}`);
 		if (!eligiblePlayers.length) {
 			if (adminsPresentInZone) {
-				console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — only admin(s) present, treating as undefended.`);
+				console.log(`[SpawnEncounters] Zone id:${zoneDef.id} — only admin(s) present, treating as undefended.`);
 			}
 			// Undefended HMS zone: each unchallenged spawn deals -2 morale
 			if (zoneDef.hmsZone) {
 				for (let s = 0; s < spawnCount; s++) {
 					if (Math.random() < ENCOUNTER_ENEMY_CHANCE) {
-						await updateMorale(-2, `undefended HMS zone ${zoneDef.key ?? zoneDef.id}`);
+						await updateMorale(-2, `undefended HMS zone id:${zoneDef.id}`);
 						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale.`);
 					}
 				}
 			}
 			// Undefended Arbrance rigging — snipers have line-of-sight to the main deck below
-			else if (zoneDef.key === 'arb_rigging') {
-				const mainDeckFlagId = await getFlag('global.location_id_arb_main_deck');
-				if (mainDeckFlagId) {
-					const mainDeckLoc = allLocations.find(loc => loc.id === mainDeckFlagId);
-					if (mainDeckLoc) {
-						const mainDeckPlayers = await CharacterBase.findAll({ where: { location_id: mainDeckLoc.id } });
-						if (mainDeckPlayers.length) {
-							for (let s = 0; s < spawnCount; s++) {
-								const target = mainDeckPlayers[Math.floor(Math.random() * mainDeckPlayers.length)];
-								await resolveHazard(guild, target, 'musket_shot', mainDeckLoc);
-							}
-							console.log(`[Battle] Undefended arb_rigging — ${spawnCount} musket shot(s) fired at arb_main_deck.`);
+			else if (zoneDef.id === ARB_RIGGING_ID) {
+				const mainDeckLoc = allLocations.find(loc => loc.id === ARB_MAIN_DECK_ID);
+				if (mainDeckLoc) {
+					const mainDeckPlayers = await CharacterBase.findAll({ where: { location_id: ARB_MAIN_DECK_ID } });
+					if (mainDeckPlayers.length) {
+						for (let s = 0; s < spawnCount; s++) {
+							const target = mainDeckPlayers[Math.floor(Math.random() * mainDeckPlayers.length)];
+							await resolveHazard(guild, target, 'musket_shot', mainDeckLoc);
 						}
+						console.log(`[Battle] Undefended arb_rigging — ${spawnCount} musket shot(s) fired at arb_main_deck.`);
 					}
 				}
 			}
 			// Undefended Arbrance main deck — enemies retake the zone; reset the foothold so
 			// the next player to cross must fight through the boarding challenge again
-			else if (zoneDef.key === 'arb_main_deck') {
+			else if (zoneDef.id === ARB_MAIN_DECK_ID) {
 				const currentFoothold = await getFlag('global.arb_main_deck_foothold');
 				if (currentFoothold) {
 					await setFlag('global.arb_main_deck_foothold', 0);
@@ -1981,8 +1916,7 @@ async function onArmoryPlayerArrived(guild, characterId) {
 
 	// Spawn an immediate veteran_sailor encounter for the kickstarting player
 	try {
-		const kickstartArmoryId = await getFlag('global.location_id_arb_armory');
-		const armory = kickstartArmoryId ? await LocationBase.findByPk(kickstartArmoryId) : null;
+		const armory = await LocationBase.findByPk(ARB_ARMORY_ID);
 		if (!armory || !armory.channel) return;
 
 		const { EMOJI } = require('../enums');
@@ -2182,19 +2116,8 @@ async function diagnoseSpawn(guild) {
 	const allLocations = await LocationBase.findAll();
 
 	for (const zoneDef of SPAWN_ZONE_DEFS) {
-		const label = zoneDef.key ?? `id:${zoneDef.id}`;
-
-		let location;
-		if (zoneDef.id != null) {
-			location = allLocations.find(loc => loc.id === zoneDef.id);
-		}
-		else if (zoneDef.key) {
-			const flagName = zoneDef.key === 'hms_rigging'
-				? 'global.location_id_hms_rigging'
-				: `global.location_id_${zoneDef.key}`;
-			const id = await getFlag(flagName);
-			if (id) location = allLocations.find(loc => loc.id === id);
-		}
+		const label = `id:${zoneDef.id}`;
+		const location = allLocations.find(loc => loc.id === zoneDef.id);
 
 		if (!location) {
 			lines.push(`**${label}**: \u274C location not found`);
@@ -2291,6 +2214,13 @@ module.exports = {
 	BOONG_CHINH_ID,
 	BOONG_SINH_HOAT_ID,
 	ARBRANCE_CLUSTER_ID,
+	ARB_MAIN_DECK_ID,
+	ARB_CANNON_DECK_ID,
+	ARB_ARMORY_ID,
+	ARB_OFFICER_QUARTERS_ID,
+	ARB_RIGGING_ID,
+	HMS_RIGGING_ID,
+	ARB_ZONE_IDS,
 	ENEMY_MORALE_VALUES,
 	BOSS_ENEMIES,
 	getMoraleRequirementForLocation,

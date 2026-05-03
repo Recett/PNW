@@ -267,19 +267,27 @@ module.exports = {
 				return await interaction.reply({ content: 'Character not found.', flags: MessageFlags.Ephemeral });
 			}
 
-			const currentZone = arbranceZones.find(z => z.id === character.location_id);
+			const charLocationId = parseInt(character.location_id);
+			const currentZone = arbranceZones.find(z => z.id === charLocationId);
 			if (!currentZone) {
+				const onOwnShip = battleUtil.HMS_ZONE_IDS.includes(charLocationId) || charLocationId === battleUtil.HMS_RIGGING_ID;
+				if (onOwnShip) {
+					return await interaction.reply({
+						content: 'Hold your ground! Your ship must be defended. Cross to the enemy vessel when you are ready to fight.',
+						flags: MessageFlags.Ephemeral,
+					});
+				}
 				return await interaction.reply({
-					content: 'Hold your ground! Your ship must be defended. Cross to the enemy vessel when you are ready to fight.',
+					content: 'You must be on the enemy vessel to fight.',
 					flags: MessageFlags.Ephemeral,
 				});
 			}
 
 			const enemyId = await battleUtil.pickEnemyForLocation(currentZone.id);
-			const arbranceIds = await battleUtil.getArbranceZoneIds();
+			const arbranceIds = battleUtil.getArbranceZoneIds();
 
 			// ── Armory: hold-the-ground zone — no player-initiated fights ─────────────
-			if (currentZone.id === arbranceIds.arb_armory) {
+			if (currentZone.id === parseInt(arbranceIds.arb_armory)) {
 				return await interaction.reply({
 					content: 'The armory must be secured — hold your ground and wait for the enemy to come to you.',
 					flags: MessageFlags.Ephemeral,
@@ -287,7 +295,7 @@ module.exports = {
 			}
 
 			// ── Officer Cabin: 3v3 boss fight ──────────────────────────────────────────
-			if (currentZone.id === arbranceIds.arb_officer_quarters) {
+			if (currentZone.id === parseInt(arbranceIds.arb_officer_quarters)) {
 				await handleOfficerCabinFight(interaction, userId, character, currentZone);
 				return;
 			}
@@ -295,8 +303,8 @@ module.exports = {
 			// Build rigging attacker list for covering fire (only on main deck)
 			const riggingAttackers = [];
 			const riggingSnipers = [];
-			if (currentZone.id === arbranceIds.arb_main_deck) {
-				const riggingZone = arbranceZones.find(z => z.id === arbranceIds.arb_rigging);
+			if (currentZone.id === parseInt(arbranceIds.arb_main_deck)) {
+				const riggingZone = arbranceZones.find(z => z.id === parseInt(arbranceIds.arb_rigging));
 				if (riggingZone) {
 					const riggingPlayers = await CharacterBase.findAll({
 						where: { location_id: riggingZone.id },
@@ -350,7 +358,7 @@ module.exports = {
 			await character.update({ currentStamina: character.currentStamina - STAMINA_COST });
 
 			// ── Cannon Deck: Master Gunner chance + 3-round sequential fight ──
-			if (currentZone.id === arbranceIds.arb_cannon_deck) {
+			if (currentZone.id === parseInt(arbranceIds.arb_cannon_deck)) {
 				const CANNON_DECK_MAX_HP = 450;
 				const [masterGunnerDefeated, cannonDeckHp] = await Promise.all([
 					battleUtil.getFlag('global.arb_boss_master_gunner_defeated'),
@@ -411,7 +419,7 @@ module.exports = {
 
 			// 15% chance: trigger a random encounter/opportunity after a win (main deck only)
 			if (won) {
-				const isOnMainDeck = currentZone.id === arbranceIds.arb_main_deck;
+				const isOnMainDeck = currentZone.id === parseInt(arbranceIds.arb_main_deck);
 				if (isOnMainDeck && Math.random() < 0.15) {
 					const [
 						armorySecured, cannonDeckHp, morale,
