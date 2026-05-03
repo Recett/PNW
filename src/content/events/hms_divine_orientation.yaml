@@ -260,7 +260,7 @@ events:
       - type: variable
         variable_name: morale
         source_type: flag
-        source_name: hms_divine_morale
+        source_name: global.hms_divine_morale
         is_global_flag: true
         silent: true
 
