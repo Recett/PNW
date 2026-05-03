@@ -831,6 +831,58 @@ async function handleOfficerCabinInteraction(interaction) {
 }
 
 /**
+ * Handle "Vote to Resume" / "Withdraw Vote" buttons for cron-pause vote.
+ * @param {import('discord.js').Interaction} interaction
+ * @returns {Promise<boolean>}
+ */
+async function handleCronVoteInteraction(interaction) {
+	if (!interaction.isButton()) return false;
+	if (interaction.customId !== 'cronvote_cast' && interaction.customId !== 'cronvote_withdraw') return false;
+
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const cronVoteUtil = require('@utility/cronVoteUtil.js');
+	const msgId = interaction.message.id;
+	const userId = interaction.user.id;
+
+	// Vote message not tracked (e.g. bot restarted) — ignore silently
+	if (!cronVoteUtil.getVoters(msgId)) {
+		await interaction.editReply({ content: 'This vote is no longer active.' });
+		return true;
+	}
+
+	let newCount;
+	if (interaction.customId === 'cronvote_cast') {
+		newCount = cronVoteUtil.addVote(msgId, userId);
+		await interaction.editReply({ content: `Your vote has been cast. (${newCount} / ${cronVoteUtil.CRON_VOTE_THRESHOLD})` });
+	}
+	else {
+		newCount = cronVoteUtil.removeVote(msgId, userId);
+		await interaction.editReply({ content: `Your vote has been withdrawn. (${newCount} / ${cronVoteUtil.CRON_VOTE_THRESHOLD})` });
+	}
+
+	// Threshold reached — resume and close vote
+	if (newCount >= cronVoteUtil.CRON_VOTE_THRESHOLD) {
+		const { resumeAllCronJobs } = require('@utility/cronUtility.js');
+		const resumed = await resumeAllCronJobs();
+		cronVoteUtil.closeVote(msgId);
+		await interaction.message.edit({
+			embeds: [cronVoteUtil.buildCronVoteEmbed(newCount, true)],
+			components: [cronVoteUtil.buildCronVoteRow(true)],
+		});
+		console.log(`[CronVote] ${newCount} votes reached — resumed ${resumed} job(s).`);
+	}
+	else {
+		// Update vote count on embed
+		await interaction.message.edit({
+			embeds: [cronVoteUtil.buildCronVoteEmbed(newCount, false)],
+		});
+	}
+
+	return true;
+}
+
+/**
  * Handle a player clicking the "Ready" muster button before battle spawns begin.
  * @param {import('discord.js').Interaction} interaction
  * @returns {Promise<boolean>}
@@ -931,6 +983,8 @@ module.exports = {
 			if (await handleEncounterFightInteraction(interaction)) return;
 			// Check for battle muster button
 			if (await handleBattleMusterInteraction(interaction)) return;
+			// Check for cron-pause vote buttons
+			if (await handleCronVoteInteraction(interaction)) return;
 			// Add other button/select handlers here as needed
 			return;
 		}

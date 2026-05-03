@@ -135,6 +135,19 @@ module.exports = {
 							].join('\n'),
 							inline: true,
 						},
+						{
+							name: 'Armory Wave',
+							value: [
+								`Secured: **${state.armorySecured ? 'YES' : 'NO'}**`,
+								`Wins: **${state.armoryWins}**`,
+								`Budget: **${state.armoryBudget}**`,
+								`Wave ID: **${state.armoryWaveCounter}**`,
+								`Active Encounters: **${state.armoryWaveEncounters.length}**`,
+								...state.armoryWaveEncounters.map(e =>
+									`\u2022 <@${e.target_player_id}> vs \`${e.enemy_id}\` \u2014 ${e.status}`),
+							].join('\n'),
+							inline: false,
+						},
 					);
 
 				await interaction.editReply({ embeds: [embed] });

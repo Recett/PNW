@@ -141,6 +141,7 @@ async function getBattleState() {
 		morale,
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
+		armorySecured, armoryWins, armoryBudgetX10, armoryWaveCounter,
 	] = await Promise.all([
 		getFlag('global.hms_divine_battle_active'),
 		getFlag('global.hms_divine_battle_initialized'),
@@ -156,7 +157,16 @@ async function getBattleState() {
 		getFlag('global.hms_divine_supply_loss'),
 		getFlag('global.hms_divine_mustering'),
 		getFlag('global.hms_divine_ready_count'),
+		getFlag('global.arb_armory_secured'),
+		getFlag('global.arb_armory_wins'),
+		getFlag('global.arb_armory_budget_x10'),
+		getFlag('global.arb_armory_wave_counter'),
 	]);
+
+	// Active wave encounters
+	const activeWaveEncounters = armoryWaveCounter
+		? await PendingEncounter.findAll({ where: { wave_id: armoryWaveCounter } })
+		: [];
 
 	return {
 		battleActive, battleInitialized, cycleCount,
@@ -167,6 +177,10 @@ async function getBattleState() {
 		morale,
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
+		armorySecured, armoryWins,
+		armoryBudget: armoryBudgetX10 / 10,
+		armoryWaveCounter,
+		armoryWaveEncounters: activeWaveEncounters,
 	};
 }
 

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { getCronMonitor } = require('@utility/cronMonitor.js');
 const CronJobManager = require('@utility/cronJobManager.js');
 const { pauseAllCronJobs, resumeAllCronJobs } = require('@utility/cronUtility.js');
@@ -128,7 +128,12 @@ module.exports = {
 		.addSubcommand(subcommand =>
 			subcommand
 				.setName('resumeall')
-				.setDescription('Resume all cron jobs paused by pauseall')),
+				.setDescription('Resume all cron jobs paused by pauseall'))
+		.addSubcommand(subcommand =>
+			subcommand
+				.setName('voterestart')
+				.setDescription('Post a resume-vote in the battle channel (6 votes = resume)')),
+
 
 	async execute(interaction) {
 		const subcommand = interaction.options.getSubcommand();
@@ -201,6 +206,31 @@ module.exports = {
 				break;
 			}
 
+			case 'voterestart': {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const SystemSettingUtil = require('@utility/systemSetting.js');
+				const battleChannelId = await SystemSettingUtil.get('channel.battle');
+				if (!battleChannelId) {
+					await interaction.editReply({ content: `${EMOJI.FAILURE} Battle channel not set. Run the battle init first.` });
+					break;
+				}
+				const battleChannel = interaction.guild.channels.cache.get(String(battleChannelId))
+					|| await interaction.guild.channels.fetch(String(battleChannelId)).catch(() => null);
+				if (!battleChannel) {
+					await interaction.editReply({ content: `${EMOJI.FAILURE} Battle channel not found.` });
+					break;
+				}
+				const { CRON_VOTE_THRESHOLD, buildCronVoteEmbed, buildCronVoteRow } = require('@utility/cronVoteUtil.js');
+				const voteMsg = await battleChannel.send({
+					embeds: [buildCronVoteEmbed(0)],
+					components: [buildCronVoteRow(false)],
+				});
+				// Store message reference so handler can edit it
+				const cronVoteUtil = require('@utility/cronVoteUtil.js');
+				cronVoteUtil.openVote(voteMsg.id);
+				await interaction.editReply({ content: `${EMOJI.SUCCESS} Vote posted in <#${battleChannelId}>.` });
+				break;
+			}
 			case 'pauseall': {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				const count = await pauseAllCronJobs();
