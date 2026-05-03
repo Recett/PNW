@@ -1208,12 +1208,6 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		if (rapierPerkIds.has(id) && mult > riposteMultiplier) riposteMultiplier = mult;
 	}
 
-	// Apply boarding_disoriented accuracy penalty if the character flag is active
-	const boardingFlag = await CharacterFlag.findOne({ where: { character_id: playerId, flag: 'boarding_disoriented' } });
-	if (boardingFlag && boardingFlag.value > 0) {
-		options.playerAccuracyMultiplier = (options.playerAccuracyMultiplier ?? 1) * 0.8;
-	}
-
 	const player = {
 		id: 'player',
 		name: playerBase.name || 'Player',

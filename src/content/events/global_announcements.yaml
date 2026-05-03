@@ -102,3 +102,53 @@ events:
           Sau khi đánh bại Rat King và quét sạch tầng hầm, mọi người trên tàu đã có thể ngủ ngon hơn. Đó là điều tất cả mọi người nghĩ. Sự yên tĩnh không kéo dài được bao lâu. Bầu không khí ngột ngạt. Những nỗi sợ không rõ ràng xâm chiếm giấc ngủ của bạn. Hành khách trên tàu kháo nhau về tiếng động lạ dưới hầm tàu.
 
           *Tốc độ hồi phục hp và stamina của mọi người bị giảm xuống.*
+
+  # ─────────────────────────────────────────────
+  # HMS DIVINE BATTLE
+  # ─────────────────────────────────────────────
+
+  - id: hms-divine-foothold-established
+    name: "HMS Divine — Foothold Established"
+    event_type: system
+    is_active: false
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0xe74c3c
+        title: "✅ Foothold Established!"
+        text: |
+          A boarding party has fought through the enemy defenders and seized control of **La Dauphine's main deck**!
+
+          The fighting on the main deck has subsided — the path forward is clear. **Morale +5.**
+
+  - id: hms-divine-foothold-lost
+    name: "HMS Divine — Foothold Lost"
+    event_type: system
+    is_active: false
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x992d22
+        title: "❌ Foothold Lost!"
+        text: |
+          Enemy forces have retaken **La Dauphine's main deck**!
+
+          The path forward is blocked once more. **Morale −5.**
+
+  - id: hms-divine-hale-dead
+    name: "HMS Divine — Thiếu tướng Hale Đã Ngã"
+    event_type: system
+    is_active: false
+
+    action:
+      - type: narrate
+        channel: battle
+        color: 0x8B0000
+        title: "☠️ Đội Trưởng Hàng — Đã Ngã"
+        footer: "Tiếp tục chiến đấu."
+        text: |
+          Tin từ boong trước: **Đô Đốc Hale** đã tử trận do một viên đạn lạc.
+
+          Sự hiện diện của ông không còn là chỗ dựa nữa. Tinh thần các chiến sĩ xuống thấp. **Morale −15.**

@@ -886,23 +886,8 @@ async function performHMSDivineBattleCycle(client) {
 			await updateMorale(-10);
 			if (guild) {
 				try {
-					const SystemSettingUtil = require('@utility/systemSetting.js');
-					const { EmbedBuilder } = require('discord.js');
-					const battleChannelId = await SystemSettingUtil.get('channel.battle');
-					const battleChannel = battleChannelId
-						? await guild.channels.fetch(String(battleChannelId)).catch(() => null)
-						: null;
-					if (battleChannel) {
-						const embed = new EmbedBuilder()
-							.setColor(0x8B0000)
-							.setTitle('\u2620\uFE0F Đội Trưởng Hàng — Đã Ngã')
-							.setDescription(
-								'Tin từ boong trước: **Thiếu tướng Hale** đã ngã trong cuộc pháo kích.\n\n'
-								+ 'Sự hiện diện của ông không còn là chỗ dựa nữa. Tinh thần các chiến sĩ xuống thấp.',
-							)
-							.setFooter({ text: 'Tiếp tục chiến đấu.' });
-						await battleChannel.send({ embeds: [embed] });
-					}
+					const { runActionsOnly } = require('@utility/eventUtility.js');
+					await runActionsOnly('hms-divine-hale-dead', null, guild.client);
 				}
 				catch (err) {
 					console.error('[Battle] Failed to post Hale death announcement:', err);
@@ -1454,23 +1439,8 @@ async function checkArmoryWaveCompletion(guild, waveId) {
  * @param {import('discord.js').Guild} guild
  */
 async function postMainDeckFootholdAnnouncement(guild) {
-	const { EmbedBuilder } = require('discord.js');
-	const { EMOJI } = require('../enums');
-	const SystemSettingUtil = require('@utility/systemSetting.js');
-
-	const channelId = await SystemSettingUtil.get('channel.battle');
-	if (!channelId) return;
-	const channel = guild.channels.cache.get(String(channelId));
-	if (!channel) return;
-
-	const embed = new EmbedBuilder()
-		.setColor(0xe74c3c)
-		.setTitle(`${EMOJI.SUCCESS} Foothold Established!`)
-		.setDescription(
-			`A boarding party has fought through the enemy defenders and seized control of **La Dauphine\u2019s main deck**!\n\n` +
-			`The fighting on the main deck has subsided \u2014 the path forward is clear.`
-		);
-	await channel.send({ embeds: [embed] });
+	const { runActionsOnly } = require('@utility/eventUtility.js');
+	await runActionsOnly('hms-divine-foothold-established', null, guild.client);
 }
 
 /**
@@ -1678,6 +1648,23 @@ async function spawnEncounters(guild) {
 							}
 							console.log(`[Battle] Undefended arb_rigging — ${spawnCount} musket shot(s) fired at arb_main_deck.`);
 						}
+					}
+				}
+			}
+			// Undefended Arbrance main deck — enemies retake the zone; reset the foothold so
+			// the next player to cross must fight through the boarding challenge again
+			else if (zoneDef.key === 'arb_main_deck') {
+				const currentFoothold = await getFlag('global.arb_main_deck_foothold');
+				if (currentFoothold) {
+					await setFlag('global.arb_main_deck_foothold', 0);
+					await updateMorale(-5);
+					console.log('[Battle] Undefended arb_main_deck — enemies retook the zone, foothold reset to 0, -5 morale.');
+					try {
+						const { runActionsOnly } = require('@utility/eventUtility.js');
+						await runActionsOnly('hms-divine-foothold-lost', null, guild.client);
+					}
+					catch (announceErr) {
+						console.error('[Battle] Failed to post foothold lost announcement:', announceErr);
 					}
 				}
 			}

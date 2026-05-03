@@ -255,7 +255,7 @@ module.exports = {
 					battleUtil.setFlag('global.hms_divine_phase_start_ts', ts),
 					battleUtil.setFlag('global.hms_divine_sunk', 0),
 					battleUtil.setFlag('global.hms_divine_supply_loss', 0),
-					battleUtil.setFlag('global.hms_divine_drain_reduction', 0),
+					battleUtil.setFlag('hms_divine_drain_reduction', 0),
 					// Cannon countdown: reset to 12
 					battleUtil.setFlag('global.hms_divine_cannon_countdown', 12),
 					// Arbrance state

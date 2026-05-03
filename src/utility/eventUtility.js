@@ -276,8 +276,8 @@ class EventProcessor {
 							if (interaction.deferred && !interaction.replied) {
 								await interaction.editReply({ content: combatResult.message || 'You were defeated and sent back to safety.' }).catch(() => {});
 							}
-							// Clean up session and release the character lock
-							await this.flushPendingFlags(session);
+							// Discard buffered pending flag writes (partial chain — don't commit)
+							// Release the character lock so the player can act again
 							this.activeEvents.delete(session.sessionId);
 							this.activeCharacters.delete(characterId);
 							return; // Skip on_defeat event chain — player is already routed
@@ -1307,11 +1307,14 @@ class EventProcessor {
 			if (current.length > 0) chunks.push(current);
 		}
 
+		const processedFooter = action.footer ? await this.processText(action.footer, session) : null;
+
 		for (let i = 0; i < chunks.length; i++) {
 			const embed = new EmbedBuilder()
 				.setDescription(chunks[i])
 				.setColor(color);
 			if (i === 0 && processedTitle) embed.setTitle(processedTitle);
+			if (i === chunks.length - 1 && processedFooter) embed.setFooter({ text: processedFooter });
 			await ch.send({ embeds: [embed] });
 		}
 	}
@@ -1806,7 +1809,7 @@ class EventProcessor {
 		const { location, silent, custom_message } = action;
 		let location_id = location; // YAML uses 'location' instead of 'location_id'
 
-		// Resolve flag-referenced location: location: "flag:location_id_arb_main_deck"
+		// Resolve flag-referenced location: location: "flag:global.location_id_arb_main_deck"
 		if (typeof location_id === 'string' && location_id.startsWith('flag:')) {
 			const flagKey = location_id.slice(5);
 			const flagRow = await GlobalFlag.findOne({ where: { flag: flagKey } });

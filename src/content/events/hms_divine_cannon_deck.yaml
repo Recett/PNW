@@ -63,14 +63,14 @@ events:
 
     action:
       - type: flag
-        flag_name: arb_boss_master_gunner_defeated
+        flag_name: global.arb_boss_master_gunner_defeated
         flag_value: 1
         flag_operation: set
         flag_type: global
         silent: true
 
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 10
         flag_operation: add
         flag_type: global
@@ -84,7 +84,7 @@ events:
         silent: true
 
       - type: flag
-        flag_name: arb_cannon_deck_hp
+        flag_name: global.arb_cannon_deck_hp
         flag_value: 100
         flag_operation: subtract
         flag_type: global
@@ -103,7 +103,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -140,7 +140,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 1
         flag_operation: add
         flag_type: global
@@ -182,7 +182,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 3
         flag_operation: add
         flag_type: global
@@ -224,14 +224,14 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 2
         flag_operation: add
         flag_type: global
         silent: true
 
       - type: flag
-        flag_name: arb_cannon_deck_hp
+        flag_name: global.arb_cannon_deck_hp
         flag_value: 30
         flag_operation: subtract
         flag_type: global
@@ -252,7 +252,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -270,5 +270,5 @@ events:
 
     action:
       - type: move
-        location: "flag:location_id_arb_main_deck"
+        location: "flag:global.location_id_arb_main_deck"
         silent: true

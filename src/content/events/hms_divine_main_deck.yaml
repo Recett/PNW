@@ -8,10 +8,9 @@ events:
   # they confirm by choosing "Push through".
   #
   # Accuracy penalty:
-  #   A character flag  boarding_disoriented = 1  is set on the player at the
-  #   start of the warning event and cleared in every exit path (retreat, defeat,
-  #   victory).  combatUtility.mainCombat reads this flag and applies x0.8 to
-  #   playerAccuracyMultiplier for all three combat rounds automatically.
+  #   All three combat rounds carry  special_rules.accuracy_penalty_player: 0.8
+  #   which eventUtility applies as a combatOption before calling mainCombat.
+  #   No persistent character flag is used.
   #
   # Entry point:
   #   arb-main-deck-breach-warning  — warning / confirmation scene
@@ -51,14 +50,6 @@ events:
         Bạn có tiến lên, hay rút lui về HMS?
       message_type: normal
 
-    action:
-      - type: flag
-        flag_name: boarding_disoriented
-        flag_value: 1
-        flag_operation: set
-        flag_type: character
-        silent: true
-
     option:
       - id: breach-push-forward
         text: "Xông qua hàng ngũ bảo vệ"
@@ -81,6 +72,8 @@ events:
     combat:
       combat_type: normal
       enemy: sailor
+      special_rules:
+        accuracy_penalty_player: 0.8
       on_victory: arb-main-deck-breach-round-1-victory
       on_defeat: arb-main-deck-breach-defeat
 
@@ -99,7 +92,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 1
         flag_operation: add
         flag_type: global
@@ -127,6 +120,8 @@ events:
     combat:
       combat_type: normal
       enemy: boarder
+      special_rules:
+        accuracy_penalty_player: 0.8
       on_victory: arb-main-deck-breach-round-2-victory
       on_defeat: arb-main-deck-breach-defeat
 
@@ -145,7 +140,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 2
         flag_operation: add
         flag_type: global
@@ -174,6 +169,7 @@ events:
       combat_type: normal
       enemy: veteran_sailor
       special_rules:
+        accuracy_penalty_player: 0.8
         foothold_announcement: true
       on_victory: arb-main-deck-breach-victory
       on_defeat: arb-main-deck-breach-defeat
@@ -201,21 +197,14 @@ events:
         silent: true
 
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 5
         flag_operation: add
         flag_type: global
         silent: true
 
-      - type: flag
-        flag_name: boarding_disoriented
-        flag_value: 0
-        flag_operation: set
-        flag_type: character
-        silent: true
-
       - type: move
-        location: "flag:location_id_arb_main_deck"
+        location: "flag:global.location_id_arb_main_deck"
         silent: true
 
   # ── Shared tail events ────────────────────────────────────────────────────────
@@ -233,17 +222,10 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
-        silent: true
-
-      - type: flag
-        flag_name: boarding_disoriented
-        flag_value: 0
-        flag_operation: set
-        flag_type: character
         silent: true
 
       - type: move
@@ -257,13 +239,6 @@ events:
     is_active: true
 
     action:
-      - type: flag
-        flag_name: boarding_disoriented
-        flag_value: 0
-        flag_operation: set
-        flag_type: character
-        silent: true
-
       - type: move
         location: 4
         silent: true

@@ -100,7 +100,10 @@ Cron schedule: `'0 */8 * * *'` (every 8 hours) in `cronUtility.js`.
 - **Cannon exchange morale:** `runCannonExchange` computes HP-based morale delta (every 100 HP dealt to Arbrance main deck = +2; to HMS top deck = 竏・) and applies morale-based bonus damage to the weaker side's deck and rigging.
 - **Morale-based speed bonus (implemented):** `getMoraleSpeedMultipliers(locationId)` in `battleUtility.js` computes per-location speed multipliers. Effective morale = `rawMorale - entranceThreshold` (threshold is 0 for HMS player zones, 20 for Main Deck/Rigging, 40 for Cannon Deck/Armory/Officer Quarters). Below -20 effective morale: enemies gain +5% speed per 20-point tier (`floor((-effectiveMorale-20)/20)+1` steps). Above +20: players gain the same. Applied at all combat entry points: `interactionCreate.js` encounter fight handler, `battleUtility.js` auto-resolve (`resolveExpiredEncounters`), and `eventUtility.js` `processCombat` (battle-active gated). `combatUtility.js` `mainCombat` now supports `options.enemySpeedMultiplier` alongside the existing `options.playerSpeedMultiplier`.
 
-**Status:** 笨・Fully implemented.
+- **YAML flag key alignment (bug fix applied 2026-06-xx):** All YAML event files (`hms_divine_main_deck.yaml`, `hms_divine_cannon_deck.yaml`, `hms_divine_opportunity.yaml`) were setting global flags WITHOUT the `global.` prefix that `battleUtil.getFlag`/`setFlag` and all JS code expect. This caused every morale change from YAML-driven events (boarding push rounds, boss victories/defeats, random encounters) and every boss-defeat flag (`arb_boss_boatswain_defeated`, `arb_boss_master_at_arms_defeated`, `arb_boss_first_mate_defeated`, `arb_boss_master_gunner_defeated`) and `arb_cannon_deck_hp` subtract actions to write to orphaned DB rows never read by the battle system. All `flag_name` entries in those files have been updated to use the full `global.` prefix. Exception: `hms_divine_drain_reduction` has no prefix in either YAML or JS — it was already consistent and was left unchanged.
+- **Admin reset fix (battle.js):** The `/battle reset` admin command was resetting `global.hms_divine_drain_reduction` (wrong key). Fixed to `hms_divine_drain_reduction` to match all other code.
+
+**Status:** ✅ Fully implemented.
 
 ---
 

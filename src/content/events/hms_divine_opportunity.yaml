@@ -121,13 +121,13 @@ events:
 
     action:
       - type: flag
-        flag_name: arb_boss_boatswain_defeated
+        flag_name: global.arb_boss_boatswain_defeated
         flag_value: 1
         flag_operation: set
         flag_type: global
         silent: true
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 10
         flag_operation: add
         flag_type: global
@@ -147,7 +147,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -201,13 +201,13 @@ events:
 
     action:
       - type: flag
-        flag_name: arb_boss_master_at_arms_defeated
+        flag_name: global.arb_boss_master_at_arms_defeated
         flag_value: 1
         flag_operation: set
         flag_type: global
         silent: true
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 10
         flag_operation: add
         flag_type: global
@@ -227,7 +227,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -281,13 +281,13 @@ events:
 
     action:
       - type: flag
-        flag_name: arb_boss_first_mate_defeated
+        flag_name: global.arb_boss_first_mate_defeated
         flag_value: 1
         flag_operation: set
         flag_type: global
         silent: true
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 10
         flag_operation: add
         flag_type: global
@@ -307,7 +307,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -372,7 +372,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 3
         flag_operation: add
         flag_type: global
@@ -425,7 +425,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 2
         flag_operation: add
         flag_type: global
@@ -445,7 +445,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -465,7 +465,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -485,7 +485,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -2
         flag_operation: add
         flag_type: global
@@ -543,7 +543,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 2
         flag_operation: add
         flag_type: global
@@ -564,7 +564,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -583,7 +583,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -2
         flag_operation: add
         flag_type: global
@@ -642,7 +642,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: 2
         flag_operation: add
         flag_type: global
@@ -662,7 +662,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -3
         flag_operation: add
         flag_type: global
@@ -682,7 +682,7 @@ events:
 
     action:
       - type: flag
-        flag_name: hms_divine_morale
+        flag_name: global.hms_divine_morale
         flag_value: -2
         flag_operation: add
         flag_type: global
