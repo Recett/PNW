@@ -70,7 +70,7 @@ enemies:
       defense_percent: 0
       crit_resistance: 5
       evade: 10
-      speed: 10
+      speed: 12
     attack:
       - id: axe_chop
         name: Boarding Axe
@@ -129,14 +129,14 @@ enemies:
       defense_percent: 0
       crit_resistance: 0
       evade: 10
-      speed: 10
+      speed: 12
     attack:
       - id: crossbow_bolt
         name: Heavy Bolt
-        base_damage: 30
+        base_damage: 25
         accuracy: 15
         critical_chance: 15
-        cooldown: 300   
+        cooldown: 200   
     reward:
       exp: 50
 
@@ -214,7 +214,7 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 140
+      health: 110
       defense: 4
       defense_percent: 0
       crit_resistance: 5
@@ -243,7 +243,7 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 150
+      health: 100
       defense: 10
       defense_percent: 0
       crit_resistance: 5
@@ -272,7 +272,7 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 140
+      health: 120
       defense: 0
       defense_percent: 5
       crit_resistance: 5
@@ -301,12 +301,12 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 100
+      health: 90
       defense: 0
       defense_percent: 0
       crit_resistance: 5
       evade: 12
-      speed: 12
+      speed: 16
     attack:
       - id: first_mate_cutlass
         name: Cutlass Slash

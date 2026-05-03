@@ -6,6 +6,7 @@ const locationUtil = require('@utility/locationUtility.js');
 const { resetNpcStockPurchases } = require('@utility/cronUtility.js');
 const contentStore = require('../../contentStore.js');
 const eventUtil = require('@utility/eventUtility.js');
+const battleUtil = require('@utility/battleUtility.js');
 const { EMOJI } = require('../../enums');
 
 module.exports = {
@@ -177,6 +178,10 @@ module.exports = {
 						.setDescription('Target player.')
 						.setRequired(true)),
 		)
+		.addSubcommand(sub =>
+			sub.setName('coveringfire')
+				.setDescription('Check covering fire readiness: who is in the rigging and whether they have a bow equipped.'),
+		)
 		.addSubcommandGroup(group =>
 			group.setName('status')
 				.setDescription('View or remove character status effects.')
@@ -228,6 +233,7 @@ module.exports = {
 		if (sub === 'restocknpc') return handleRestockNpc(interaction);
 		if (sub === 'catscores') return handleCatScores(interaction);
 		if (sub === 'combatcheck') return handleCombatCheck(interaction);
+		if (sub === 'coveringfire') return handleCoveringFire(interaction);
 	},
 };
 
@@ -1047,6 +1053,95 @@ async function handleCombatCheck(interaction) {
 		'',
 		verdict,
 	];
+
+	return interaction.editReply({ content: lines.join('\n') });
+}
+
+// ─── Covering Fire ────────────────────────────────────────────────────────────
+
+async function handleCoveringFire(interaction) {
+	await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+	const ARB_RIGGING_ID = 13;
+
+	const morale = await battleUtil.getFlag('global.hms_divine_morale');
+
+	const riggingPlayers = await CharacterBase.findAll({
+		where: { location_id: ARB_RIGGING_ID },
+	});
+
+	const lines = [
+		'**Covering Fire Check \u2014 Rigging Status**',
+		`Morale: \`${morale}\` | Check interval: every **10 ticks**`,
+		'',
+	];
+
+	if (riggingPlayers.length === 0) {
+		const effectiveMorale = morale - 20;
+		const triggerChance = Math.min(1, Math.max(0, 0.08 + (-effectiveMorale / 10) * 0.01));
+		lines.push(
+			`${EMOJI.WARNING} No players in rigging \u2014 NPC snipers active.`,
+			`Sniper trigger chance per check: \`${(triggerChance * 100).toFixed(2)}%\` | Damage: \`15\u201320\` (flat, bypasses defense)`,
+			`(effective morale: \`${effectiveMorale}\` = raw \`${morale}\` \u2212 20)`,
+		);
+	}
+	else {
+		// Build the same slot table as combatUtility to derive per-shooter hit chance
+		const shooters = [];
+		for (const rc of riggingPlayers) {
+			const attackStats = await CharacterAttackStat.findAll({ where: { character_id: rc.id } });
+			let bowAttack = null;
+			for (const a of attackStats) {
+				if (!a.item_id) continue;
+				const itemDetails = await itemUtility.getItemWithDetails(a.item_id);
+				if (!itemDetails) continue;
+				const sub = itemDetails.weapon && itemDetails.weapon.subtype;
+				if (sub === 'longbow' || sub === 'shortbow') {
+					bowAttack = a;
+					break;
+				}
+			}
+			const combatStat = await CharacterCombatStat.findOne({ where: { character_id: rc.id } });
+			const speed = combatStat ? (combatStat.speed || 10) : 10;
+			shooters.push({ rc, bowAttack, speed });
+		}
+
+		// Compute slot sizes (same formula as runInitTracker)
+		let cumulative = 0;
+		const slots = shooters
+			.filter(s => s.bowAttack)
+			.map(s => {
+				const slotSize = Math.round((s.speed / s.bowAttack.cooldown) * 1000);
+				cumulative += slotSize;
+				return { s, slotSize };
+			});
+
+		const totalFireChance = Math.min(1, cumulative / 1000);
+
+		lines.push(`**Players in rigging (${riggingPlayers.length}):** | Total fire chance per check: \`${(totalFireChance * 100).toFixed(1)}%\``);
+		lines.push('');
+
+		// Print bowmen with per-shooter stats
+		for (const { s, slotSize } of slots) {
+			const { rc, bowAttack, speed } = s;
+			const itemData = contentStore.items.findByPk(String(bowAttack.item_id));
+			const weaponName = itemData?.name ?? bowAttack.item_id;
+			// P(this shooter fires) = slotSize / 1000
+			const shooterChance = (slotSize / 1000) * 100;
+			lines.push(
+				`  ${EMOJI.SUCCESS} **${rc.name}** \u2014 ${weaponName}`,
+				`    Hit chance: \`${shooterChance.toFixed(1)}%\` | slot \`${slotSize}\` (spd \`${speed}\` / cd \`${bowAttack.cooldown}\`)`,
+				`    Attack: \`${bowAttack.attack}\` | Expected damage vs 0 def: \`${bowAttack.attack}\``,
+			);
+		}
+
+		// Print non-bowmen
+		for (const { rc, bowAttack } of shooters) {
+			if (!bowAttack) {
+				lines.push(`  ${EMOJI.FAILURE} **${rc.name}** \u2014 no bow in attack stats (not contributing)`);
+			}
+		}
+	}
 
 	return interaction.editReply({ content: lines.join('\n') });
 }

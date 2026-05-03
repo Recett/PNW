@@ -431,8 +431,8 @@ async function runInitTracker(actors, options = {}) {
 	const maxTicks = options.maxTicks || 400;
 	const riggingAttackers = options.riggingAttackers || [];
 	const riggingSnipers = options.riggingSnipers || [];
-	const COVERING_FIRE_INTERVAL = 20;
-	const SNIPER_FIRE_INTERVAL = 20;
+	const COVERING_FIRE_INTERVAL = 10;
+	const SNIPER_FIRE_INTERVAL = 10;
 	const combatLog = [];
 
 	// Track initiative and HP for each attack
