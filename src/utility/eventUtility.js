@@ -530,7 +530,7 @@ class EventProcessor {
 
 						// +10 morale for boss kill
 						const moraleDelta = battleUtil.ENEMY_MORALE_VALUES[enemyId] ?? 10;
-						await battleUtil.updateMorale(moraleDelta);
+						await battleUtil.updateMorale(moraleDelta, `boss kill: ${enemyId}`);
 
 						// Permanently reduce drain baseline by 2 per boss killed
 						const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');

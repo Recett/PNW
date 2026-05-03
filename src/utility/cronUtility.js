@@ -830,9 +830,43 @@ async function performBattleHourlyTasks() {
 	// This function only handles battle-specific morale drain
 	const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
 	const drainReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
-	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction);
-	await battleUtil.updateMorale(moraleDrain);
+
+	// Every 100 HP missing on each deck permanently shifts the effective drain rate this phase:
+	// Arb decks missing HP (enemy ship damaged) → +2 per 100 missing (reduces drain)
+	// HMS decks missing HP (our ship damaged)   → -2 per 100 missing (increases drain)
+	const [arbMainHp, arbCannonHp, arbRigHp, hmsDeckHp, hmsCannonHp, hmsRigHp] = await Promise.all([
+		battleUtil.getFlag('global.arb_main_deck_hp'),
+		battleUtil.getFlag('global.arb_cannon_deck_hp'),
+		battleUtil.getFlag('global.arb_rigging_hp'),
+		battleUtil.getFlag('global.hms_divine_top_deck_hp'),
+		battleUtil.getFlag('global.hms_divine_cannon_deck_hp'),
+		battleUtil.getFlag('global.hms_divine_rigging_hp'),
+	]);
+	const arbMissing = (800 - arbMainHp) + (450 - arbCannonHp) + (250 - arbRigHp);
+	const hmsMissing = (400 - hmsDeckHp) + (300 - hmsCannonHp) + (300 - hmsRigHp);
+	const hpDrainModifier = Math.floor(Math.max(0, arbMissing) / 100) * 2 - Math.floor(Math.max(0, hmsMissing) / 100) * 2;
+
+	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction + hpDrainModifier);
+	await battleUtil.updateMorale(moraleDrain, 'hourly drain');
 	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
+
+	// Morale damage countdown: decrements each hour; fires applyMoraleBonusDamage every 3 hours
+	const moraleDmgCountdown = await battleUtil.getFlag('global.hms_divine_morale_dmg_countdown');
+	if (!moraleDmgCountdown) {
+		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
+		console.log('[Battle] Morale damage countdown initialised to 3 (flag was missing).');
+	}
+	else {
+		const newMoraleDmgCountdown = moraleDmgCountdown - 1;
+		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', newMoraleDmgCountdown);
+		console.log(`[Battle] Morale damage countdown: ${newMoraleDmgCountdown} hour(s) remaining.`);
+		if (newMoraleDmgCountdown <= 0) {
+			console.log('[Battle] Morale damage countdown reached 0 — applying morale bonus damage.');
+			await battleUtil.applyMoraleBonusDamage(await battleUtil.getBattleState());
+			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
+			console.log('[Battle] Morale damage countdown reset to 3.');
+		}
+	}
 
 	// Cannon countdown: decrements each hour; fires battle cycle when it reaches 0 then resets to 12
 	// getFlag returns 0 for a missing flag — treat 0 as uninitialised (set to 12, don't fire)

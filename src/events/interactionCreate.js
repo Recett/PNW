@@ -1,11 +1,12 @@
 const { Collection, Events, MessageFlags } = require('discord.js');
 const Discord = require('discord.js');
 const PFB = Discord.PermissionFlagsBits;
+const { ADMIN_IDS } = require('../config/admins');
 
 function checkUserPermission(ia, command) {
 	switch (command.authority) {
 	case 'developer':
-		return ia.user.id == '275992469764833280';
+		return ADMIN_IDS.has(ia.user.id);
 	case 'owner':
 		return ia.member == ia.guild.owner;
 	case 'administrators':
@@ -526,9 +527,7 @@ async function handleEncounterFightInteraction(interaction) {
 		const moraleDelta = won
 			? (onHmsZone ? baseGain * 2 : baseGain)
 			: -3;
-		await battleUtil.updateMorale(moraleDelta);
-		// Boss kill: permanently reduce drain baseline by 2
-		if (won && battleUtil.BOSS_ENEMIES.has(record.enemy_id)) {
+		await battleUtil.updateMorale(moraleDelta, won ? `encounter win: ${record.enemy_id}` : `encounter loss: ${record.enemy_id}`); {
 			const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
 			await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + 2);
 		}
@@ -781,7 +780,7 @@ async function handleOfficerCabinInteraction(interaction) {
 		}
 	}
 	if (moraleDelta !== 0) {
-		await battleUtil.updateMorale(moraleDelta);
+		await battleUtil.updateMorale(moraleDelta, 'multi-fight result');
 	}
 
 	// Boss defeat flags and drain reduction only count if every boss was killed

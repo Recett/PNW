@@ -8,6 +8,7 @@ const {
 const locationUtil = require('@utility/locationUtility.js');
 const contentStore = require('@root/contentStore.js');
 const gamecon = require('@root/Data/gamecon.json');
+const { ADMIN_IDS } = require('../config/admins');
 
 // ──────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -622,26 +623,92 @@ function simulateVolley(cannonPower, attackerMobility, defenderMobility) {
 	return { topDeck, cannonDeck, rigging, shots, misses, hits: shots - misses };
 }
 
+/**
+ * Apply morale-based bonus damage to ship decks.
+ * Positive morale damages Arbrance zones (if players present).
+ * Negative morale damages HMS Divine (deck always; rigging only if unoccupied).
+ * Returns the post-morale HP values used for subsequent cannon mobility calculation.
+ */
+async function applyMoraleBonusDamage(state) {
+	const currentMorale = await getFlag('global.hms_divine_morale');
+	let midArbMain = state.arbMainHp;
+	let midArbRig  = state.arbRiggingHp;
+	let midHmsDeck = state.hmsDeckHp;
+	let midHmsRig  = state.hmsRiggingHp;
+
+	if (currentMorale !== 0) {
+		const moraleDmg = Math.floor(Math.pow(Math.abs(currentMorale), 1.5) / 20);
+		const moraleRiggingDmg = Math.floor(moraleDmg / 4);
+		if (currentMorale > 0) {
+			// Positive morale damages Arbrance — each zone only takes damage if players are present in it
+			const arbranceZoneIds = await getArbranceZoneIds();
+			const arbMainId = arbranceZoneIds['arb_main_deck'];
+			const arbRigId  = arbranceZoneIds['arb_rigging'];
+			const [playersOnArbMain, playersOnArbRig] = await Promise.all([
+				arbMainId ? CharacterBase.count({ where: { location_id: arbMainId } }) : Promise.resolve(0),
+				arbRigId  ? CharacterBase.count({ where: { location_id: arbRigId  } }) : Promise.resolve(0),
+			]);
+			const moraleUpdates = [];
+			let mainDmgApplied = 0, rigDmgApplied = 0;
+			if (playersOnArbMain > 0) {
+				midArbMain = Math.max(0, midArbMain - moraleDmg);
+				moraleUpdates.push(setFlag('global.arb_main_deck_hp', midArbMain));
+				mainDmgApplied = moraleDmg;
+			}
+			if (playersOnArbRig > 0) {
+				midArbRig = Math.max(0, midArbRig - moraleRiggingDmg);
+				moraleUpdates.push(setFlag('global.arb_rigging_hp', midArbRig));
+				rigDmgApplied = moraleRiggingDmg;
+			}
+			if (moraleUpdates.length > 0) await Promise.all(moraleUpdates);
+			console.log(`[Battle] Morale bonus damage -> Arbrance: main=${mainDmgApplied} rig=${rigDmgApplied} (morale=${currentMorale}, mainPlayers=${playersOnArbMain}, rigPlayers=${playersOnArbRig})`);
+		}
+		else {
+			// Negative morale damages HMS Divine
+			// HMS rigging only takes damage if no players are present on it
+			const hmsRiggingLocationId = await getFlag('global.location_id_hms_rigging');
+			const playersOnHmsRigging = hmsRiggingLocationId
+				? await CharacterBase.count({ where: { location_id: hmsRiggingLocationId } })
+				: 0;
+			midHmsDeck = Math.max(0, midHmsDeck - moraleDmg);
+			const moraleUpdates = [setFlag('global.hms_divine_top_deck_hp', midHmsDeck)];
+			let hmsRigDmgApplied = 0;
+			if (playersOnHmsRigging === 0) {
+				midHmsRig = Math.max(0, midHmsRig - moraleRiggingDmg);
+				moraleUpdates.push(setFlag('global.hms_divine_rigging_hp', midHmsRig));
+				hmsRigDmgApplied = moraleRiggingDmg;
+			}
+			await Promise.all(moraleUpdates);
+			console.log(`[Battle] Morale penalty damage -> HMS: deck=${moraleDmg} rig=${hmsRigDmgApplied} (morale=${currentMorale}, hmsRiggingPlayers=${playersOnHmsRigging})`);
+		}
+	}
+
+	return { midArbMain, midArbRig, midHmsDeck, midHmsRig };
+}
+
 async function runCannonExchange() {
 	const state = await getBattleState();
 
-	const hmsMobility = Math.floor(state.hmsRiggingHp / 2);
-	const arbMobility = Math.floor(state.arbRiggingHp / 2);
+	// ── 1. Morale-based bonus damage (fires BEFORE cannon exchange) ──────────
+	const { midArbMain, midArbRig, midHmsDeck, midHmsRig } = await applyMoraleBonusDamage(state);
+
+	// ── 2. Cannon exchange (uses post-morale HP for mobility) ────────────────
+	const hmsMobility = Math.floor(midHmsRig / 2);
+	const arbMobility = Math.floor(midArbRig / 2);
 
 	const hmsDealt = simulateVolley(state.hmsCannonHp, hmsMobility, arbMobility);
 	const arbCannonDebuff = await getArmoryCannonDebuff();
 	const arbDealt = simulateVolley(Math.floor(state.arbCannonHp * arbCannonDebuff), arbMobility, hmsMobility);
 	if (arbCannonDebuff < 1.0) console.log(`[Battle] Arb cannon debuffed to ${Math.round(arbCannonDebuff * 100)}% power (armory debuff)`);
 
-	// Apply damage to Arbrance (clamped at 0)
-	const newArbMain = Math.max(0, state.arbMainHp - hmsDealt.topDeck);
+	// Apply cannon damage on top of post-morale HP
+	const newArbMain   = Math.max(0, midArbMain - hmsDealt.topDeck);
 	const newArbCannon = Math.max(0, state.arbCannonHp - hmsDealt.cannonDeck);
-	const newArbRig = Math.max(0, state.arbRiggingHp - hmsDealt.rigging);
+	const newArbRig    = Math.max(0, midArbRig - hmsDealt.rigging);
 
-	// Apply damage to HMS Divine (clamped at 0)
-	const newHmsDeck = Math.max(0, state.hmsDeckHp - arbDealt.topDeck);
+	const newHmsDeck   = Math.max(0, midHmsDeck - arbDealt.topDeck);
 	const newHmsCannon = Math.max(0, state.hmsCannonHp - arbDealt.cannonDeck);
-	const newHmsRig = Math.max(0, state.hmsRiggingHp - arbDealt.rigging);
+	const newHmsRig    = Math.max(0, midHmsRig - arbDealt.rigging);
 
 	await Promise.all([
 		setFlag('global.arb_main_deck_hp', newArbMain),
@@ -651,41 +718,6 @@ async function runCannonExchange() {
 		setFlag('global.hms_divine_cannon_deck_hp', newHmsCannon),
 		setFlag('global.hms_divine_rigging_hp', newHmsRig),
 	]);
-
-	// HP-based morale: every 100 HP dealt to Arbrance main deck = +2; to HMS top deck = -2
-	const arbTopDeckDmg = state.arbMainHp - newArbMain;
-	const hmsTopDeckDmg = state.hmsDeckHp - newHmsDeck;
-	const moraleFromHp = Math.floor(arbTopDeckDmg / 100) * 2 - Math.floor(hmsTopDeckDmg / 100) * 2;
-	if (moraleFromHp !== 0) {
-		await updateMorale(moraleFromHp);
-	}
-
-	// Morale-based cannon damage bonus: applied to top deck + rigging
-	const currentMorale = await getFlag('global.hms_divine_morale');
-	if (currentMorale !== 0) {
-		const moraleDmg = Math.floor(Math.pow(Math.abs(currentMorale), 1.5) / 20);
-		const moraleRiggingDmg = Math.floor(moraleDmg / 4);
-		if (currentMorale > 0) {
-			// Positive morale damages Arbrance
-			const postArbMain = Math.max(0, newArbMain - moraleDmg);
-			const postArbRig = Math.max(0, newArbRig - moraleRiggingDmg);
-			await Promise.all([
-				setFlag('global.arb_main_deck_hp', postArbMain),
-				setFlag('global.arb_rigging_hp', postArbRig),
-			]);
-			console.log(`[Battle] Morale bonus damage -> Arbrance: main=${moraleDmg} rig=${moraleRiggingDmg} (morale=${currentMorale})`);
-		}
-		else {
-			// Negative morale damages HMS Divine
-			const postHmsDeck = Math.max(0, newHmsDeck - moraleDmg);
-			const postHmsRig = Math.max(0, newHmsRig - moraleRiggingDmg);
-			await Promise.all([
-				setFlag('global.hms_divine_top_deck_hp', postHmsDeck),
-				setFlag('global.hms_divine_rigging_hp', postHmsRig),
-			]);
-			console.log(`[Battle] Morale penalty damage -> HMS: deck=${moraleDmg} rig=${moraleRiggingDmg} (morale=${currentMorale})`);
-		}
-	}
 
 	console.log(`[Battle] HMS volley -> Arbrance: main=${hmsDealt.topDeck} cannon=${hmsDealt.cannonDeck} rig=${hmsDealt.rigging}`);
 	console.log(`[Battle] Arb volley -> HMS:      deck=${arbDealt.topDeck} cannon=${arbDealt.cannonDeck} rig=${arbDealt.rigging}`);
@@ -775,10 +807,12 @@ async function postCannonReport(guild, cycleCount, hmsDealt, arbDealt) {
 // MORALE
 // ──────────────────────────────────────────────────────────────
 
-async function updateMorale(delta) {
+async function updateMorale(delta, reason = 'unknown') {
 	const current = await getFlag('global.hms_divine_morale');
 	const clamped = Math.max(-100, Math.min(100, current + delta));
 	await setFlag('global.hms_divine_morale', clamped);
+	const sign = delta >= 0 ? '+' : '';
+	console.log(`[Morale] ${current} ${sign}${delta.toFixed ? delta.toFixed(1) : delta} => ${clamped} (${reason})`);
 	return clamped;
 }
 
@@ -883,7 +917,7 @@ async function performHMSDivineBattleCycle(client) {
 		const haleAnnouncedAlready = await getFlag('global.hms_divine_hale_dead');
 		if (!haleAnnouncedAlready) {
 			await setFlag('global.hms_divine_hale_dead', 1);
-			await updateMorale(-10);
+			await updateMorale(-10, 'Hale death');
 			if (guild) {
 				try {
 					const { runActionsOnly } = require('@utility/eventUtility.js');
@@ -938,6 +972,7 @@ async function _setInitialFlags() {
 		setFlag('global.hms_divine_mustering', 1),
 		setFlag('global.hms_divine_ready_count', 0),
 		setFlag('global.hms_divine_cannon_countdown', 12),
+		setFlag('global.hms_divine_morale_dmg_countdown', 3),
 	]);
 }
 
@@ -1388,7 +1423,7 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 	await setFlag('global.arb_armory_budget_x10', newBudgetX10);
 
 	// Win bonus morale: +N where N = current win count
-	await updateMorale(newWins);
+	await updateMorale(newWins, 'armory wave win');
 
 	const willSecure = newWins >= 10;
 	if (willSecure) {
@@ -1533,7 +1568,7 @@ async function resolveHazard(guild, targetChar, hazardId, locationBase) {
 		}
 		const newHp = Math.max(0, (targetChar.currentHp ?? 0) - finalDmg);
 		await targetChar.update({ currentHp: newHp });
-		await updateMorale(1);
+		await updateMorale(1, 'hazard hit player');
 		const hitFlavor = (resisted && hazard.flavor_resist) ? hazard.flavor_resist : hazard.flavor_hit;
 		message = hitFlavor.replace('{target}', `<@${targetChar.id}>`);
 		message = `${EMOJI.WARNING} ${message} (-${finalDmg} HP)`;
@@ -1621,15 +1656,20 @@ async function spawnEncounters(guild) {
 			continue;
 		}
 
-		// Find players present in this zone
+		// Find players present in this zone; admins are counted out of the target pool
 		const players = await CharacterBase.findAll({ where: { location_id: location.id } });
-		console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}`);
-		if (!players.length) {
+		const eligiblePlayers = players.filter(p => !ADMIN_IDS.has(p.id));
+		const adminsPresentInZone = players.length > eligiblePlayers.length;
+		console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}, eligible: ${eligiblePlayers.length}`);
+		if (!eligiblePlayers.length) {
+			if (adminsPresentInZone) {
+				console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — only admin(s) present, treating as undefended.`);
+			}
 			// Undefended HMS zone: each unchallenged spawn deals -2 morale
 			if (zoneDef.hmsZone) {
 				for (let s = 0; s < spawnCount; s++) {
 					if (Math.random() < ENCOUNTER_ENEMY_CHANCE) {
-						await updateMorale(-2);
+						await updateMorale(-2, `undefended HMS zone ${zoneDef.key ?? zoneDef.id}`);
 						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale.`);
 					}
 				}
@@ -1657,7 +1697,7 @@ async function spawnEncounters(guild) {
 				const currentFoothold = await getFlag('global.arb_main_deck_foothold');
 				if (currentFoothold) {
 					await setFlag('global.arb_main_deck_foothold', 0);
-					await updateMorale(-5);
+					await updateMorale(-5, 'foothold lost (arb_main_deck)');
 					console.log('[Battle] Undefended arb_main_deck — enemies retook the zone, foothold reset to 0, -5 morale.');
 					try {
 						const { runActionsOnly } = require('@utility/eventUtility.js');
@@ -1678,7 +1718,22 @@ async function spawnEncounters(guild) {
 		if (!channel) continue;
 
 		for (let s = 0; s < spawnCount; s++) {
-			const target = players[Math.floor(Math.random() * players.length)];
+			const target = eligiblePlayers[Math.floor(Math.random() * eligiblePlayers.length)];
+
+			// If an admin is also in the zone, narrate that the enemy fled from them toward this target
+			if (adminsPresentInZone) {
+				try {
+					const adminPlayer = players.find(p => ADMIN_IDS.has(p.id));
+					const { EmbedBuilder } = require('discord.js');
+					const deflectEmbed = new EmbedBuilder()
+						.setDescription(`${EMOJI.SUCCESS} An enemy emerges from the shadows\u2014then spots <@${adminPlayer.id}> and freezes in terror. It turns tail and charges at <@${target.id}> instead!`);
+					await channel.send({ embeds: [deflectEmbed] });
+				}
+				catch (e) {
+					console.error('[Encounter] Failed to post admin deflection message:', e);
+				}
+			}
+
 			const isEnemy = Math.random() < ENCOUNTER_ENEMY_CHANCE;
 
 			if (isEnemy) {
@@ -1795,7 +1850,7 @@ async function resolveExpiredEncounters(guild) {
 			const autoBaseGain = ENEMY_MORALE_VALUES[record.enemy_id] ?? 1;
 			const autoOnHmsZone = HMS_ZONE_IDS.includes(record.location_id);
 			const moraleDelta = won ? (autoOnHmsZone ? autoBaseGain * 2 : autoBaseGain) : -3;
-			await updateMorale(moraleDelta);
+			await updateMorale(moraleDelta, won ? `auto-resolve win: ${enemyLabel}` : `auto-resolve loss: ${enemyLabel}`);
 			// Boss kill: permanently reduce drain baseline by 2
 			if (won && BOSS_ENEMIES.has(record.enemy_id)) {
 				const currentReduction = await getFlag('hms_divine_drain_reduction');
@@ -2137,6 +2192,7 @@ module.exports = {
 	isPlayerInArbranceZone,
 	isPlayerInBattleZone,
 	// Combat mechanics
+	applyMoraleBonusDamage,
 	runCannonExchange,
 	updateMorale,
 	checkEndConditions,

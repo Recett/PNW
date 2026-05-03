@@ -405,7 +405,7 @@ async function handleMove(interaction, userId) {
 					},
 				});
 				if (pendingEnc) {
-					await battleUtil.updateMorale(-2);
+					await battleUtil.updateMorale(-2, 'player fled encounter');
 				}
 			}
 

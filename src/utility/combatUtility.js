@@ -4,6 +4,7 @@ const characterUtility = require('./characterUtility');
 const itemUtility = require('./itemUtility');
 const { getCharacterSetting } = require('./characterSettingUtility');
 const { EMOJI } = require('../enums');
+const { ADMIN_IDS } = require('../config/admins');
 
 // Named ambient combat effects. Referenced by name in YAML: combat.ambient_effect
 const AMBIENT_EFFECTS = {
@@ -722,7 +723,7 @@ async function runInitTracker(actors, options = {}) {
 					const damage = stacks * Math.floor((playerActor.maxHp || 100) / 100);
 					if (damage > 0) {
 						// Protected user: HP cannot drop below 1 in combat
-						const hpFloor = playerActor.userId === '275992469764833280' ? 1 : 0;
+						const hpFloor = ADMIN_IDS.has(playerActor.userId) ? 1 : 0;
 						playerActor.hp = Math.max(hpFloor, playerActor.hp - damage);
 					}
 					playerActor.miasmaStacks = stacks + 1;

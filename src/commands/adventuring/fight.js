@@ -397,9 +397,7 @@ module.exports = {
 			const moraleDelta = won
 				? (battleUtil.ENEMY_MORALE_VALUES[enemyId] ?? 1)
 				: -3;
-			await battleUtil.updateMorale(moraleDelta);
-
-			// If defeated during the battle, move player to living quarters
+			await battleUtil.updateMorale(moraleDelta, won ? `fight win: ${enemyId}` : `fight loss: ${enemyId}`);
 			if (!won) {
 				const locationUtil = require('@utility/locationUtility.js');
 				await locationUtil.moveCharacterToLocation(userId, battleUtil.BOONG_SINH_HOAT_ID, interaction.guild);
