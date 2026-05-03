@@ -67,7 +67,7 @@ async function pauseAllCronJobs() {
 	_pausedByPauseAll.clear();
 	const now = new Date();
 	for (const { name, instance } of _allPausableJobs()) {
-		if (instance.running) {
+		if (instance._isActive) {
 			instance.stop();
 			_pausedByPauseAll.add(name);
 		}
