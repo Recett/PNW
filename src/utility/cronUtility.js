@@ -862,7 +862,9 @@ async function performBattleHourlyTasks() {
 		console.log(`[Battle] Morale damage countdown: ${newMoraleDmgCountdown} hour(s) remaining.`);
 		if (newMoraleDmgCountdown <= 0) {
 			console.log('[Battle] Morale damage countdown reached 0 — applying morale bonus damage.');
-			await battleUtil.applyMoraleBonusDamage(await battleUtil.getBattleState());
+			const guild = _discordClient && _discordClient.guilds.cache.first();
+			const moraleResult = await battleUtil.applyMoraleBonusDamage(await battleUtil.getBattleState());
+			if (guild) await battleUtil.postMoraleDamageReport(guild, moraleResult);
 			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
 			console.log('[Battle] Morale damage countdown reset to 3.');
 		}

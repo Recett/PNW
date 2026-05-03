@@ -214,7 +214,7 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 110
+      health: 120
       defense: 4
       defense_percent: 0
       crit_resistance: 5
@@ -223,7 +223,7 @@ enemies:
     attack:
       - id: knotted_rope_lash
         name: Discipline
-        base_damage: 16
+        base_damage: 18
         accuracy: 18
         critical_chance: 15
         cooldown: 100
@@ -247,12 +247,12 @@ enemies:
       defense: 10
       defense_percent: 0
       crit_resistance: 5
-      evade: 6
-      speed: 8
+      evade: 8
+      speed: 12
     attack:
       - id: pollaxe_cleave
         name: Heavy Cleave
-        base_damage: 22
+        base_damage: 24
         accuracy: 10
         critical_chance: 15
         cooldown: 120
@@ -301,24 +301,24 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 90
-      defense: 0
+      health: 120
+      defense: 2
       defense_percent: 0
       crit_resistance: 5
-      evade: 12
-      speed: 16
+      evade: 14
+      speed: 20
     attack:
       - id: first_mate_cutlass
-        name: Cutlass Slash
-        base_damage: 18
+        name: Rapier Thrust
+        base_damage: 14
         accuracy: 12
-        critical_chance: 15
-        cooldown: 100
+        critical_chance: 20
+        cooldown: 80
       - id: first_mate_crossbow
         name: Crossbow Shot
         base_damage: 35
-        accuracy: 14
-        critical_chance: 12
+        accuracy: 18
+        critical_chance: 5
         cooldown: 300
     reward:
       exp: 200
@@ -360,6 +360,7 @@ enemies:
         - id: kite_shield
           quantity: 1
           chance: 1
+          
   - id: enemy_head_guard
     name: Head Guard
     unknown_name: The Enforcer

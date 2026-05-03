@@ -276,7 +276,7 @@ module.exports = {
 			}
 
 			const enemyId = await battleUtil.pickEnemyForLocation(currentZone.id);
-			const arbranceIds = battleUtil.getArbranceZoneIds();
+			const arbranceIds = await battleUtil.getArbranceZoneIds();
 
 			// ── Armory: hold-the-ground zone — no player-initiated fights ─────────────
 			if (currentZone.id === arbranceIds.arb_armory) {

@@ -527,7 +527,9 @@ async function handleEncounterFightInteraction(interaction) {
 		const moraleDelta = won
 			? (onHmsZone ? baseGain * 2 : baseGain)
 			: -3;
-		await battleUtil.updateMorale(moraleDelta, won ? `encounter win: ${record.enemy_id}` : `encounter loss: ${record.enemy_id}`); {
+		await battleUtil.updateMorale(moraleDelta, won ? `encounter win: ${record.enemy_id}` : `encounter loss: ${record.enemy_id}`);
+		// Boss kill: permanently reduce drain baseline by 2
+		if (won && battleUtil.BOSS_ENEMIES.has(record.enemy_id)) {
 			const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
 			await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + 2);
 		}

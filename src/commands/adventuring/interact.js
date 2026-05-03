@@ -237,12 +237,14 @@ async function handleMove(interaction, userId) {
 		let staminaCost = 0;
 		const battleActiveFlagRecord = await GlobalFlag.findOne({ where: { flag: 'global.hms_divine_battle_active' } });
 		if (battleActiveFlagRecord && parseInt(battleActiveFlagRecord.value) === 1) {
-			const arbranceIds = battleUtil.getArbranceZoneIds();
-			const allBattleIds = new Set([...battleUtil.HMS_ZONE_IDS, ...battleUtil.ARB_ZONE_IDS, battleUtil.HMS_RIGGING_ID]);
+			const arbranceIds = await battleUtil.getArbranceZoneIds();
+			const hmsRiggingId = await battleUtil.getFlag('global.location_id_hms_rigging');
+			const allBattleIds = new Set([...battleUtil.HMS_ZONE_IDS, ...Object.values(arbranceIds).filter(Boolean)]);
+			if (hmsRiggingId) allBattleIds.add(hmsRiggingId);
 			const srcIsBattle = allBattleIds.has(currentLocation.id);
 			const dstIsBattle = allBattleIds.has(Number(selectedId));
 			if (srcIsBattle || dstIsBattle) {
-				const riggingIds = new Set([arbranceIds.arb_rigging, battleUtil.HMS_RIGGING_ID]);
+				const riggingIds = new Set([arbranceIds.arb_rigging, hmsRiggingId].filter(Boolean));
 				const isRiggingToRigging = riggingIds.has(currentLocation.id) && riggingIds.has(Number(selectedId));
 				staminaCost = isRiggingToRigging ? 10 : 5;
 			}
@@ -301,7 +303,7 @@ async function handleMove(interaction, userId) {
 
 			// Morale entry gate for Arbrance zones
 			if (destLocation) {
-				const arbranceIds = battleUtil.getArbranceZoneIds();
+				const arbranceIds = await battleUtil.getArbranceZoneIds();
 				const isArmoryDest = destLocation.id === arbranceIds.arb_armory;
 
 				// Armory secured: permanently blocked
@@ -392,7 +394,8 @@ async function handleMove(interaction, userId) {
 			catch (actErr) { console.error('Error posting location activity:', actErr); }
 
 			// Retreat penalty: leaving Arbrance zone with a pending encounter targeting this player
-			const allArbranceIds = new Set(battleUtil.ARB_ZONE_IDS);
+			const retreatArbranceIds = await battleUtil.getArbranceZoneIds();
+			const allArbranceIds = new Set(Object.values(retreatArbranceIds).filter(Boolean));
 			if (allArbranceIds.has(currentLocation.id)) {
 				const pendingEnc = await PendingEncounter.findOne({
 					where: {
