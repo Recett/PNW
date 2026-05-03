@@ -828,6 +828,29 @@ async function performBattleHourlyTasks() {
 
 	// Regen is handled by performCharacterRegen (sole authority)
 	// This function only handles battle-specific morale drain
+
+	// Morale damage countdown fires FIRST (uses pre-drain morale)
+	const moraleDmgCountdown = await battleUtil.getFlag('global.hms_divine_morale_dmg_countdown');
+	if (!moraleDmgCountdown) {
+		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
+		console.log('[Battle] Morale damage countdown initialised to 3 (flag was missing).');
+	}
+	else {
+		const newMoraleDmgCountdown = moraleDmgCountdown - 1;
+		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', newMoraleDmgCountdown);
+		console.log(`[Battle] Morale damage countdown: ${newMoraleDmgCountdown} hour(s) remaining.`);
+		if (newMoraleDmgCountdown <= 0) {
+			console.log('[Battle] Morale damage countdown reached 0 — applying morale bonus damage.');
+			const guild = _discordClient && _discordClient.guilds.cache.first();
+			const preState = await battleUtil.getBattleState();
+			const moraleResult = await battleUtil.applyMoraleBonusDamage(preState);
+			if (guild) await battleUtil.postMoraleDamageReport(guild, preState, moraleResult);
+			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
+			console.log('[Battle] Morale damage countdown reset to 3.');
+		}
+	}
+
+	// Hourly morale drain (runs after morale damage so damage uses pre-drain morale)
 	const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
 	const drainReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
 
@@ -849,26 +872,6 @@ async function performBattleHourlyTasks() {
 	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction + hpDrainModifier);
 	await battleUtil.updateMorale(moraleDrain, 'hourly drain');
 	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
-
-	// Morale damage countdown: decrements each hour; fires applyMoraleBonusDamage every 3 hours
-	const moraleDmgCountdown = await battleUtil.getFlag('global.hms_divine_morale_dmg_countdown');
-	if (!moraleDmgCountdown) {
-		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
-		console.log('[Battle] Morale damage countdown initialised to 3 (flag was missing).');
-	}
-	else {
-		const newMoraleDmgCountdown = moraleDmgCountdown - 1;
-		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', newMoraleDmgCountdown);
-		console.log(`[Battle] Morale damage countdown: ${newMoraleDmgCountdown} hour(s) remaining.`);
-		if (newMoraleDmgCountdown <= 0) {
-			console.log('[Battle] Morale damage countdown reached 0 — applying morale bonus damage.');
-			const guild = _discordClient && _discordClient.guilds.cache.first();
-			const moraleResult = await battleUtil.applyMoraleBonusDamage(await battleUtil.getBattleState());
-			if (guild) await battleUtil.postMoraleDamageReport(guild, moraleResult);
-			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
-			console.log('[Battle] Morale damage countdown reset to 3.');
-		}
-	}
 
 	// Cannon countdown: decrements each hour; fires battle cycle when it reaches 0 then resets to 12
 	// getFlag returns 0 for a missing flag — treat 0 as uninitialised (set to 12, don't fire)

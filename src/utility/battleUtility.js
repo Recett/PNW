@@ -806,7 +806,7 @@ async function postCannonReport(guild, cycleCount, hmsDealt, arbDealt) {
  * @param {import('discord.js').Guild} guild
  * @param {{ midArbMain: number, midArbRig: number, midHmsDeck: number, midHmsRig: number }} result - post-morale HP values returned by applyMoraleBonusDamage
  */
-async function postMoraleDamageReport(guild, result) {
+async function postMoraleDamageReport(guild, preState, result) {
 	const { EmbedBuilder } = require('discord.js');
 	const { EMOJI } = require('@root/enums.js');
 	const SystemSettingUtil = require('@utility/systemSetting.js');
@@ -817,8 +817,9 @@ async function postMoraleDamageReport(guild, result) {
 		: null;
 	if (!battleChannel) return;
 
-	const state = await getBattleState();
-	const morale = state.morale;
+	// Fetch post-damage state for accurate footer totals
+	const postState = await getBattleState();
+	const morale = preState.morale;
 	const moraleSign = morale >= 0 ? '+' : '';
 
 	function hpBar(current, max, len = 8) {
@@ -828,8 +829,9 @@ async function postMoraleDamageReport(guild, result) {
 
 	let description;
 	if (morale > 0) {
-		const mainDmg = state.arbMainHp - result.midArbMain;
-		const rigDmg  = state.arbRiggingHp - result.midArbRig;
+		// preState has the HP before damage; result has HP after
+		const mainDmg = preState.arbMainHp - result.midArbMain;
+		const rigDmg  = preState.arbRiggingHp - result.midArbRig;
 		description = [
 			'```',
 			`Main Deck    -${String(mainDmg).padStart(3)}  ${hpBar(result.midArbMain, 800)}  ${result.midArbMain}/800`,
@@ -838,8 +840,8 @@ async function postMoraleDamageReport(guild, result) {
 		].join('\n');
 	}
 	else if (morale < 0) {
-		const deckDmg = state.hmsDeckHp - result.midHmsDeck;
-		const rigDmg  = state.hmsRiggingHp - result.midHmsRig;
+		const deckDmg = preState.hmsDeckHp - result.midHmsDeck;
+		const rigDmg  = preState.hmsRiggingHp - result.midHmsRig;
 		description = [
 			'```',
 			`Top Deck     -${String(deckDmg).padStart(3)}  ${hpBar(result.midHmsDeck, 400)}  ${result.midHmsDeck}/400`,
@@ -855,10 +857,10 @@ async function postMoraleDamageReport(guild, result) {
 
 	const embed = new EmbedBuilder()
 		.setColor(morale > 0 ? 0x2ecc71 : morale < 0 ? 0xe74c3c : 0x95a5a6)
-		.setTitle(`${EMOJI.SWORD} Morale Damage \u2014 ${target}`)
+		.setTitle(`${EMOJI.SWORD} Fighting Report \u2014 ${target}`)
 		.setDescription(description)
 		.addFields({ name: 'Morale', value: `${moraleSign}${morale}`, inline: true })
-		.setFooter({ text: `HMS Divine: ${state.hmsTotalHp}/1000 \u2502 Arbrance: ${state.arbTotalHp}/1500` });
+		.setFooter({ text: `HMS Divine: ${postState.hmsTotalHp}/1000 \u2502 Arbrance: ${postState.arbTotalHp}/1500` });
 
 	await battleChannel.send({ embeds: [embed] });
 }
