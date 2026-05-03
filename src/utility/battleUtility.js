@@ -83,7 +83,7 @@ const ZONE_MORALE_THRESHOLDS = {
 	'arb_rigging':          20,
 	'arb_cannon_deck':      40,
 	'arb_armory':           40,
-	'arb_officer_quarters': 40,
+	'arb_officer_quarters': 60,
 };
 
 // Arbrance zone definitions — created by ensureArbranceLocations()
