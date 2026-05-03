@@ -800,7 +800,6 @@ async function handleOfficerCabinInteraction(interaction) {
 		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
 	]);
 	if (c === 1 && fm === 1 && hg === 1) {
-		await battleUtil.setFlag('global.arb_commander_slain', 1);
 		const victoryEmbed = new EmbedBuilder()
 			.setTitle('\u2694\uFE0F Officer Quarters Secured!')
 			.setDescription('All officers of *La Dauphine* have been defeated. The officer quarters are under your control.')

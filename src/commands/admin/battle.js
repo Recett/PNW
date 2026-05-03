@@ -39,6 +39,9 @@ module.exports = {
 						.setDescription('Integer value to set')
 						.setRequired(true)))
 		.addSubcommand(sub =>
+			sub.setName('reset')
+				.setDescription('Reset ship HPs to full, morale to -40, and cycle count to 1 (does not change active/init state).'))
+		.addSubcommand(sub =>
 			sub.setName('end')
 				.setDescription('End the battle immediately, post outcome, and restore all locations.'))
 		.addSubcommand(sub =>
@@ -121,13 +124,6 @@ module.exports = {
 								`Cannon Deck: **${state.arbCannonHp}** / 450`,
 								`Rigging: **${state.arbRiggingHp}** / 250`,
 								`Total: **${state.arbTotalHp}** / 1500`,
-							].join('\n'),
-							inline: true,
-						},
-						{
-							name: 'Arbrance State',
-							value: [
-								`Commander Slain: **${state.arbCommanderSlain ? 'YES' : 'NO'}**`,
 							].join('\n'),
 							inline: true,
 						},
@@ -241,6 +237,42 @@ module.exports = {
 				if (missing.length) lines.push(`${EMOJI.FAILURE} Unresolved zones (no location ID flag): ${[...new Set(missing)].join(', ')}`);
 
 				await interaction.editReply({ content: lines.join('\n') });
+			}
+			else if (sub === 'reset') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const ts = Math.floor(Date.now() / 1000);
+				await Promise.all([
+					// Ship HP
+					battleUtil.setFlag('global.hms_divine_top_deck_hp', 400),
+					battleUtil.setFlag('global.hms_divine_cannon_deck_hp', 300),
+					battleUtil.setFlag('global.hms_divine_rigging_hp', 300),
+					battleUtil.setFlag('global.arb_main_deck_hp', 800),
+					battleUtil.setFlag('global.arb_cannon_deck_hp', 450),
+					battleUtil.setFlag('global.arb_rigging_hp', 250),
+					// Battle state
+					battleUtil.setFlag('global.hms_divine_morale', -40),
+					battleUtil.setFlag('global.hms_divine_cycle_count', 1),
+					battleUtil.setFlag('global.hms_divine_phase_start_ts', ts),
+					battleUtil.setFlag('global.hms_divine_sunk', 0),
+					battleUtil.setFlag('global.hms_divine_supply_loss', 0),
+					battleUtil.setFlag('global.hms_divine_drain_reduction', 0),
+					// Arbrance state
+					battleUtil.setFlag('global.arb_main_deck_foothold', 0),
+					// Armory state
+					battleUtil.setFlag('global.arb_armory_wins', 0),
+					battleUtil.setFlag('global.arb_armory_secured', 0),
+					battleUtil.setFlag('global.arb_armory_budget_x10', 10),
+					battleUtil.setFlag('global.arb_armory_wave_counter', 0),
+				]);
+				await interaction.editReply({
+					content: [
+						`${EMOJI.SUCCESS} Battle state reset:`,
+						'HMS Divine \u2014 Top Deck: 400, Cannon Deck: 300, Rigging: 300',
+						'Arbrance \u2014 Main Deck: 800, Cannon Deck: 450, Rigging: 250',
+						'Morale: -40 | Cycle: 1 | Sunk: 0 | Supply Loss: 0',
+						'Arb commander, foothold, armory progress all cleared.',
+					].join('\n'),
+				});
 			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });

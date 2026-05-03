@@ -128,7 +128,7 @@ async function getBattleState() {
 		battleActive, battleInitialized, cycleCount,
 		hmsDeckHp, hmsCannonHp, hmsRiggingHp,
 		arbMainHp, arbCannonHp, arbRiggingHp,
-		morale, arbCommanderSlain,
+		morale,
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
 	] = await Promise.all([
@@ -142,7 +142,6 @@ async function getBattleState() {
 		getFlag('global.arb_cannon_deck_hp'),
 		getFlag('global.arb_rigging_hp'),
 		getFlag('global.hms_divine_morale'),
-		getFlag('global.arb_commander_slain'),
 		getFlag('global.hms_divine_sunk'),
 		getFlag('global.hms_divine_supply_loss'),
 		getFlag('global.hms_divine_mustering'),
@@ -155,7 +154,7 @@ async function getBattleState() {
 		hmsTotalHp: hmsDeckHp + hmsCannonHp + hmsRiggingHp,
 		arbMainHp, arbCannonHp, arbRiggingHp,
 		arbTotalHp: arbMainHp + arbCannonHp + arbRiggingHp,
-		morale, arbCommanderSlain,
+		morale,
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
 	};
@@ -943,7 +942,6 @@ async function _setInitialFlags() {
 		setFlag('global.hms_divine_morale', -40),
 		setFlag('global.hms_divine_cycle_count', 0),
 		setFlag('global.hms_divine_phase_start_ts', ts),
-		setFlag('global.arb_commander_slain', 0),
 		setFlag('global.hms_divine_sunk', 0),
 		setFlag('global.hms_divine_supply_loss', 0),
 		setFlag('hms_divine_drain_reduction', 0),
@@ -954,6 +952,7 @@ async function _setInitialFlags() {
 		setFlag('global.arb_main_deck_foothold', 0),
 		setFlag('global.hms_divine_mustering', 1),
 		setFlag('global.hms_divine_ready_count', 0),
+		setFlag('global.hms_divine_cannon_countdown', 12),
 	]);
 }
 
@@ -1184,8 +1183,8 @@ const ENCOUNTER_TTL_MS = 30 * 60 * 1000;
 const ARMORY_ENCOUNTER_TTL_MS = 15 * 60 * 1000;
 // Armory waves arrive every 30 minutes
 const ARMORY_WAVE_INTERVAL_MS = 30 * 60 * 1000;
-// 70% enemy encounter, 30% hazard
-const ENCOUNTER_ENEMY_CHANCE = 0.7;
+// 90% enemy encounter, 10% hazard
+const ENCOUNTER_ENEMY_CHANCE = 0.9;
 
 // ──────────────────────────────────────────────────────────────
 // ARMORY WAVE SYSTEM
@@ -1656,15 +1655,12 @@ async function spawnEncounters(guild) {
 		const players = await CharacterBase.findAll({ where: { location_id: location.id } });
 		console.log(`[SpawnEncounters] Zone ${zoneDef.key ?? zoneDef.id} — spawnCount: ${spawnCount}, players: ${players.length}`);
 		if (!players.length) {
-			// Undefended HMS zone: each unchallenged spawn deals -2 morale and -10 ship HP
+			// Undefended HMS zone: each unchallenged spawn deals -2 morale
 			if (zoneDef.hmsZone) {
-				const zoneHpFlag = zoneDef.hpFlag ?? 'global.hms_divine_top_deck_hp';
 				for (let s = 0; s < spawnCount; s++) {
 					if (Math.random() < ENCOUNTER_ENEMY_CHANCE) {
 						await updateMorale(-2);
-						const currentZoneHp = await getFlag(zoneHpFlag);
-						await setFlag(zoneHpFlag, Math.max(0, currentZoneHp - 10));
-						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale, -10 ${zoneHpFlag} (was ${currentZoneHp}).`);
+						console.log(`[Battle] Undefended HMS zone ${location.id} — enemy spawned unopposed, -2 morale.`);
 					}
 				}
 			}

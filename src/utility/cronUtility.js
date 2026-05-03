@@ -39,11 +39,9 @@ const dailyTaskJob = makeCronJob('0 1 * * *', async () => {
 	await performDailyTasks();
 });
 
-// This job runs every 8 hours — HMS Divine battle cycle / cannon phase (only active during battle)
-const battleCycleJob = makeCronJob('0 */8 * * *', async () => {
-	if (!_discordClient) return;
-	await performHMSDivineBattleCycle();
-});
+// Battle cycle is now driven by a 12-hour countdown in performBattleHourlyTasks().
+// This stub keeps the export contract intact but the job is never started.
+const battleCycleJob = makeCronJob('0 0 31 2 *', async () => { /* disabled — countdown-driven */ });
 
 // This job runs every 30 minutes — health monitoring, encounter spawn, and related half-hourly tasks
 // Consolidated to avoid concurrent DB writes from multiple same-schedule jobs
@@ -784,9 +782,7 @@ async function startCronJob(client) {
 	healthMonitorJob.start();
 	console.log('Half-hourly cron job started (health monitor + encounter spawn, runs every 30 minutes).');
 
-	// Start HMS Divine battle cycle job (fires every 8 hours)
-	battleCycleJob.start();
-	console.log('Battle cycle cron job started (HMS Divine, runs every 8 hours).');
+	// Battle cycle is countdown-driven (12 hours) — battleCycleJob cron is disabled.
 
 	// Run pending deletion cleanup immediately on startup to catch any stragglers from previous session
 	performPendingDeleteCleanup().catch(e => console.error('[PendingDeleteCleanup] Startup run failed:', e));
@@ -837,6 +833,29 @@ async function performBattleHourlyTasks() {
 	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction);
 	await battleUtil.updateMorale(moraleDrain);
 	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
+
+	// Cannon countdown: decrements each hour; fires battle cycle at 0 then resets to 12
+	let countdown = await battleUtil.getFlag('global.hms_divine_cannon_countdown');
+	if (countdown === null || countdown === undefined || countdown <= 0) {
+		// First hour or countdown expired — fire cycle and reset
+		if (countdown !== null && countdown !== undefined && countdown <= 0) {
+			console.log('[Battle] Cannon countdown reached 0 — firing battle cycle.');
+			if (_discordClient) await performHMSDivineBattleCycle();
+		}
+		await battleUtil.setFlag('global.hms_divine_cannon_countdown', 12);
+		console.log('[Battle] Cannon countdown initialised/reset to 12.');
+	}
+	else {
+		const newCountdown = countdown - 1;
+		await battleUtil.setFlag('global.hms_divine_cannon_countdown', newCountdown);
+		console.log(`[Battle] Cannon countdown: ${newCountdown} hour(s) remaining.`);
+		if (newCountdown <= 0) {
+			console.log('[Battle] Cannon countdown reached 0 — firing battle cycle.');
+			if (_discordClient) await performHMSDivineBattleCycle();
+			await battleUtil.setFlag('global.hms_divine_cannon_countdown', 12);
+			console.log('[Battle] Cannon countdown reset to 12.');
+		}
+	}
 }
 
 module.exports = {

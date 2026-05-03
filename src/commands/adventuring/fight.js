@@ -140,7 +140,7 @@ async function handleOfficerCabinFight(interaction, userId, character, currentZo
 		head_guard: headGuardDefeated === 1,
 	};
 
-	if (defeatedMap.captain && defeatedMap.first_mate && defeatedMap.head_guard) {
+	if (defeatedMap.captain) {
 		return interaction.reply({
 			content: 'All officers have been dealt with. The cabin is clear.',
 			flags: MessageFlags.Ephemeral,
