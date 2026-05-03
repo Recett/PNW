@@ -1809,13 +1809,6 @@ class EventProcessor {
 		const { location, silent, custom_message } = action;
 		let location_id = location; // YAML uses 'location' instead of 'location_id'
 
-		// Resolve flag-referenced location: location: "flag:global.location_id_arb_main_deck"
-		if (typeof location_id === 'string' && location_id.startsWith('flag:')) {
-			const flagKey = location_id.slice(5);
-			const flagRow = await GlobalFlag.findOne({ where: { flag: flagKey } });
-			location_id = flagRow ? Number(flagRow.value) : null;
-		}
-
 		if (location === 'adjacent_random') {
 			const character = await characterUtil.getCharacterBase(session.characterId);
 			if (character?.location_id) {
@@ -2344,11 +2337,10 @@ class EventProcessor {
 				embed.setThumbnail(eventMessage.avatar);
 			}
 
-			// Process text with pronouns and player name (includes NPC-relational pronouns)
+			// Process text with session variables (${morale} etc.) then pronouns/player name
 			let text = eventMessage.text || '';
-			if (text && character) {
-				const npcForTemplate = session.npc || npc;
-				text = processTextTemplate(text, character.age, character.gender, character, npcForTemplate);
+			if (text) {
+				text = await this.processText(text, session);
 			}
 
 			embed.setDescription(resultText + text);

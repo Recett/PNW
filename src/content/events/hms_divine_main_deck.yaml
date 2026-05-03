@@ -204,7 +204,7 @@ events:
         silent: true
 
       - type: move
-        location: "flag:global.location_id_arb_main_deck"
+        location: 9
         silent: true
 
   # ── Shared tail events ────────────────────────────────────────────────────────

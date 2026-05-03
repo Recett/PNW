@@ -446,20 +446,18 @@ All battle state lives in `global_flags`. No new columns were added to any chara
 If both conditions hold, fires `arb-main-deck-breach-warning` via `interaction.client.eventUtil.processEvent` and returns early — the player is NOT yet moved. The event chain is responsible for moving the player on victory.
 
 **Event chain (hms_divine_main_deck.yaml):**
-1. `arb-main-deck-breach-warning` — Warning scene. Sets character flag `boarding_disoriented = 1`. Options: "Push through" → round 1 combat; "Fall back" → retreat.
-2. `arb-main-deck-breach-round-1-combat` — Enemy: `sailor`. Accuracy penalty active via `boarding_disoriented` flag set in step 1. Victory → round 1 victory scene. Defeat → defeat scene.
+1. `arb-main-deck-breach-warning` — Warning scene. Options: "Push through" → round 1 combat; "Fall back" → retreat.
+2. `arb-main-deck-breach-round-1-combat` — Enemy: `sailor`. `special_rules: { accuracy_penalty_player: 0.8 }`. Victory → round 1 victory scene. Defeat → defeat scene.
 3. `arb-main-deck-breach-round-1-victory` — +1 morale. Options: press on (round 2) or fall back.
-4. `arb-main-deck-breach-round-2-combat` — Enemy: `boarder`. Accuracy penalty still active. Victory → round 2 victory scene.
+4. `arb-main-deck-breach-round-2-combat` — Enemy: `boarder`. `special_rules: { accuracy_penalty_player: 0.8 }`. Victory → round 2 victory scene.
 5. `arb-main-deck-breach-round-2-victory` — +2 morale. Options: press on (round 3) or fall back.
-6. `arb-main-deck-breach-round-3-combat` — Enemy: `veteran_sailor`; `special_rules: { foothold_announcement: true }`. Accuracy penalty still active. Victory → foothold victory.
-7. `arb-main-deck-breach-victory` — Sets `global.arb_main_deck_foothold = 1`; +5 morale; clears `boarding_disoriented = 0`; moves player to `flag:location_id_arb_main_deck`. The `foothold_announcement: true` on the final combat triggers `battleUtil.postMainDeckFootholdAnnouncement(guild)`.
-8. `arb-main-deck-breach-defeat` — -3 morale; clears `boarding_disoriented = 0`; move to location 6 (living quarters).
-9. `arb-main-deck-breach-retreat` — Silent; clears `boarding_disoriented = 0`; move to location 4 (HMS Top Deck).
+6. `arb-main-deck-breach-round-3-combat` — Enemy: `veteran_sailor`; `special_rules: { accuracy_penalty_player: 0.8, foothold_announcement: true }`. Victory → foothold victory.
+7. `arb-main-deck-breach-victory` — Sets `global.arb_main_deck_foothold = 1`; +5 morale; moves player to location 9 (`arb_main_deck`). The `foothold_announcement: true` on the final combat triggers `battleUtil.postMainDeckFootholdAnnouncement(guild)`.
+8. `arb-main-deck-breach-defeat` — -3 morale; move to location 6 (living quarters).
+9. `arb-main-deck-breach-retreat` — Silent; move to location 4 (HMS Top Deck).
 
-**Accuracy penalty mechanic (combatUtility.js):**
-- `mainCombat` reads the character flag `boarding_disoriented` (flag_value > 0) before building actor stats.
-- If set, multiplies `options.playerAccuracyMultiplier` by `0.8` (-20% accuracy on all player attacks) for the duration of that combat.
-- The flag is set at the start of the warning event and cleared in all three exit paths (victory, defeat, retreat), so it never persists past the boarding push sequence.
+**Accuracy penalty mechanic:**
+- Each combat event carries `special_rules: { accuracy_penalty_player: 0.8 }` in the YAML. `eventUtility` reads this and passes it to `mainCombat` as `options.playerAccuracyMultiplier = 0.8`. No persistent character flag is used.
 
 **Announcement (battleUtility.js / eventUtility.js):**
 - `postMainDeckFootholdAnnouncement(guild)` — reads `channel.battle` from `SystemSetting`; posts an embed with title "Foothold Established!" to the battle channel.
@@ -467,7 +465,7 @@ If both conditions hold, fires `arb-main-deck-breach-warning` via `interaction.c
 **Flag:**
 - `global.arb_main_deck_foothold` — initialised to `0` in `_setInitialFlags()`. Set to `1` by the `arb-main-deck-breach-victory` event action (`flag_name: global.arb_main_deck_foothold`). Once `1`, the trigger in `interact.js` no longer fires.
 - **Key alignment (bug fix):** The YAML action must use `flag_name: global.arb_main_deck_foothold` (with the `global.` prefix). `battleUtil.getFlag` and `setFlag` store flags under the full prefixed key; YAML actions without the prefix write to a different DB row and are never read by the entry check. Previously `flag_name: arb_main_deck_foothold` was used, so the entry check always read `0` and every player received the challenge.
-- `character.boarding_disoriented` — set to `1` by warning event, cleared to `0` by all exit paths. Signals combatUtility to apply the accuracy penalty for the current combat.
+
 
 **Status:** ✅ Fully implemented.
 
