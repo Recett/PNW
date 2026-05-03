@@ -251,11 +251,13 @@ module.exports = {
 					battleUtil.setFlag('global.arb_rigging_hp', 250),
 					// Battle state
 					battleUtil.setFlag('global.hms_divine_morale', -40),
-					battleUtil.setFlag('global.hms_divine_cycle_count', 1),
+					battleUtil.setFlag('global.hms_divine_cycle_count', 0),
 					battleUtil.setFlag('global.hms_divine_phase_start_ts', ts),
 					battleUtil.setFlag('global.hms_divine_sunk', 0),
 					battleUtil.setFlag('global.hms_divine_supply_loss', 0),
 					battleUtil.setFlag('global.hms_divine_drain_reduction', 0),
+					// Cannon countdown: reset to 12
+					battleUtil.setFlag('global.hms_divine_cannon_countdown', 12),
 					// Arbrance state
 					battleUtil.setFlag('global.arb_main_deck_foothold', 0),
 					// Armory state
@@ -269,7 +271,8 @@ module.exports = {
 						`${EMOJI.SUCCESS} Battle state reset:`,
 						'HMS Divine \u2014 Top Deck: 400, Cannon Deck: 300, Rigging: 300',
 						'Arbrance \u2014 Main Deck: 800, Cannon Deck: 450, Rigging: 250',
-						'Morale: -40 | Cycle: 1 | Sunk: 0 | Supply Loss: 0',
+						'Morale: -40 | Cycle: 0 | Sunk: 0 | Supply Loss: 0',
+						'Cannon countdown: 12.',
 						'Arb commander, foothold, armory progress all cleared.',
 					].join('\n'),
 				});

@@ -1351,7 +1351,7 @@ async function spawnArmoryWave(guild) {
 				.setStyle(ButtonStyle.Danger),
 		);
 
-		const msg = await channel.send({ embeds: [embed], components: [row] });
+		const msg = await channel.send({ content: `<@${target.id}>`, embeds: [embed], components: [row] });
 		await record.update({ message_id: msg.id });
 	}
 
@@ -1723,7 +1723,7 @@ async function spawnEncounters(guild) {
 							.setStyle(ButtonStyle.Danger),
 					);
 
-					const msg = await channel.send({ embeds: [embed], components: [row] });
+					const msg = await channel.send({ content: `<@${target.id}>`, embeds: [embed], components: [row] });
 					await record.update({ message_id: msg.id });
 					totalEncounters++;
 				}
