@@ -458,11 +458,12 @@ If both conditions hold, fires `arb-main-deck-breach-warning` via `interaction.c
 - If set, multiplies `options.playerAccuracyMultiplier` by `0.8` (-20% accuracy on all player attacks) for the duration of that combat.
 - The flag is set at the start of the warning event and cleared in all three exit paths (victory, defeat, retreat), so it never persists past the boarding push sequence.
 
-**Announcement (battleUtility.js):**
+**Announcement (battleUtility.js / eventUtility.js):**
 - `postMainDeckFootholdAnnouncement(guild)` — reads `channel.battle` from `SystemSetting`; posts an embed with title "Foothold Established!" to the battle channel.
 
 **Flag:**
-- `global.arb_main_deck_foothold` — initialised to `0` in `_setInitialFlags()`. Set to `1` by the `arb-main-deck-breach-victory` event action. Once `1`, the trigger in `interact.js` no longer fires.
+- `global.arb_main_deck_foothold` — initialised to `0` in `_setInitialFlags()`. Set to `1` by the `arb-main-deck-breach-victory` event action (`flag_name: global.arb_main_deck_foothold`). Once `1`, the trigger in `interact.js` no longer fires.
+- **Key alignment (bug fix):** The YAML action must use `flag_name: global.arb_main_deck_foothold` (with the `global.` prefix). `battleUtil.getFlag` and `setFlag` store flags under the full prefixed key; YAML actions without the prefix write to a different DB row and are never read by the entry check. Previously `flag_name: arb_main_deck_foothold` was used, so the entry check always read `0` and every player received the challenge.
 - `character.boarding_disoriented` — set to `1` by warning event, cleared to `0` by all exit paths. Signals combatUtility to apply the accuracy penalty for the current combat.
 
 **Status:** ✅ Fully implemented.

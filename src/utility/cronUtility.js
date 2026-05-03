@@ -834,16 +834,12 @@ async function performBattleHourlyTasks() {
 	await battleUtil.updateMorale(moraleDrain);
 	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
 
-	// Cannon countdown: decrements each hour; fires battle cycle at 0 then resets to 12
-	let countdown = await battleUtil.getFlag('global.hms_divine_cannon_countdown');
-	if (countdown === null || countdown === undefined || countdown <= 0) {
-		// First hour or countdown expired — fire cycle and reset
-		if (countdown !== null && countdown !== undefined && countdown <= 0) {
-			console.log('[Battle] Cannon countdown reached 0 — firing battle cycle.');
-			if (_discordClient) await performHMSDivineBattleCycle();
-		}
+	// Cannon countdown: decrements each hour; fires battle cycle when it reaches 0 then resets to 12
+	// getFlag returns 0 for a missing flag — treat 0 as uninitialised (set to 12, don't fire)
+	const countdown = await battleUtil.getFlag('global.hms_divine_cannon_countdown');
+	if (!countdown) {
 		await battleUtil.setFlag('global.hms_divine_cannon_countdown', 12);
-		console.log('[Battle] Cannon countdown initialised/reset to 12.');
+		console.log('[Battle] Cannon countdown initialised to 12 (flag was missing).');
 	}
 	else {
 		const newCountdown = countdown - 1;

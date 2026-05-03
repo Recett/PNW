@@ -194,7 +194,7 @@ events:
 
     action:
       - type: flag
-        flag_name: arb_main_deck_foothold
+        flag_name: global.arb_main_deck_foothold
         flag_value: 1
         flag_operation: set
         flag_type: global

@@ -272,6 +272,14 @@ class EventProcessor {
 						if (isBattleActive) {
 							const locationUtil = require('@utility/locationUtility.js');
 							await locationUtil.moveCharacterToLocation(characterId, battleUtil.BOONG_SINH_HOAT_ID, interaction.guild);
+							// Resolve the deferred interaction if sendCombatLog didn't already do so
+							if (interaction.deferred && !interaction.replied) {
+								await interaction.editReply({ content: combatResult.message || 'You were defeated and sent back to safety.' }).catch(() => {});
+							}
+							// Clean up session and release the character lock
+							await this.flushPendingFlags(session);
+							this.activeEvents.delete(session.sessionId);
+							this.activeCharacters.delete(characterId);
 							return; // Skip on_defeat event chain — player is already routed
 						}
 					}
