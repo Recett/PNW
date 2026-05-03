@@ -403,18 +403,25 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 160
-      defense: 2
+      health: 150
+      defense: 4
       defense_percent: 0
       crit_resistance: 5
-      evade: 14
-      speed: 14
+      evade: 18
+      speed: 18
     attack:
       - id: boarding_axe_qm
-        name: Cutlass
-        base_damage: 16
-        accuracy: 8
+        name: Royal Rapier
+        base_damage: 15
+        accuracy: 20
         critical_chance: 10
-        cooldown: 100
+        cooldown: 80
+      - id: captain_kite_shield
+        name: Shield
+        base_damage: 20
+        accuracy: 0
+        critical_chance: 0
+        cooldown: 300
+        tags: [greatshield]  
     reward:
       exp: 200

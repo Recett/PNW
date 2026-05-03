@@ -1294,7 +1294,13 @@ async function spawnArmoryWave(guild) {
 	const budgetX10 = await getFlag('global.arb_armory_budget_x10');
 	const budget = (budgetX10 || 10) / 10;
 
-	const waveEnemies = buildArmoryWave(budget);
+	// Final wave (9 wins → 10th win secures): prepend Quartermaster, reduce random budget by 2
+	const currentWins = await getFlag('global.arb_armory_wins');
+	const isFinalWave = currentWins >= 9;
+	const effectiveBudget = isFinalWave ? Math.max(0, budget - 2) : budget;
+	const waveEnemies = isFinalWave
+		? ['quartermaster', ...buildArmoryWave(effectiveBudget)]
+		: buildArmoryWave(budget);
 	if (!waveEnemies.length) return null;
 
 	const waveCounter = await getFlag('global.arb_armory_wave_counter');

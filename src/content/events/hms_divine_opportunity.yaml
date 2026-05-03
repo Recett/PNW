@@ -118,6 +118,11 @@ events:
       message_type: normal
 
     action:
+      - type: narrate
+        channel: battle
+        title: "Boss Defeated"
+        text: "${player_name} has defeated the Boatswain!"
+        color: 0x27ae60
       - type: flag
         flag_name: global.arb_boss_boatswain_defeated
         flag_value: 1
@@ -195,6 +200,11 @@ events:
       message_type: normal
 
     action:
+      - type: narrate
+        channel: battle
+        title: "Boss Defeated"
+        text: "${player_name} has defeated the Master at Arms!"
+        color: 0x27ae60
       - type: flag
         flag_name: global.arb_boss_master_at_arms_defeated
         flag_value: 1
@@ -270,10 +280,15 @@ events:
     message:
       title: "Thuyền Phó Gục Ngã"
       text: |
-        Bạn lao lên và hạ gục được thuyền phó. Hắn ngã xuống, nhìn bạn bằng ánh mắt ngạc nhiên, rồi lảo đảo rút lui về phía sau.
+        Bạn lao lên và hạ gục được thuyền phó. Hắn ngã xuống trong sự bàng hoàng.
       message_type: normal
 
     action:
+      - type: narrate
+        channel: battle
+        title: "Boss Defeated"
+        text: "${player_name} has defeated the First Mate!"
+        color: 0x27ae60
       - type: flag
         flag_name: global.arb_boss_first_mate_defeated
         flag_value: 1
