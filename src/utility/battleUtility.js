@@ -1227,12 +1227,12 @@ async function pickEnemyForLocation(locationId) {
 // RANDOM ENCOUNTER SYSTEM
 // ──────────────────────────────────────────────────────────────
 
-// Regular encounters expire after 30 minutes
-const ENCOUNTER_TTL_MS = 30 * 60 * 1000;
-// Armory wave encounters expire after 15 minutes
-const ARMORY_ENCOUNTER_TTL_MS = 15 * 60 * 1000;
-// Armory waves arrive every 30 minutes
-const ARMORY_WAVE_INTERVAL_MS = 30 * 60 * 1000;
+// Regular encounters expire after 2 hours (pacing ×4 slower, was 30 min)
+const ENCOUNTER_TTL_MS = 2 * 60 * 60 * 1000;
+// Armory wave encounters expire after 1 hour (pacing ×4 slower, was 15 min)
+const ARMORY_ENCOUNTER_TTL_MS = 1 * 60 * 60 * 1000;
+// Armory waves arrive every 2 hours (pacing ×4 slower, was 30 min)
+const ARMORY_WAVE_INTERVAL_MS = 2 * 60 * 60 * 1000;
 // 90% enemy encounter, 10% hazard
 const ENCOUNTER_ENEMY_CHANCE = 0.9;
 

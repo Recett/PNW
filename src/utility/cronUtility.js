@@ -50,6 +50,7 @@ const _allPausableJobs = () => [
 	{ name: 'weekly_stock_reset', instance: weeklyStockResetJob },
 	{ name: 'daily_task_processor', instance: dailyTaskJob },
 	{ name: 'health_monitor', instance: healthMonitorJob },
+	{ name: 'encounter_spawn_job', instance: encounterSpawnJob },
 ];
 
 // Names whose last_run is checked on startup for catch-up — stamp them with "now" on resume
@@ -113,10 +114,15 @@ async function resumeAllCronJobs() {
 	return resumed;
 }
 
-// This job runs every 30 minutes — health monitoring, encounter spawn, and related half-hourly tasks
-// Consolidated to avoid concurrent DB writes from multiple same-schedule jobs
+// This job runs every 30 minutes — health monitoring only
 const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
 	await performHealthCheck();
+});
+
+// This job runs every 2 hours — encounter spawn only
+// Offset by 1 minute to avoid coinciding with healthMonitorJob (which fires on :00 and :30)
+// Skips 2 AM and 4 AM (no spawns in the 2am–6am window; next spawn after midnight is 8am)
+const encounterSpawnJob = makeCronJob('1 0,8,10,12,14,16,18,20,22 * * *', async () => {
 	if (_discordClient) await performEncounterSpawn();
 	else console.warn('[EncounterSpawn] Skipped — Discord client not ready.');
 });
@@ -227,30 +233,30 @@ async function performCharacterRegen() {
 		let hpCount = 0;
 
 		if (isBattle) {
-			// === Battle ruleset ===
-			// Stamina +20% for ALL players (game-wide rule, not zone-specific)
+			// === Battle ruleset (pacing ×4 slower — amounts reduced to 1/4) ===
+			// Stamina +5% for ALL players (was +20%)
 			const s1 = await CharacterBase.sequelize.query(`
 				UPDATE character_bases
-				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
 				WHERE maxStamina IS NOT NULL
 					AND currentStamina IS NOT NULL;
 			`);
 			staminaCount += s1[1] || 0;
 
-			// Stamina extra +20% for Boong Sinh Hoat (doubles rate to +40% total)
+			// Stamina extra +5% for Boong Sinh Hoat (total +10%, was +40%)
 			const s2 = await CharacterBase.sequelize.query(`
 				UPDATE character_bases
-				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+				SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
 				WHERE maxStamina IS NOT NULL
 					AND currentStamina IS NOT NULL
 					AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
 			`);
 			staminaCount += s2[1] || 0;
 
-			// HP +50% for Boong Sinh Hoat; 0-HP players recover only 1 HP (forced rest tick)
+			// HP +12.5% for Boong Sinh Hoat (was +50%); 0-HP players recover only 1 HP (forced rest tick)
 			const h1 = await CharacterBase.sequelize.query(`
 				UPDATE character_bases
-				SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.50 + 0.999) AS INTEGER) END)
+				SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.125 + 0.999) AS INTEGER) END)
 				WHERE maxHp IS NOT NULL
 					AND currentHp IS NOT NULL
 					AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
@@ -675,6 +681,14 @@ async function performHealthCheck() {
 
 async function startCronJob(client) {
 	_discordClient = client || null;
+
+	// Restore pause state from DB so it survives bot restarts
+	const _pausedRows = await CronLog.findAll({ where: { status: 'paused' } });
+	for (const row of _pausedRows) _pausedByPauseAll.add(row.job_name);
+	if (_pausedByPauseAll.size > 0) {
+		console.log(`[CronPause] Restored paused jobs from DB: ${[..._pausedByPauseAll].join(', ')}`);
+	}
+
 	// Helper for catch-up: replay missed character regen ticks
 	async function performCharacterRegenForTime(runTime) {
 		const jobName = 'character_regen';
@@ -688,39 +702,39 @@ async function startCronJob(client) {
 			const isBattle = battleActiveRecord && parseInt(battleActiveRecord.value) === 1;
 
 			if (isBattle) {
-				// Battle ruleset catch-up
-				// Stamina +20% for ALL players (game-wide rule, not zone-specific)
+				// Battle ruleset catch-up (pacing ×4 slower — amounts reduced to 1/4)
+				// Stamina +5% for ALL players (was +20%)
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
-					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
 					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL;
 				`);
-				// Stamina extra +20% for Boong Sinh Hoat (total +40%)
+				// Stamina extra +5% for Boong Sinh Hoat (total +10%, was +40%)
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
-					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.20 + 0.999) AS INTEGER))
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.05 + 0.999) AS INTEGER))
 					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
 						AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
 				`);
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
-					SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.50 + 0.999) AS INTEGER) END)
+					SET currentHp = MIN(maxHp, CASE WHEN currentHp = 0 THEN 1 ELSE currentHp + CAST((maxHp * 0.125 + 0.999) AS INTEGER) END)
 					WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL
 						AND location_id = ${battleUtil.BOONG_SINH_HOAT_ID};
 				`);
 			}
 			else {
-				// Normal ruleset catch-up
+				// Normal ruleset catch-up (pacing ×4 slower — amounts reduced to 1/4)
 				// TODO: KO mechanic temporarily disabled
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
-					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.10 + 0.999) AS INTEGER))
+					SET currentStamina = MIN(maxStamina, currentStamina + CAST((maxStamina * 0.025 + 0.999) AS INTEGER))
 					WHERE maxStamina IS NOT NULL AND currentStamina IS NOT NULL
 						AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 				`);
 				await CharacterBase.sequelize.query(`
 					UPDATE character_bases
-					SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.20 + 0.999) AS INTEGER))
+					SET currentHp = MIN(maxHp, currentHp + CAST((maxHp * 0.05 + 0.999) AS INTEGER))
 					WHERE maxHp IS NOT NULL AND currentHp IS NOT NULL
 						AND location_id IN (SELECT id FROM location_bases WHERE LOWER(type) = 'town');
 				`);
@@ -778,12 +792,19 @@ async function startCronJob(client) {
 			await performCronJob();
 		}
 
-		job.start();
-		console.log('Midnight cron job started.');
+		if (_pausedByPauseAll.has('midnight_job')) {
+			await CronLog.update({ status: 'paused' }, { where: { job_name: 'midnight_job' } });
+			console.log('[CronPause] midnight_job is paused — not starting.');
+		}
+		else {
+			job.start();
+			console.log('Midnight cron job started.');
+		}
 	}
 
 	if (!hourlyJob.running) {
 		// Register all hourly sub-jobs independently
+		await CronLog.upsert({ job_name: 'hourly_jobs', status: 'stopped', schedule: '0 * * * *', description: 'Hourly job dispatcher', is_enabled: true });
 		await CronLog.upsert({ job_name: 'character_regen', status: 'stopped', schedule: '0 * * * *', description: 'Hourly HP/Stamina regeneration for characters in town', is_enabled: true });
 		await CronLog.upsert({ job_name: 'galeby_cycle', status: 'stopped', schedule: '0 * * * *', description: 'Hourly Galeby presence roll', is_enabled: true });
 		await CronLog.upsert({ job_name: 'pending_delete_cleanup', status: 'stopped', schedule: '0 * * * *', description: 'Hourly cleanup of stale deferred message deletions', is_enabled: true });
@@ -803,8 +824,14 @@ async function startCronJob(client) {
 			lastRun.setHours(lastRun.getHours() + 1);
 		}
 
-		hourlyJob.start();
-		console.log('Hourly cron jobs started (character_regen, galeby_cycle, pending_delete_cleanup, hourly_tasks).');
+		if (_pausedByPauseAll.has('hourly_jobs')) {
+			await CronLog.update({ status: 'paused' }, { where: { job_name: 'hourly_jobs' } });
+			console.log('[CronPause] hourly_jobs is paused — not starting.');
+		}
+		else {
+			hourlyJob.start();
+			console.log('Hourly cron jobs started (character_regen, galeby_cycle, pending_delete_cleanup, hourly_tasks).');
+		}
 	}
 
 	if (!weeklyStockResetJob.running) {
@@ -823,8 +850,14 @@ async function startCronJob(client) {
 			await performWeeklyStockReset();
 		}
 
-		weeklyStockResetJob.start();
-		console.log('Weekly stock reset cron job started.');
+		if (_pausedByPauseAll.has('weekly_stock_reset')) {
+			await CronLog.update({ status: 'paused' }, { where: { job_name: 'weekly_stock_reset' } });
+			console.log('[CronPause] weekly_stock_reset is paused — not starting.');
+		}
+		else {
+			weeklyStockResetJob.start();
+			console.log('Weekly stock reset cron job started.');
+		}
 	}
 
 	if (!dailyTaskJob.running) {
@@ -844,13 +877,37 @@ async function startCronJob(client) {
 			await performDailyTasks();
 		}
 
-		dailyTaskJob.start();
-		console.log('Daily task processor cron job started.');
+		if (_pausedByPauseAll.has('daily_task_processor')) {
+			await CronLog.update({ status: 'paused' }, { where: { job_name: 'daily_task_processor' } });
+			console.log('[CronPause] daily_task_processor is paused — not starting.');
+		}
+		else {
+			dailyTaskJob.start();
+			console.log('Daily task processor cron job started.');
+		}
 	}
 
-	// Start health monitoring + encounter spawn job (consolidated half-hourly job)
-	healthMonitorJob.start();
-	console.log('Half-hourly cron job started (health monitor + encounter spawn, runs every 30 minutes).');
+	// Start health monitoring job (every 30 min)
+	await CronLog.upsert({ job_name: 'health_monitor', status: 'stopped', schedule: '*/30 * * * *', description: 'Half-hourly health monitor', is_enabled: true });
+	if (_pausedByPauseAll.has('health_monitor')) {
+		await CronLog.update({ status: 'paused' }, { where: { job_name: 'health_monitor' } });
+		console.log('[CronPause] health_monitor is paused — not starting.');
+	}
+	else {
+		healthMonitorJob.start();
+		console.log('Health monitor cron job started (every 30 minutes).');
+	}
+
+	// Start encounter spawn job (every 2 hours, skips 2am–6am)
+	await CronLog.upsert({ job_name: 'encounter_spawn_job', status: 'stopped', schedule: '1 0,8,10,12,14,16,18,20,22 * * *', description: 'Encounter spawn every 2 hours (no spawns 2am–6am)', is_enabled: true });
+	if (_pausedByPauseAll.has('encounter_spawn_job')) {
+		await CronLog.update({ status: 'paused' }, { where: { job_name: 'encounter_spawn_job' } });
+		console.log('[CronPause] encounter_spawn_job is paused — not starting.');
+	}
+	else {
+		encounterSpawnJob.start();
+		console.log('Encounter spawn cron job started (every 2 hours, skips 2am–6am).');
+	}
 
 	// Battle cycle is countdown-driven (12 hours) — battleCycleJob cron is disabled.
 
@@ -902,8 +959,8 @@ async function performBattleHourlyTasks() {
 	// Morale damage countdown fires FIRST (uses pre-drain morale)
 	const moraleDmgCountdown = await battleUtil.getFlag('global.hms_divine_morale_dmg_countdown');
 	if (!moraleDmgCountdown) {
-		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
-		console.log('[Battle] Morale damage countdown initialised to 3 (flag was missing).');
+		await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 12);
+		console.log('[Battle] Morale damage countdown initialised to 12 (flag was missing).');
 	}
 	else {
 		const newMoraleDmgCountdown = moraleDmgCountdown - 1;
@@ -915,40 +972,55 @@ async function performBattleHourlyTasks() {
 			const preState = await battleUtil.getBattleState();
 			const moraleResult = await battleUtil.applyMoraleBonusDamage(preState);
 			if (guild) await battleUtil.postMoraleDamageReport(guild, preState, moraleResult);
-			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 3);
-			console.log('[Battle] Morale damage countdown reset to 3.');
+			await battleUtil.setFlag('global.hms_divine_morale_dmg_countdown', 12);
+			console.log('[Battle] Morale damage countdown reset to 12.');
 		}
 	}
 
-	// Hourly morale drain (runs after morale damage so damage uses pre-drain morale)
-	const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
-	const drainReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
+	// Morale drain countdown: fires drain every 4 hours (pacing ×4 slower)
+	const moraleDrainCountdown = await battleUtil.getFlag('global.hms_divine_morale_drain_countdown');
+	if (!moraleDrainCountdown) {
+		await battleUtil.setFlag('global.hms_divine_morale_drain_countdown', 4);
+		console.log('[Battle] Morale drain countdown initialised to 4 (flag was missing).');
+	}
+	else {
+		const newMoraleDrainCountdown = moraleDrainCountdown - 1;
+		await battleUtil.setFlag('global.hms_divine_morale_drain_countdown', newMoraleDrainCountdown);
+		console.log(`[Battle] Morale drain countdown: ${newMoraleDrainCountdown} hour(s) remaining.`);
+		if (newMoraleDrainCountdown <= 0) {
+			console.log('[Battle] Morale drain countdown reached 0 — applying morale drain.');
+			const currentMorale = await battleUtil.getFlag('global.hms_divine_morale');
+			const drainReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
 
-	// Every 100 HP missing on each deck permanently shifts the effective drain rate this phase:
-	// Arb decks missing HP (enemy ship damaged) → +2 per 100 missing (reduces drain)
-	// HMS decks missing HP (our ship damaged)   → -2 per 100 missing (increases drain)
-	const [arbMainHp, arbCannonHp, arbRigHp, hmsDeckHp, hmsCannonHp, hmsRigHp] = await Promise.all([
-		battleUtil.getFlag('global.arb_main_deck_hp'),
-		battleUtil.getFlag('global.arb_cannon_deck_hp'),
-		battleUtil.getFlag('global.arb_rigging_hp'),
-		battleUtil.getFlag('global.hms_divine_top_deck_hp'),
-		battleUtil.getFlag('global.hms_divine_cannon_deck_hp'),
-		battleUtil.getFlag('global.hms_divine_rigging_hp'),
-	]);
-	const arbMissing = (800 - arbMainHp) + (450 - arbCannonHp) + (250 - arbRigHp);
-	const hmsMissing = (400 - hmsDeckHp) + (300 - hmsCannonHp) + (300 - hmsRigHp);
-	const hpDrainModifier = Math.floor(Math.max(0, arbMissing) / 100) * 2 - Math.floor(Math.max(0, hmsMissing) / 100) * 2;
+			// Every 100 HP missing on each deck permanently shifts the effective drain rate this phase:
+			// Arb decks missing HP (enemy ship damaged) → +2 per 100 missing (reduces drain)
+			// HMS decks missing HP (our ship damaged)   → -2 per 100 missing (increases drain)
+			const [arbMainHp, arbCannonHp, arbRigHp, hmsDeckHp, hmsCannonHp, hmsRigHp] = await Promise.all([
+				battleUtil.getFlag('global.arb_main_deck_hp'),
+				battleUtil.getFlag('global.arb_cannon_deck_hp'),
+				battleUtil.getFlag('global.arb_rigging_hp'),
+				battleUtil.getFlag('global.hms_divine_top_deck_hp'),
+				battleUtil.getFlag('global.hms_divine_cannon_deck_hp'),
+				battleUtil.getFlag('global.hms_divine_rigging_hp'),
+			]);
+			const arbMissing = (800 - arbMainHp) + (450 - arbCannonHp) + (250 - arbRigHp);
+			const hmsMissing = (400 - hmsDeckHp) + (300 - hmsCannonHp) + (300 - hmsRigHp);
+			const hpDrainModifier = Math.floor(Math.max(0, arbMissing) / 100) * 2 - Math.floor(Math.max(0, hmsMissing) / 100) * 2;
 
-	const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction + hpDrainModifier);
-	await battleUtil.updateMorale(moraleDrain, 'hourly drain');
-	console.log(`[Battle] Hourly morale drain: ${moraleDrain.toFixed(1)}`);
+			const moraleDrain = battleUtil.calcMoraleDrain(currentMorale, drainReduction + hpDrainModifier);
+			await battleUtil.updateMorale(moraleDrain, 'hourly drain');
+			console.log(`[Battle] Morale drain applied: ${moraleDrain.toFixed(1)}`);
+			await battleUtil.setFlag('global.hms_divine_morale_drain_countdown', 4);
+			console.log('[Battle] Morale drain countdown reset to 4.');
+		}
+	}
 
-	// Cannon countdown: decrements each hour; fires battle cycle when it reaches 0 then resets to 12
-	// getFlag returns 0 for a missing flag — treat 0 as uninitialised (set to 12, don't fire)
+	// Cannon countdown: decrements each hour; fires battle cycle when it reaches 0 then resets to 48
+	// getFlag returns 0 for a missing flag — treat 0 as uninitialised (set to 48, don't fire)
 	const countdown = await battleUtil.getFlag('global.hms_divine_cannon_countdown');
 	if (!countdown) {
-		await battleUtil.setFlag('global.hms_divine_cannon_countdown', 12);
-		console.log('[Battle] Cannon countdown initialised to 12 (flag was missing).');
+		await battleUtil.setFlag('global.hms_divine_cannon_countdown', 48);
+		console.log('[Battle] Cannon countdown initialised to 48 (flag was missing).');
 	}
 	else {
 		const newCountdown = countdown - 1;
@@ -957,8 +1029,8 @@ async function performBattleHourlyTasks() {
 		if (newCountdown <= 0) {
 			console.log('[Battle] Cannon countdown reached 0 — firing battle cycle.');
 			if (_discordClient) await performHMSDivineBattleCycle();
-			await battleUtil.setFlag('global.hms_divine_cannon_countdown', 12);
-			console.log('[Battle] Cannon countdown reset to 12.');
+			await battleUtil.setFlag('global.hms_divine_cannon_countdown', 48);
+			console.log('[Battle] Cannon countdown reset to 48.');
 		}
 	}
 }
@@ -969,6 +1041,7 @@ module.exports = {
 	weeklyStockResetJob,
 	dailyTaskJob,
 	healthMonitorJob,
+	encounterSpawnJob,
 	battleCycleJob,
 	startCronJob,
 	pauseAllCronJobs,
