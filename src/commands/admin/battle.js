@@ -58,7 +58,7 @@ module.exports = {
 				.setDescription('Reset armory wave state: cancel timer, clear flags, destroy pending wave encounters.'))
 		.addSubcommand(sub =>
 			sub.setName('stop-armory')
-				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).'),
+				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).')),
 
 
 
