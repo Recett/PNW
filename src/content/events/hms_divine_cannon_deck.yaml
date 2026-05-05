@@ -70,6 +70,20 @@ events:
         silent: true
 
       - type: flag
+        flag_name: global.hms_divine_morale
+        flag_value: 10
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
+        flag_name: hms_divine_drain_reduction
+        flag_value: 2
+        flag_operation: add
+        flag_type: global
+        silent: true
+
+      - type: flag
         flag_name: global.arb_cannon_deck_hp
         flag_value: 100
         flag_operation: subtract
@@ -109,7 +123,7 @@ events:
 
     combat:
       combat_type: normal
-      enemy: sailor
+      enemy_pool: [sailor, cutthroat, boarder, crossbowman]
       on_victory: arb-cannon-round-1-victory
       on_defeat: arb-cannon-defeat
 
@@ -151,7 +165,7 @@ events:
 
     combat:
       combat_type: normal
-      enemy: veteran_sailor
+      enemy_pool: [boarder, crossbowman, man_at_arms, swashbuckler, veteran_sailor]
       on_victory: arb-cannon-round-2-victory
       on_defeat: arb-cannon-defeat
 
@@ -193,7 +207,7 @@ events:
 
     combat:
       combat_type: normal
-      enemy: boarder
+      enemy_pool: [man_at_arms, swashbuckler, veteran_sailor]
       on_victory: arb-cannon-round-3-victory
       on_defeat: arb-cannon-defeat
 

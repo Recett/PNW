@@ -358,7 +358,7 @@ module.exports = {
 			await character.update({ currentStamina: character.currentStamina - STAMINA_COST });
 
 			// ── Cannon Deck: Master Gunner chance + 3-round sequential fight ──
-			if (currentZone.id === parseInt(arbranceIds.arb_cannon_deck)) {
+			if (currentZone.id === arbranceIds.arb_cannon_deck) {
 				const CANNON_DECK_MAX_HP = 450;
 				const [masterGunnerDefeated, cannonDeckHp] = await Promise.all([
 					battleUtil.getFlag('global.arb_boss_master_gunner_defeated'),
@@ -369,7 +369,7 @@ module.exports = {
 				const entryEvent = (!masterGunnerDefeated && Math.random() < spawnChance)
 					? 'arb-cannon-master-gunner-intro'
 					: 'arb-cannon-round-1-combat';
-				await interaction.client.eventUtil.processEvent(entryEvent, interaction, userId, { ephemeral: false });
+				await interaction.client.eventUtil.processEvent(entryEvent, interaction, userId);
 				return;
 			}
 

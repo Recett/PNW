@@ -272,18 +272,18 @@ enemies:
     tag:
       - unique_per_voyage
     stat:
-      health: 120
+      health: 150
       defense: 0
-      defense_percent: 5
+      defense_percent: 0
       crit_resistance: 5
-      evade: 10
-      speed: 12
+      evade: 14
+      speed: 14
     attack:
       - id: handgonne_blast
         name: Point-Blank Blast
-        base_damage: 50
-        accuracy: 18
-        critical_chance: 10
+        base_damage: 58
+        accuracy: 14
+        critical_chance: 20
         cooldown: 300
     reward:
       exp: 200

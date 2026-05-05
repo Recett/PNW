@@ -449,8 +449,10 @@ class EventProcessor {
 		}
 
 		try {
-			// Get enemy to fight
-			const enemyId = combat.enemy;
+			// Get enemy to fight (supports enemy_pool for random selection)
+			const enemyId = Array.isArray(combat.enemy_pool) && combat.enemy_pool.length > 0
+				? combat.enemy_pool[Math.floor(Math.random() * combat.enemy_pool.length)]
+				: combat.enemy;
 			if (!enemyId) {
 				return { result: 'error', message: 'No enemy defined for combat' };
 			}
