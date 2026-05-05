@@ -52,7 +52,14 @@ module.exports = {
 				.setDescription('Immediately trigger one encounter spawn cycle.'))
 		.addSubcommand(sub =>
 			sub.setName('reseed-spawns')
-				.setDescription('Wipe and reinsert location_enemy_spawns rows with corrected weights (fixes man-at-arms rate).')),
+				.setDescription('Wipe and reinsert location_enemy_spawns rows with corrected weights (fixes man-at-arms rate).'))
+		.addSubcommand(sub =>
+			sub.setName('reset-armory')
+				.setDescription('Reset armory wave state: cancel timer, clear flags, destroy pending wave encounters.'))
+		.addSubcommand(sub =>
+			sub.setName('stop-armory')
+				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).'),
+
 
 
 	async execute(interaction) {
@@ -276,6 +283,16 @@ module.exports = {
 						'Arb commander, foothold, armory progress all cleared.',
 					].join('\n'),
 				});
+			}
+			else if (sub === 'reset-armory') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				await battleUtil.resetArmoryState(interaction.client);
+				await interaction.editReply({ content: `${EMOJI.SUCCESS} Armory state reset: flags cleared, pending wave encounters removed, timer restarted from wave 1.` });
+			}
+			else if (sub === 'stop-armory') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				await battleUtil.stopArmoryWave();
+				await interaction.editReply({ content: `${EMOJI.SUCCESS} Armory wave stopped: timer cancelled, pending wave encounters removed. Progress flags preserved.` });
 			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });

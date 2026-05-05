@@ -82,6 +82,10 @@ async function handleStart(interaction, character) {
 		return interaction.reply({ content: 'That player does not have a character.', ephemeral: true });
 	}
 
+	if (character.location_id !== targetCharacter.location_id) {
+		return interaction.reply({ content: 'You can only trade with players at the same location as you.', flags: 64 });
+	}
+
 	const channel = interaction.channel;
 	const channelId = channel.isThread() ? channel.parentId : interaction.channelId;
 	const result = await tradeUtility.createTrade(character.id, targetCharacter.id, channelId);

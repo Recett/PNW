@@ -51,6 +51,7 @@ const _allPausableJobs = () => [
 	{ name: 'daily_task_processor', instance: dailyTaskJob },
 	{ name: 'health_monitor', instance: healthMonitorJob },
 	{ name: 'encounter_spawn_job', instance: encounterSpawnJob },
+	{ name: 'encounter_expiry_job', instance: encounterExpiryJob },
 ];
 
 // Names whose last_run is checked on startup for catch-up — stamp them with "now" on resume
@@ -119,6 +120,13 @@ const healthMonitorJob = makeCronJob('*/30 * * * *', async () => {
 	await performHealthCheck();
 });
 
+// This job runs every minute — expires stale encounters regardless of spawn schedule
+const encounterExpiryJob = makeCronJob('* * * * *', async () => {
+	if (!_discordClient) return;
+	const guild = _discordClient.guilds.cache.first() || null;
+	if (guild) await battleUtil.resolveExpiredEncounters(guild);
+});
+
 // This job runs every 2 hours — encounter spawn only
 // Offset by 1 minute to avoid coinciding with healthMonitorJob (which fires on :00 and :30)
 // Skips 2 AM and 4 AM (no spawns in the 2am–6am window; next spawn after midnight is 8am)
@@ -147,7 +155,6 @@ async function performEncounterSpawn() {
 			return;
 		}
 
-		await battleUtil.resolveExpiredEncounters(guild);
 		await battleUtil.spawnEncounters(guild);
 		console.log('[EncounterSpawn] Cycle complete.');
 
@@ -899,6 +906,16 @@ async function startCronJob(client) {
 	}
 
 	// Start encounter spawn job (every 2 hours, skips 2am–6am)
+	await CronLog.upsert({ job_name: 'encounter_expiry_job', status: 'stopped', schedule: '* * * * *', description: 'Expire stale encounters every minute', is_enabled: true });
+	if (_pausedByPauseAll.has('encounter_expiry_job')) {
+		await CronLog.update({ status: 'paused' }, { where: { job_name: 'encounter_expiry_job' } });
+		console.log('[CronPause] encounter_expiry_job is paused — not starting.');
+	}
+	else {
+		encounterExpiryJob.start();
+		console.log('Encounter expiry cron job started (every 15 minutes).');
+	}
+
 	await CronLog.upsert({ job_name: 'encounter_spawn_job', status: 'stopped', schedule: '1 0,8,10,12,14,16,18,20,22 * * *', description: 'Encounter spawn every 2 hours (no spawns 2am–6am)', is_enabled: true });
 	if (_pausedByPauseAll.has('encounter_spawn_job')) {
 		await CronLog.update({ status: 'paused' }, { where: { job_name: 'encounter_spawn_job' } });
@@ -928,10 +945,10 @@ async function startCronJob(client) {
 					const remaining = new Date(waveLog.next_run).getTime() - Date.now();
 					if (remaining <= 0) {
 						console.log('[Armory] Restart catch-up: wave overdue, firing spawnArmoryWave now.');
-						await battleUtil.spawnArmoryWave(guild);
+						await battleUtil.spawnArmoryWave(_discordClient);
 					}
 					else {
-						battleUtil.scheduleArmoryWave(guild, remaining);
+						battleUtil.scheduleArmoryWave(_discordClient, remaining);
 						console.log(`[Armory] Restart recovery: next wave in ${Math.round(remaining / 60000)}m, setTimeout restored.`);
 					}
 				}
@@ -1041,6 +1058,7 @@ module.exports = {
 	weeklyStockResetJob,
 	dailyTaskJob,
 	healthMonitorJob,
+	encounterExpiryJob,
 	encounterSpawnJob,
 	battleCycleJob,
 	startCronJob,

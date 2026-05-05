@@ -338,7 +338,7 @@ async function handleItemButtonAction(btnInteraction, item, character, onComplet
 				);
 				await getCharacterUtility().removeCharacterItem(character.id, item.id, 1);
 
-				const cooldownExpires = new Date(Date.now() + 3 * 60 * 60 * 1000);
+				const cooldownExpires = new Date(Date.now() + 12 * 60 * 60 * 1000);
 				const [cdRow, cdCreated] = await CharacterStatus.findOrCreate({
 					where: { character_id: target.id, status_id: 'medkit_cooldown' },
 					defaults: {

@@ -141,7 +141,7 @@ async function getBattleState() {
 		morale,
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
-		armorySecured, armoryWins, armoryBudgetX10, armoryWaveCounter,
+		armorySecured, armoryWins, armoryWaveCounter,
 	] = await Promise.all([
 		getFlag('global.hms_divine_battle_active'),
 		getFlag('global.hms_divine_battle_initialized'),
@@ -159,7 +159,6 @@ async function getBattleState() {
 		getFlag('global.hms_divine_ready_count'),
 		getFlag('global.arb_armory_secured'),
 		getFlag('global.arb_armory_wins'),
-		getFlag('global.arb_armory_budget_x10'),
 		getFlag('global.arb_armory_wave_counter'),
 	]);
 
@@ -178,7 +177,7 @@ async function getBattleState() {
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
 		armorySecured, armoryWins,
-		armoryBudget: armoryBudgetX10 / 10,
+		armoryBudget: ARMORY_WAVE_BUDGETS[Math.min(armoryWaveCounter, ARMORY_WAVE_BUDGETS.length - 1)],
 		armoryWaveCounter,
 		armoryWaveEncounters: activeWaveEncounters,
 	};
@@ -1233,6 +1232,9 @@ const ENCOUNTER_TTL_MS = 2 * 60 * 60 * 1000;
 const ARMORY_ENCOUNTER_TTL_MS = 1 * 60 * 60 * 1000;
 // Armory waves arrive every 2 hours (pacing ×4 slower, was 30 min)
 const ARMORY_WAVE_INTERVAL_MS = 2 * 60 * 60 * 1000;
+// Preset budget for each wave by wave number (index 0 = wave 1, index 9 = wave 10).
+// Wave 10 keeps the same budget as wave 9; the quartermaster is added on top.
+const ARMORY_WAVE_BUDGETS = [1.0, 2.0, 3.0, 4.5, 6.0, 7.5, 9.5, 11.5, 13.5, 13.5];
 // 90% enemy encounter, 10% hazard
 const ENCOUNTER_ENEMY_CHANCE = 0.9;
 
@@ -1253,19 +1255,17 @@ const ARMORY_WAVE_ENEMY_POOL = [
 
 // In-memory timer handle — survives only while the bot is running; CronLog.next_run persists across restarts
 let _armoryWaveTimer = null;
-let _armoryGuild = null;
 
 /**
  * Schedule the next armory wave setTimeout. Clears any existing timer first.
  * @param {import('discord.js').Guild} guild
  * @param {number} delayMs
  */
-function scheduleArmoryWave(guild, delayMs) {
+function scheduleArmoryWave(client, delayMs) {
 	if (_armoryWaveTimer) clearTimeout(_armoryWaveTimer);
-	_armoryGuild = guild;
 	_armoryWaveTimer = setTimeout(async () => {
 		_armoryWaveTimer = null;
-		await spawnArmoryWave(guild).catch(e => console.error('[Armory] Scheduled wave spawn failed:', e));
+		await spawnArmoryWave(client).catch(e => console.error('[Armory] Scheduled wave spawn failed:', e));
 	}, delayMs);
 	console.log(`[Armory] Next wave scheduled in ${Math.round(delayMs / 60000)}m`);
 }
@@ -1289,9 +1289,16 @@ function getArmoryEnemyCost(enemyId) {
 function buildArmoryWave(budget) {
 	const enemies = [];
 	let remaining = budget;
+	const minCost = Math.min(...ARMORY_WAVE_ENEMY_POOL.map(e => getArmoryEnemyCost(e.enemy_id)));
 	while (remaining > 0) {
-		const candidates = ARMORY_WAVE_ENEMY_POOL.filter(e => getArmoryEnemyCost(e.enemy_id) <= remaining);
-		if (!candidates.length) break;
+		const affordable = ARMORY_WAVE_ENEMY_POOL.filter(e => getArmoryEnemyCost(e.enemy_id) <= remaining);
+		if (!affordable.length) break;
+		// Prefer picks that don't leave an unspendable remainder (e.g. 0.5 when min cost is 1.0)
+		const clean = affordable.filter(e => {
+			const leftover = Math.round((remaining - getArmoryEnemyCost(e.enemy_id)) * 10) / 10;
+			return leftover === 0 || leftover >= minCost;
+		});
+		const candidates = clean.length ? clean : affordable;
 		const totalWeight = candidates.reduce((s, c) => s + c.spawn_chance, 0);
 		let roll = Math.random() * totalWeight;
 		let picked = candidates[candidates.length - 1];
@@ -1311,7 +1318,7 @@ function buildArmoryWave(budget) {
  * @param {import('discord.js').Guild} guild
  * @returns {Promise<number|null>} The waveId, or null if no wave was spawned.
  */
-async function spawnArmoryWave(guild) {
+async function spawnArmoryWave(client) {
 	const battleActive = await getFlag('global.hms_divine_battle_active');
 	if (!battleActive) return null;
 
@@ -1328,7 +1335,6 @@ async function spawnArmoryWave(guild) {
 		// Safety reset: players left without the departure handler firing cleanly
 		clearTimeout(_armoryWaveTimer);
 		_armoryWaveTimer = null;
-		_armoryGuild = null;
 		await CronLog.upsert({
 			job_name: 'armory_wave_spawn',
 			status: 'stopped',
@@ -1340,27 +1346,17 @@ async function spawnArmoryWave(guild) {
 		return null;
 	}
 
-	// Check if there's already an active (pending) wave
-	const activeWave = await PendingEncounter.findOne({
-		where: {
-			location_id: armory.id,
-			status: 'pending',
-			wave_id: { [Op.ne]: null },
-		},
-	});
-	if (activeWave) return null;
-
 	// Compute budget from stored ×10 value
-	const budgetX10 = await getFlag('global.arb_armory_budget_x10');
-	const budget = (budgetX10 || 10) / 10;
-
-	const waveEnemies = buildArmoryWave(budget);
-	if (!waveEnemies.length) return null;
-
 	const waveCounter = await getFlag('global.arb_armory_wave_counter');
 	const waveId = waveCounter + 1;
-
 	await setFlag('global.arb_armory_wave_counter', waveId);
+
+	const budget = ARMORY_WAVE_BUDGETS[Math.min(waveId - 1, ARMORY_WAVE_BUDGETS.length - 1)];
+
+	const waveEnemies = buildArmoryWave(budget);
+	// Wave 10: always add a quartermaster on top of the regular budget
+	if (waveId >= 10) waveEnemies.push('quartermaster');
+	if (!waveEnemies.length) return null;
 
 	const target = players[Math.floor(Math.random() * players.length)];
 	const expiresAt = new Date(Date.now() + ARMORY_ENCOUNTER_TTL_MS);
@@ -1368,7 +1364,7 @@ async function spawnArmoryWave(guild) {
 	const { EMOJI } = require('../enums');
 	const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
-	const channel = await guild.channels.fetch(String(armory.channel)).catch(() => null);
+	const channel = await client.channels.fetch(String(armory.channel)).catch(() => null);
 	if (!channel) return null;
 
 	for (let i = 0; i < waveEnemies.length; i++) {
@@ -1411,7 +1407,7 @@ async function spawnArmoryWave(guild) {
 		next_run: nextWaveAt,
 		is_enabled: true,
 	});
-	scheduleArmoryWave(guild, ARMORY_WAVE_INTERVAL_MS);
+	scheduleArmoryWave(client, ARMORY_WAVE_INTERVAL_MS);
 
 	return waveId;
 }
@@ -1422,7 +1418,7 @@ async function spawnArmoryWave(guild) {
  * @param {import('discord.js').Guild} guild
  * @param {number} waveId
  */
-async function checkArmoryWaveCompletion(guild, waveId) {
+async function checkArmoryWaveCompletion(client, waveId) {
 	if (!waveId) return;
 
 	const encounters = await PendingEncounter.findAll({ where: { wave_id: waveId } });
@@ -1442,11 +1438,6 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 	const newWins = wins + 1;
 	await setFlag('global.arb_armory_wins', newWins);
 
-	// Increase budget by 1.0 (stored ×10, so +10)
-	const budgetX10 = await getFlag('global.arb_armory_budget_x10');
-	const newBudgetX10 = budgetX10 + 10;
-	await setFlag('global.arb_armory_budget_x10', newBudgetX10);
-
 	// Win bonus morale: +N where N = current win count
 	await updateMorale(newWins, 'armory wave win');
 
@@ -1463,7 +1454,7 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 		if (armory && armory.channel) {
 			const { EMOJI } = require('../enums');
 			const { EmbedBuilder } = require('discord.js');
-			const channel = await guild.channels.fetch(String(armory.channel)).catch(() => null);
+			const channel = await client.channels.fetch(String(armory.channel)).catch(() => null);
 			if (channel) {
 				const nextBudget = (newBudgetX10 / 10).toFixed(1);
 				const embed = new EmbedBuilder()
@@ -1485,7 +1476,7 @@ async function checkArmoryWaveCompletion(guild, waveId) {
 	// Battle channel narrate for final securing
 	if (willSecure) {
 		const { runActionsOnly } = require('@utility/eventUtility.js');
-		await runActionsOnly('arb-armory-secured', '0', guild.client).catch(e =>
+		await runActionsOnly('arb-armory-secured', '0', client).catch(e =>
 			console.error('[Armory] Failed to post secured announce:', e)
 		);
 	}
@@ -1867,7 +1858,7 @@ async function resolveExpiredEncounters(guild) {
 			// Armory wave: set outcome and check completion
 			if (record.wave_id != null) {
 				await record.update({ outcome: won ? 'win' : 'loss' });
-				await checkArmoryWaveCompletion(guild, record.wave_id);
+				await checkArmoryWaveCompletion(guild.client, record.wave_id);
 			}
 
 			// If defeated, move player to living quarters
@@ -1901,7 +1892,7 @@ async function resolveExpiredEncounters(guild) {
  * @param {import('discord.js').Guild} guild
  * @param {string} characterId - Discord user ID of the arriving player
  */
-async function onArmoryPlayerArrived(guild, characterId) {
+async function onArmoryPlayerArrived(client, characterId) {
 	const battleActive = await getFlag('global.hms_divine_battle_active');
 	if (!battleActive) return;
 	const armorySecured = await getFlag('global.arb_armory_secured');
@@ -1916,7 +1907,7 @@ async function onArmoryPlayerArrived(guild, characterId) {
 			if (armory && armory.channel) {
 				const { EMOJI } = require('../enums');
 				const { EmbedBuilder } = require('discord.js');
-				const channel = await guild.channels.fetch(String(armory.channel)).catch(() => null);
+				const channel = await client.channels.fetch(String(armory.channel)).catch(() => null);
 				if (channel) {
 					const waveCount = await getFlag('global.arb_armory_wave_counter') || 0;
 					const embed = new EmbedBuilder()
@@ -1943,12 +1934,12 @@ async function onArmoryPlayerArrived(guild, characterId) {
 		description: 'Armory wave timer — next_run holds when the next wave should fire',
 		is_enabled: true,
 	});
-	scheduleArmoryWave(guild, ARMORY_WAVE_INTERVAL_MS);
+	scheduleArmoryWave(client, ARMORY_WAVE_INTERVAL_MS);
 	console.log(`[Armory] First player entered — wave 1 scheduled for ${nextWaveAt.toISOString()}`);
 
 	// Announce armory breach on the battle channel
 	const { runActionsOnly } = require('@utility/eventUtility.js');
-	await runActionsOnly('arb-armory-occupied', '0', guild.client).catch(e =>
+	await runActionsOnly('arb-armory-occupied', '0', client).catch(e =>
 		console.error('[Armory] Failed to post occupied announce:', e),
 	);
 
@@ -1971,7 +1962,7 @@ async function onArmoryPlayerArrived(guild, characterId) {
 			wave_id: null,
 		});
 
-		const channel = await guild.channels.fetch(String(armory.channel)).catch(() => null);
+		const channel = await client.channels.fetch(String(armory.channel)).catch(() => null);
 		if (!channel) return;
 
 		const embed = new EmbedBuilder()
@@ -2108,7 +2099,6 @@ async function onArmoryPlayerDeparted(armoryLocationId, characterId, client) {
 	// Last player departed — cancel the wave timer and reset state
 	clearTimeout(_armoryWaveTimer);
 	_armoryWaveTimer = null;
-	_armoryGuild = null;
 	await CronLog.upsert({
 		job_name: 'armory_wave_spawn',
 		status: 'stopped',
@@ -2238,6 +2228,7 @@ module.exports = {
 	diagnoseSpawn,
 	resolveExpiredEncounters,
 	// Armory wave system
+	resetArmoryState,
 	spawnArmoryWave,
 	scheduleArmoryWave,
 	checkArmoryWaveCompletion,
@@ -2266,7 +2257,49 @@ module.exports = {
 	calcMoraleDrain,
 	getFlag,
 	setFlag,
+	// Armory reset
+	resetArmoryState,
+	stopArmoryWave,
 	// Officer Cabin
 	OFFICER_ROLES,
 	officerCabinSessions,
 };
+
+/**
+ * Reset all armory wave state: cancel timer, clear flags, destroy pending wave encounters,
+ * then restart the timer from scratch (wave 1, full interval).
+ * @param {import('discord.js').Guild} guild
+ */
+async function resetArmoryState(client) {
+	clearTimeout(_armoryWaveTimer);
+	_armoryWaveTimer = null;
+
+	await Promise.all([
+		setFlag('global.arb_armory_wins', 0),
+		setFlag('global.arb_armory_secured', 0),
+		setFlag('global.arb_armory_wave_counter', 0),
+	]);
+
+	await PendingEncounter.destroy({
+		where: {
+			location_id: ARB_ARMORY_ID,
+			status: 'pending',
+			wave_id: { [Op.ne]: null },
+		},
+	});
+
+	scheduleArmoryWave(client, ARMORY_WAVE_INTERVAL_MS);
+}
+
+async function stopArmoryWave() {
+	clearTimeout(_armoryWaveTimer);
+	_armoryWaveTimer = null;
+
+	await PendingEncounter.destroy({
+		where: {
+			location_id: ARB_ARMORY_ID,
+			status: 'pending',
+			wave_id: { [Op.ne]: null },
+		},
+	});
+}

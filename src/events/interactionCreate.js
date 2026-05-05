@@ -536,7 +536,7 @@ async function handleEncounterFightInteraction(interaction) {
 		// Armory wave: mark outcome and check completion
 		if (won && record.wave_id != null) {
 			await record.update({ outcome: 'win' });
-			await battleUtil.checkArmoryWaveCompletion(interaction.guild, record.wave_id);
+			await battleUtil.checkArmoryWaveCompletion(interaction.client, record.wave_id);
 		}
 	}
 	catch (moraleErr) {

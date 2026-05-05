@@ -487,7 +487,7 @@ async function moveCharacterToLocation(characterId, newLocationId, guild, delayM
 	}
 	if (guild && newLoc && Array.isArray(newLoc.tag) && newLoc.tag.includes('arb_armory')) {
 		const battleUtil = require('@utility/battleUtility.js');
-		battleUtil.onArmoryPlayerArrived(guild, characterId).catch(e =>
+		battleUtil.onArmoryPlayerArrived(guild.client, characterId).catch(e =>
 			console.error('[Armory] Failed arrival hook:', e)
 		);
 	}
