@@ -677,6 +677,20 @@ async function handleOfficerCabinInteraction(interaction) {
 		return true;
 	}
 
+	// Warn if not all roles are filled — the assault can still proceed, but unoccupied enemies
+	// will be treated as already defeated (no player fights them).
+	const unfilledRoles = Object.entries(session.assignments)
+		.filter(([, uid]) => !uid)
+		.map(([role]) => battleUtil.OFFICER_ROLES[role].label.replace('Fight ', ''));
+	if (unfilledRoles.length > 0 && !session.unevenConfirmed) {
+		session.unevenConfirmed = true;
+		await interaction.reply({
+			content: `**Warning:** The following roles have no fighter assigned: **${unfilledRoles.join(', ')}**. Those enemies will not resist. Press **Confirm Assault** again to proceed anyway, or assign the missing roles first.`,
+			flags: MessageFlags.Ephemeral,
+		});
+		return true;
+	}
+
 	// Remove buttons from the board and open a deferred reply for the follow-up summary.
 	// Use deferUpdate so we can later call followUp; also delete the board message so
 	// stale copies (from previous role updates) don't leave orphaned buttons.
@@ -692,47 +706,27 @@ async function handleOfficerCabinInteraction(interaction) {
 	clearTimeout(session.timeout);
 	battleUtil.officerCabinSessions.delete(sessionKey);
 
-	// Check current defeated state to skip already-dead officers
-	const [captainDefeated, firstMateDefeated, headGuardDefeated] = await Promise.all([
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.captain.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.first_mate.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
-	]);
-	const defeatedBefore = {
-		captain: captainDefeated === 1,
-		first_mate: firstMateDefeated === 1,
-		head_guard: headGuardDefeated === 1,
-	};
-
-	// Collect all active fights
-	const fights = [];
-	for (const [role, def] of Object.entries(battleUtil.OFFICER_ROLES)) {
-		const fighterId = session.assignments[role];
-		if (!fighterId || defeatedBefore[role]) continue;
-		fights.push({ role, def, fighterId, name: session.names[role] });
-	}
-
-	if (fights.length === 0) {
-		await interaction.followUp({
-			content: 'No fights are ready to begin — all assigned officers are already defeated.',
-			flags: MessageFlags.Ephemeral,
-		});
-		return true;
-	}
+	// Collect fight metadata for all 3 roles; unassigned slots have fighterId = null
+	const allRoles = Object.entries(battleUtil.OFFICER_ROLES).map(([role, def]) => ({
+		role, def, fighterId: session.assignments[role] || null, name: session.names[role] || null,
+	}));
+	const assignedFights = allRoles.filter(f => f.fighterId);
 
 	const STAMINA_COST = 5;
 	const channel = interaction.channel;
 
-	// Announce the assault
-	const startLines = fights.map(f => `${EMOJI.SWORD} **${f.name}** vs **${f.def.label.replace('Fight ', '')}**`);
+	// Announce the assault — only show assigned fighters
+	const startLines = assignedFights.map(f => `${EMOJI.SWORD} **${f.name}** vs **${f.def.label.replace('Fight ', '')}**`);
 	const startEmbed = new EmbedBuilder()
 		.setTitle('\u2694\uFE0F The Assault Begins!')
 		.setDescription(startLines.join('\n'))
 		.setColor(0x8B0000);
 	await channel.send({ embeds: [startEmbed] });
 
-	// Deduct stamina for each fighter and build team pairs
-	const teamPairs = await Promise.all(fights.map(async ({ fighterId, def }) => {
+	// Deduct stamina for assigned fighters and build team pairs for all 3 roles.
+	// Unassigned slots use playerId: null — teamCombat will treat that enemy as starting dead.
+	const teamPairs = await Promise.all(allRoles.map(async ({ fighterId, def }) => {
+		if (!fighterId) return { playerId: null, enemyId: def.enemyId, speedMultiplier: 1 };
 		const fighter = await characterUtil.getCharacterBase(fighterId);
 		let speedMultiplier = 1;
 		if (fighter && (fighter.currentStamina ?? 0) >= STAMINA_COST) {
@@ -744,16 +738,14 @@ async function handleOfficerCabinInteraction(interaction) {
 		return { playerId: fighterId, enemyId: def.enemyId, speedMultiplier };
 	}));
 
-	// Run all three fights on a single shared initiative tracker
+	// Run all fights on a single shared initiative tracker
 	const teamResult = await combatUtil.teamCombat(teamPairs);
 
-	// Map outcomes back to fight metadata for downstream logic
-	const fightResults = fights.map((f, i) => {
+	// Map outcomes back to role metadata; empty slots are marked isEmptySlot
+	const fightResults = allRoles.map((f, i) => {
 		const outcome = teamResult.pairOutcomes[i];
-		return { role: f.role, def: f.def, fighterId: f.fighterId, name: f.name, won: outcome.playerWon, finalPlayer: outcome.finalPlayer };
+		return { role: f.role, def: f.def, fighterId: f.fighterId, name: f.name, won: outcome.playerWon, finalPlayer: outcome.finalPlayer, isEmptySlot: outcome.isEmptySlot };
 	});
-
-	// Post one combined battle report
 	const pages = teamResult.battleReportPages;
 	const allWon = fightResults.every(f => f.won);
 	const anyWon = fightResults.some(f => f.won);
@@ -771,13 +763,15 @@ async function handleOfficerCabinInteraction(interaction) {
 		await channel.send({ embeds: [pageEmbed] });
 	}
 
-	// Apply morale updates — individual per fight
+	// Apply morale updates — individual per fight; skip unoccupied slots
 	let moraleDelta = 0;
-	for (const { def, won } of fightResults) {
+	for (const { def, won, isEmptySlot } of fightResults) {
 		if (won) {
+			// Grant morale whether the enemy was fought directly or killed by a retargeting player
 			moraleDelta += battleUtil.ENEMY_MORALE_VALUES[def.enemyId] ?? 1;
 		}
-		else {
+		else if (!isEmptySlot) {
+			// Only penalise morale if a real player fought and lost
 			moraleDelta -= 3;
 		}
 	}
@@ -785,22 +779,12 @@ async function handleOfficerCabinInteraction(interaction) {
 		await battleUtil.updateMorale(moraleDelta, 'multi-fight result');
 	}
 
-	// Boss defeat flags and drain reduction only count if every boss was killed
+	// Officer quarters secured only if all three were beaten in a single assault.
 	if (allWon) {
-		for (const { def } of fightResults) {
-			await battleUtil.setFlag(def.defeatFlag, 1);
-		}
+		await battleUtil.setFlag(battleUtil.OFFICER_QUARTERS_SECURED_FLAG, 1);
 		const currentReduction = await battleUtil.getFlag('hms_divine_drain_reduction');
-		await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + (2 * fightResults.length));
-	}
-
-	// If all 3 officers are now dead, mark the commander quarters as secured
-	const [c, fm, hg] = await Promise.all([
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.captain.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.first_mate.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
-	]);
-	if (c === 1 && fm === 1 && hg === 1) {
+		const activePairs = fightResults.filter(f => !f.isEmptySlot).length;
+		await battleUtil.setFlag('hms_divine_drain_reduction', currentReduction + (2 * activePairs));
 		const victoryEmbed = new EmbedBuilder()
 			.setTitle('\u2694\uFE0F Officer Quarters Secured!')
 			.setDescription('All officers of *La Dauphine* have been defeated. The officer quarters are under your control.')
@@ -808,8 +792,9 @@ async function handleOfficerCabinInteraction(interaction) {
 		await channel.send({ embeds: [victoryEmbed] });
 	}
 
-	// Move knocked-out players to living quarters
-	for (const { fighterId, won, finalPlayer } of fightResults) {
+	// Move knocked-out players to living quarters; skip empty slots
+	for (const { fighterId, won, finalPlayer, isEmptySlot } of fightResults) {
+		if (isEmptySlot || !fighterId) continue;
 		if (!won) {
 			const playerHp = finalPlayer?.hp ?? 1;
 			if (playerHp <= 0) {

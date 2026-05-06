@@ -128,24 +128,16 @@ async function updateOfficerSharedMessage(guild, session, defeatedMap) {
 }
 
 async function handleOfficerCabinFight(interaction, userId, character, currentZone) {
-	// Check which officers are already defeated
-	const [captainDefeated, firstMateDefeated, headGuardDefeated] = await Promise.all([
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.captain.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.first_mate.defeatFlag),
-		battleUtil.getFlag(battleUtil.OFFICER_ROLES.head_guard.defeatFlag),
-	]);
-	const defeatedMap = {
-		captain: captainDefeated === 1,
-		first_mate: firstMateDefeated === 1,
-		head_guard: headGuardDefeated === 1,
-	};
-
-	if (defeatedMap.captain) {
+	// Check if the officer quarters have already been secured
+	const quartersSecured = await battleUtil.getFlag(battleUtil.OFFICER_QUARTERS_SECURED_FLAG);
+	if (quartersSecured === 1) {
 		return interaction.reply({
 			content: 'All officers have been dealt with. The cabin is clear.',
 			flags: MessageFlags.Ephemeral,
 		});
 	}
+
+	const defeatedMap = { captain: false, first_mate: false, head_guard: false };
 
 	// Get or create session
 	const sessionKey = currentZone.id;
@@ -198,7 +190,11 @@ async function handleOfficerCabinFight(interaction, userId, character, currentZo
 				return;
 			}
 			if (session.assignments[role] && session.assignments[role] !== userId) {
-				await btn.deferUpdate();
+				const takenBy = session.names[role] || 'another player';
+				await btn.reply({
+					content: `That role is already taken by **${takenBy}**. Wait for them to release it, or choose a different role.`,
+					flags: MessageFlags.Ephemeral,
+				});
 				return;
 			}
 			// Release previous slot if any
@@ -209,6 +205,7 @@ async function handleOfficerCabinFight(interaction, userId, character, currentZo
 			session.assignments[role] = userId;
 			session.names[role] = character.name;
 			userCurrentRole = role;
+			session.unevenConfirmed = false; // reset warning so new assignment is re-evaluated
 		}
 		try {
 			await updateOfficerSharedMessage(interaction.guild, session, defeatedMap);

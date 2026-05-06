@@ -836,6 +836,51 @@ async function runInitTracker(actors, options = {}) {
  * @returns {{ player, enemy }}
  */
 async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier = 1, opts = {}) {
+	// Null playerId = unoccupied slot; build only the enemy (at 0 HP) and return player as null.
+	if (!playerId) {
+		// No player for this slot — build only the enemy at full HP.
+		// The enemy has no paired target; runInitTracker's team-retarget logic
+		// will route it to a living player on the opposing team immediately.
+		const enemyBase = contentStore.enemies.findByPk(String(enemyId));
+		if (!enemyBase) throw new Error('Enemy not found');
+		const enemyBaseStat = enemyBase.stat;
+		if (!enemyBaseStat) throw new Error('Enemy stats not found');
+		let enemyAttacks = enemyBase.attack;
+		if (!enemyAttacks || enemyAttacks.length === 0) throw new Error('Enemy has no attacks');
+		const enemyTagsNull = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
+		if (enemyTagsNull.includes('pick_one') && enemyAttacks.length > 1) {
+			const pickedIndex = Math.floor(Math.random() * enemyAttacks.length);
+			enemyAttacks = [enemyAttacks[pickedIndex]];
+		}
+		const enemy = {
+			id: `enemy_${pairIndex}`,
+			name: enemyBase.name || enemyBase.fullname || 'Unknown Enemy',
+			hp: enemyBaseStat.health || 100,
+			defense: enemyBaseStat.defense || 0,
+			evade: enemyBaseStat.evade || 0,
+			critResistance: enemyBaseStat.crit_resistance || 0,
+			shieldStrength: 0,
+			shieldIsGreatshield: false,
+			attacks: enemyAttacks.map(atk => {
+				const atkTags = Array.isArray(atk.tags) ? atk.tags.map(t => String(t).toLowerCase()) : [];
+				const atkIsShield = atkTags.includes('shield') || atkTags.includes('greatshield');
+				const atkIsGreatshield = atkTags.includes('greatshield');
+				return {
+					id: atk.id,
+					name: atk.name || 'Attack',
+					speed: enemyBaseStat.speed || 12,
+					cooldown: Math.max(10, atk.cooldown || 90),
+					attack: atk.base_damage || 0,
+					accuracy: atk.accuracy || 0,
+					crit: atk.critical_chance || 0,
+					isShield: atkIsShield,
+					isGreatshield: atkIsGreatshield,
+				};
+			}),
+		};
+		return { player: null, enemy };
+	}
+
 	const playerCombatStats = await getDefenseStat(playerId);
 	const playerAttacks = await getAttackStat(playerId);
 	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
@@ -1076,9 +1121,13 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 async function teamCombat(pairs, options = {}) {
 	if (!pairs || pairs.length === 0) throw new Error('teamCombat requires at least one pair');
 
-	// Build actor objects for all pairs in parallel
+	// Build actor objects for all pairs in parallel.
+	// Unoccupied slots (playerId null) still build the enemy at full HP;
+	// runInitTracker's retarget logic routes that unpaired enemy to a living player.
 	const builtPairs = await Promise.all(
-		pairs.map((pair, i) => buildCombatActors(pair.playerId, pair.enemyId, i, pair.speedMultiplier ?? 1, {})),
+		pairs.map((pair, i) =>
+			buildCombatActors(pair.playerId || null, pair.enemyId, i, pair.speedMultiplier ?? 1, {}),
+		),
 	);
 
 	// Assemble all actors and build pairings / teams maps
@@ -1087,10 +1136,13 @@ async function teamCombat(pairs, options = {}) {
 	const teams = {};
 	for (let i = 0; i < builtPairs.length; i++) {
 		const { player, enemy } = builtPairs[i];
-		allActors.push(player, enemy);
-		pairings[player.id] = enemy.id;
-		pairings[enemy.id] = player.id;
-		teams[player.id] = 'player';
+		if (player) {
+			allActors.push(player);
+			pairings[player.id] = enemy.id;
+			teams[player.id] = 'player';
+		}
+		allActors.push(enemy);
+		if (player) pairings[enemy.id] = player.id;
 		teams[enemy.id] = 'enemy';
 	}
 
@@ -1106,35 +1158,44 @@ async function teamCombat(pairs, options = {}) {
 
 	await handleCombatEndSkills(Object.values(actors));
 
-	// Per-pair: resolve final states and determine win conditions
+	// Per-pair: resolve final states and determine win conditions.
+	// Null-player slots are skipped (enemy started dead, counts as won for that slot).
 	const pairStates = builtPairs.map(({ player }, i) => {
 		const finalPlayer = actors[`player_${i}`];
 		const finalEnemy = actors[`enemy_${i}`];
-		const playerWon = (finalPlayer?.hp ?? 0) > 0 && (finalEnemy?.hp ?? 1) <= 0;
-		return { player, finalPlayer, finalEnemy, playerWon, playerId: pairs[i].playerId, enemyId: pairs[i].enemyId };
+		const isEmptySlot = !pairs[i].playerId;
+		// Occupied slot: player survived and enemy is dead.
+		// Empty slot: enemy was killed by a retargeting player (no auto-win).
+		const playerWon = isEmptySlot
+			? (finalEnemy?.hp ?? 1) <= 0
+			: (finalPlayer?.hp ?? 0) > 0 && (finalEnemy?.hp ?? 1) <= 0;
+		return { player, finalPlayer, finalEnemy, playerWon, playerId: pairs[i].playerId, enemyId: pairs[i].enemyId, isEmptySlot };
 	});
 
 	// Rewards are only distributed if the entire team wins
 	const teamVictory = pairStates.every(s => s.playerWon);
 
-	const pairOutcomes = await Promise.all(pairStates.map(async ({ player, finalPlayer, finalEnemy, playerWon, playerId, enemyId }) => {
-		if (finalPlayer) {
+	const pairOutcomes = await Promise.all(pairStates.map(async ({ player, finalPlayer, finalEnemy, playerWon, playerId, enemyId, isEmptySlot }) => {
+		if (finalPlayer && playerId) {
 			await characterUtility.setCharacterStat(playerId, 'currentHp', finalPlayer.hp);
 		}
 
 		let lootResults = { gold: 0, exp: 0, items: [], playerVictory: false, leveledUp: false, weaponSkillXp: {}, armorSkillXp: {} };
-		if (teamVictory) {
+		if (teamVictory && !isEmptySlot && player) {
 			lootResults = await handleCombatEnd(
 				playerId, enemyId,
 				{ player: finalPlayer, enemy: finalEnemy },
 				combatLog, player.attacks,
 			);
 		}
-		return { playerId, enemyId, playerWon, finalPlayer, finalEnemy, lootResults };
+		return { playerId, enemyId, playerWon, finalPlayer, finalEnemy, lootResults, isEmptySlot };
 	}));
 
-	// Use first player's combat log setting for report format
-	const combatLogSetting = await getCharacterSetting(pairs[0].playerId, 'combat_log') || 'short';
+	// Use first occupied player's combat log setting for report format
+	const firstOccupiedPair = pairs.find(p => p.playerId);
+	const combatLogSetting = firstOccupiedPair
+		? (await getCharacterSetting(firstOccupiedPair.playerId, 'combat_log') || 'short')
+		: 'short';
 
 	// Combined report — rewards section omitted (loot already applied per-pair above)
 	const battleReportResult = writeBattleReport(combatLog, actors, null, combatLogSetting);

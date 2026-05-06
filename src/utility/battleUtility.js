@@ -64,21 +64,21 @@ const BOSS_ENEMIES = new Set([
 ]);
 
 // ── Officer Cabin: role definitions & in-memory session state ─────────────────
+// Single flag: set to 1 when all three officers are defeated in one assault.
+const OFFICER_QUARTERS_SECURED_FLAG = 'global.arb_officer_quarters_secured';
+
 const OFFICER_ROLES = {
 	captain: {
 		label: 'Fight Captain',
 		enemyId: 'enemy_captain',
-		defeatFlag: 'global.arb_boss_captain_defeated',
 	},
 	first_mate: {
 		label: 'Fight First Mate',
 		enemyId: 'enemy_first_mate',
-		defeatFlag: 'global.arb_boss_first_mate_defeated',
 	},
 	head_guard: {
 		label: 'Fight Head Guard',
 		enemyId: 'enemy_head_guard',
-		defeatFlag: 'global.arb_boss_head_guard_defeated',
 	},
 };
 
@@ -2261,6 +2261,7 @@ module.exports = {
 	resetArmoryState,
 	stopArmoryWave,
 	// Officer Cabin
+	OFFICER_QUARTERS_SECURED_FLAG,
 	OFFICER_ROLES,
 	officerCabinSessions,
 };
