@@ -433,9 +433,9 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	const width = 650;
 	// Pre-compute weapon rows for dynamic height
 	const _weaponRowsPre = Array.isArray(attackStats) ? attackStats : (attackStats ? [attackStats] : []);
-	const _weaponLinesPre = _weaponRowsPre.length === 0 ? 1 : _weaponRowsPre.reduce((sum, atk) => sum + (atk.isShield ? 1 : 3), 0);
-	const _combatH = _weaponLinesPre * 20 + 6 + 3 * 20 + 6 + 24 + 20;
-	const height = Math.max(430, 290 + _combatH);
+	const _maxWeaponStatRows = _weaponRowsPre.length === 0 ? 0 : _weaponRowsPre.reduce((max, atk) => Math.max(max, atk.isShield ? 1 : 4), 0);
+	// Sec2 header at y=260, 4 rows end at y=340. Sec3 header at y=370, weapon name at y=390, then stats.
+	const height = Math.max(430, 390 + _maxWeaponStatRows * 20 + 25);
 	const canvas = createCanvas(width, height);
 	console.log('[Canvas] Canvas created successfully, size:', width, 'x', height);
 	const ctx = canvas.getContext('2d');
@@ -584,19 +584,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		ctx.fillText(stat.value.toString(), statX + 110, statY + 5);
 	});
 
-	// === COMBAT STATS SECTION ===
-	drawSectionHeader(ctx, 'COMBAT', 25, 270, 290);
-
-	const _str = character?.str || 1;
-	const _dex = character?.dex || 0;
-	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
-	const _minFrac = 0.5 + 0.5 * _t;
-
-	// Normalise: attackStats may be an array (new) or a single object / null (legacy)
+	// === SECTION 2: DEFENSE + ARMOR ===
+	// Normalise attackStats: may be array (new) or single object / null (legacy)
 	const weaponRows = Array.isArray(attackStats) ? attackStats : (attackStats ? [{ itemName: 'Weapon', isShield: false, attack: attackStats.attack ?? 0, accuracy: attackStats.accuracy ?? 0, critical: attackStats.critical ?? 0 }] : []);
 
 	// Compute food buff gains for annotation (+X in green)
-	const FOOD_LABEL_KEY = { Defense: 'defense', Evade: 'evade', Speed: 'speed' };
 	const FOOD_STAT_MULT_IMG = { attack: 1 / 3, defense: 1 / 5, accuracy: 1 / 3, evade: 1 / 3, speed: 1 / 3, critical: 2 };
 	const foodGainMap = {};
 	if (foodBuffRows && foodBuffRows.length > 0) {
@@ -610,97 +602,76 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	}
 	const foodAttackGain = foodGainMap['attack'] || 0;
 
-	// Draw per-weapon stats, one line per stat (matches plain-text embed format)
+	const SEC_LEFT = 25;
+	const SEC_MID = 320;
+	const SEC_RIGHT = 330;
+	const SEC_COL_RIGHT_L = 305;
+	const SEC_COL_RIGHT_R = 625;
+	const ROW_H = 20;
+
+	// Section 2 separator line
+	const sec2Y = 245;
+	ctx.strokeStyle = '#4a4a6e';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(SEC_LEFT, sec2Y);
+	ctx.lineTo(625, sec2Y);
+	ctx.stroke();
+
+	const sec2HeaderY = sec2Y + 15;
+	drawSectionHeader(ctx, 'DEFENSE', SEC_LEFT, sec2HeaderY, SEC_MID - SEC_LEFT - 10);
+	drawSectionHeader(ctx, 'ARMOR', SEC_RIGHT, sec2HeaderY, SEC_COL_RIGHT_R - SEC_RIGHT);
+
 	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
-	let weaponRowsDrawn = 0;
 
-	const drawStatRow = (label, value, labelColor, valueColor) => {
-		const rowY = 290 + weaponRowsDrawn * 20;
-		ctx.fillStyle = labelColor ?? '#aaaaaa';
-		ctx.textAlign = 'left';
-		ctx.fillText(`${label}:`, 30, rowY);
-		ctx.fillStyle = valueColor ?? '#ffffff';
-		ctx.textAlign = 'right';
-		ctx.fillText(String(value), 290, rowY);
-		weaponRowsDrawn++;
-	};
-
-	if (weaponRows.length === 0) {
-		drawStatRow('Attack', '\u2014');
-	}
-	else {
-		for (const atk of weaponRows) {
-			// Truncate weapon name label
-			let labelText = atk.itemName || 'Unarmed';
-			while (ctx.measureText(labelText + ':').width > 160 && labelText.length > 3) {
-				labelText = labelText.slice(0, -4) + '...';
-			}
-			if (atk.isShield) {
-				drawStatRow(labelText, '(shield)', '#aaaaaa', '#7289da');
-			}
-			else {
-				const minAtk = Math.floor(atk.attack * _minFrac);
-				const maxAtk = atk.attack;
-				const foodBuff = foodAttackGain > 0 ? ` (+${foodAttackGain})` : '';
-				drawStatRow(labelText, `${minAtk}-${maxAtk}${foodBuff}`);
-				drawStatRow('Accuracy', (atk.accuracy ?? 0));
-				drawStatRow('Critical', (atk.critical ?? 0));
-			}
-		}
-	}
-
-	// 2-column grid for remaining combat stats (Defense/Evade/Speed), below weapon rows
-	const gridStartY = 290 + weaponRowsDrawn * 20 + 6;
-	const gridData = [
-		{ label: 'Defense', value: combatStats?.defense ?? 0 },
-		{ label: 'Evade', value: combatStats?.evade ?? 0 },
-		{ label: 'Speed', value: combatStats?.speed ?? 0 },
+	// Left: Defense / Evade / Speed / Weight
+	const defenseStats = [
+		{ label: 'Defense', value: combatStats?.defense ?? 0, foodKey: 'defense' },
+		{ label: 'Evade', value: combatStats?.evade ?? 0, foodKey: 'evade' },
+		{ label: 'Speed', value: combatStats?.speed ?? 0, foodKey: 'speed' },
+		{ label: 'Weight', value: `${combatStats?.currentWeight ?? 0}/${combatStats?.maxWeight ?? 0}`, foodKey: null },
 	];
-
-	gridData.forEach((stat, index) => {
-		const statY = gridStartY + index * 20;
-
+	defenseStats.forEach((stat, i) => {
+		const rowY = sec2HeaderY + ROW_H + i * ROW_H;
 		ctx.fillStyle = '#aaaaaa';
 		ctx.textAlign = 'left';
-		ctx.fillText(`${stat.label}:`, 30, statY);
-
-		const foodKey = FOOD_LABEL_KEY[stat.label];
-		const foodGain = foodKey ? (foodGainMap[foodKey] || 0) : 0;
-
+		ctx.fillText(`${stat.label}:`, SEC_LEFT, rowY);
+		const foodGain = stat.foodKey ? (foodGainMap[stat.foodKey] || 0) : 0;
 		if (foodGain > 0) {
 			const buffStr = `(+${foodGain})`;
 			const buffWidth = ctx.measureText(buffStr).width;
 			ctx.fillStyle = '#ffffff';
 			ctx.textAlign = 'right';
-			ctx.fillText(stat.value.toString(), 290 - buffWidth - 4, statY);
+			ctx.fillText(String(stat.value), SEC_COL_RIGHT_L - buffWidth - 4, rowY);
 			ctx.fillStyle = '#2ecc71';
-			ctx.fillText(buffStr, 290, statY);
+			ctx.fillText(buffStr, SEC_COL_RIGHT_L, rowY);
 		}
 		else {
 			ctx.fillStyle = '#ffffff';
 			ctx.textAlign = 'right';
-			ctx.fillText(stat.value.toString(), 290, statY);
+			ctx.fillText(String(stat.value), SEC_COL_RIGHT_L, rowY);
 		}
 	});
 
-	// === EQUIPMENT SECTION ===
-	drawSectionHeader(ctx, 'EQUIPMENT', 340, 270, 280);
+	// Vertical divider between Defense and Armor columns
+	ctx.strokeStyle = '#4a4a6e';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(SEC_MID, sec2Y + 5);
+	ctx.lineTo(SEC_MID, sec2HeaderY + ROW_H * 4 + 5);
+	ctx.stroke();
 
+	// Build equipment map from equipped items
 	const equipmentMap = {};
-	// Slots occupied by two-handed weapon (not actually equipped)
 	const occupiedSlots = new Set();
-	
 	if (equipment && Array.isArray(equipment)) {
 		equipment.forEach(eq => {
 			if (eq.slot) {
 				const slotKey = eq.slot.toLowerCase();
 				const itemName = eq.itemName ?? eq.item_name ?? 'Unknown';
-				
-				// Two-handed weapons display in both main hand and off hand
 				if (slotKey === WEAPON_SLOTS.TWOHAND) {
 					equipmentMap[WEAPON_SLOTS.MAINHAND] = itemName;
 					equipmentMap[WEAPON_SLOTS.OFFHAND] = itemName;
-					// Off hand is just occupied, not equipped
 					occupiedSlots.add(WEAPON_SLOTS.OFFHAND);
 				}
 				else {
@@ -710,52 +681,106 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 		});
 	}
 
-	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
-	EQUIPMENT_SLOT_CONFIG.forEach((slot, index) => {
-		const slotY = 290 + index * 26;
-		const slotX = 345;
-
-		// Slot icon and label (using emoji font)
+	// Right: Armor slots only — reuse icons/labels from EQUIPMENT_SLOT_CONFIG
+	const armorSlotDisplay = EQUIPMENT_SLOT_CONFIG.filter(s => !Object.values(WEAPON_SLOTS).includes(s.key));
+	armorSlotDisplay.forEach((slot, i) => {
+		const rowY = sec2HeaderY + ROW_H + i * ROW_H;
+		ctx.font = '13px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
 		ctx.fillStyle = '#7289da';
 		ctx.textAlign = 'left';
-		ctx.font = '13px "Noto Color Emoji", "Segoe UI Emoji", "Liberation Sans", Arial, sans-serif';
-		ctx.fillText(`${slot.icon} ${slot.label}:`, slotX, slotY);
-
-		// Item name
+		ctx.fillText(`${slot.icon} ${slot.label}:`, SEC_RIGHT, rowY);
 		ctx.font = '13px "Liberation Sans", Arial, sans-serif';
-		const itemName = equipmentMap[slot.key] ?? '—';
-		const isOccupied = occupiedSlots.has(slot.key);
-		
-		// Gray/transparent for empty slots or occupied-but-not-equipped slots
-		if (itemName === '—') {
-			ctx.fillStyle = '#666666';
-		}
-		else if (isOccupied) {
-			// Grayed and transparent for occupied
-			ctx.fillStyle = 'rgba(150, 150, 150, 0.6)';
-		}
-		else {
-			ctx.fillStyle = '#ffffff';
-		}
-		ctx.textAlign = 'left';
-
-		// Truncate long item names, add parentheses if occupied
+		const itemName = equipmentMap[slot.key] ?? '\u2014';
+		ctx.fillStyle = itemName === '\u2014' ? '#666666' : '#ffffff';
 		let displayName = itemName;
-		if (isOccupied) displayName = `(${itemName})`;
-		const maxWidth = 135;
-		while (ctx.measureText(displayName).width > maxWidth && displayName.length > 3) {
+		while (ctx.measureText(displayName).width > 180 && displayName.length > 3) {
 			displayName = displayName.slice(0, -4) + '...';
 		}
-		ctx.fillText(displayName, slotX + 115, slotY);
+		ctx.textAlign = 'right';
+		ctx.fillText(displayName, SEC_COL_RIGHT_R, rowY);
 	});
 
-	// === WEIGHT SECTION ===
-	if (combatStats) {
-		const weightY = gridStartY + 2 * 24 + 6;
-		ctx.fillStyle = '#888888';
-		ctx.font = '12px "Liberation Sans", Arial, sans-serif';
+	// === SECTION 3: WEAPONS ===
+	const sec3Y = sec2HeaderY + ROW_H * 4 + 15;
+	ctx.strokeStyle = '#4a4a6e';
+	ctx.lineWidth = 1;
+	ctx.beginPath();
+	ctx.moveTo(SEC_LEFT, sec3Y);
+	ctx.lineTo(625, sec3Y);
+	ctx.stroke();
+
+	const sec3HeaderY = sec3Y + 15;
+	drawSectionHeader(ctx, weaponRows.length === 1 ? 'WEAPON' : 'WEAPONS', SEC_LEFT, sec3HeaderY, 600);
+
+	const _str = character?.str || 1;
+	const _dex = character?.dex || 0;
+	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
+	const _minFrac = 0.5 + 0.5 * _t;
+	const weaponNameY = sec3HeaderY + ROW_H;
+
+	const drawWeaponBlock = (atk, startX, rightX, nameY) => {
+		const blockWidth = rightX - startX - 10;
+		ctx.font = 'bold 13px "Liberation Sans", Arial, sans-serif';
+		let nameText = atk.itemName || 'Unarmed';
+		while (ctx.measureText(nameText).width > blockWidth && nameText.length > 3) {
+			nameText = nameText.slice(0, -4) + '...';
+		}
+		ctx.fillStyle = '#ffffff';
 		ctx.textAlign = 'left';
-		ctx.fillText(`Weight: ${combatStats.currentWeight ?? 0}/${combatStats.maxWeight ?? 0}`, 30, weightY);
+		ctx.fillText(nameText, startX, nameY);
+		ctx.font = '13px "Liberation Sans", Arial, sans-serif';
+		if (atk.isShield) {
+			ctx.fillStyle = '#7289da';
+			ctx.textAlign = 'left';
+			ctx.fillText('(shield)', startX, nameY + ROW_H);
+		}
+		else {
+			const minAtk = Math.floor(atk.attack * _minFrac);
+			const maxAtk = atk.attack;
+			const foodBuff = foodAttackGain > 0 ? ` (+${foodAttackGain})` : '';
+			const atkRows = [
+				{ label: 'Attack', value: `${minAtk}-${maxAtk}${foodBuff}` },
+				{ label: 'Accuracy', value: String(atk.accuracy ?? 0) },
+				{ label: 'Critical', value: String(atk.critical ?? 0) },
+				{ label: 'Cooldown', value: String(atk.cooldown ?? 0) },
+			];
+			atkRows.forEach((row, ri) => {
+				const ry = nameY + (ri + 1) * ROW_H;
+				ctx.fillStyle = '#aaaaaa';
+				ctx.textAlign = 'left';
+				ctx.fillText(`${row.label}:`, startX, ry);
+				ctx.fillStyle = '#ffffff';
+				ctx.textAlign = 'right';
+				ctx.fillText(row.value, rightX, ry);
+			});
+		}
+	};
+
+	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
+	if (weaponRows.length === 0) {
+		ctx.fillStyle = '#666666';
+		ctx.textAlign = 'left';
+		ctx.fillText('None', SEC_LEFT, weaponNameY);
+	}
+	else if (weaponRows.length === 1) {
+		drawWeaponBlock(weaponRows[0], SEC_LEFT, 620, weaponNameY);
+	}
+	else {
+		const colWidth = Math.floor((620 - SEC_LEFT - 10) / weaponRows.length);
+		weaponRows.forEach((atk, wi) => {
+			const colStartX = SEC_LEFT + wi * (colWidth + 10);
+			const colRightX = colStartX + colWidth;
+			drawWeaponBlock(atk, colStartX, colRightX, weaponNameY);
+			if (wi < weaponRows.length - 1) {
+				const divX = colRightX + 5;
+				ctx.strokeStyle = '#4a4a6e';
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.moveTo(divX, sec3HeaderY);
+				ctx.lineTo(divX, weaponNameY + 4 * ROW_H);
+				ctx.stroke();
+			}
+		});
 	}
 
 	// Watermark/footer

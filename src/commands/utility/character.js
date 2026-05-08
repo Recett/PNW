@@ -381,6 +381,7 @@ async function handleStat(interaction, userId) {
 				`${atk.itemName}: ${minAtk}-${maxAtk}${foodNote('attack')}`,
 				`Accuracy: ${atk.accuracy ?? '-'}${foodNote('accuracy')}`,
 				`Critical: ${atk.critical ?? '-'}${foodNote('critical')}`,
+				`Cooldown: ${atk.cooldown ?? '-'}`,
 			];
 		})
 		: ['None'];
