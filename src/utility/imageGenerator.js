@@ -434,7 +434,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	// Pre-compute weapon rows for dynamic height
 	const _weaponRowsPre = Array.isArray(attackStats) ? attackStats : (attackStats ? [attackStats] : []);
 	const _weaponLinesPre = _weaponRowsPre.length === 0 ? 1 : _weaponRowsPre.reduce((sum, atk) => sum + (atk.isShield ? 1 : 3), 0);
-	const _combatH = _weaponLinesPre * 20 + 6 + 2 * 24 + 6 + 24 + 20;
+	const _combatH = _weaponLinesPre * 20 + 6 + 3 * 20 + 6 + 24 + 20;
 	const height = Math.max(430, 290 + _combatH);
 	const canvas = createCanvas(width, height);
 	console.log('[Canvas] Canvas created successfully, size:', width, 'x', height);
@@ -658,14 +658,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	];
 
 	gridData.forEach((stat, index) => {
-		const col = index % 2;
-		const row = Math.floor(index / 2);
-		const statX = 30 + col * 145;
-		const statY = gridStartY + row * 24;
+		const statY = gridStartY + index * 20;
 
 		ctx.fillStyle = '#aaaaaa';
 		ctx.textAlign = 'left';
-		ctx.fillText(`${stat.label}:`, statX, statY);
+		ctx.fillText(`${stat.label}:`, 30, statY);
 
 		const foodKey = FOOD_LABEL_KEY[stat.label];
 		const foodGain = foodKey ? (foodGainMap[foodKey] || 0) : 0;
@@ -675,14 +672,14 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 			const buffWidth = ctx.measureText(buffStr).width;
 			ctx.fillStyle = '#ffffff';
 			ctx.textAlign = 'right';
-			ctx.fillText(stat.value.toString(), statX + 130 - buffWidth - 4, statY);
+			ctx.fillText(stat.value.toString(), 290 - buffWidth - 4, statY);
 			ctx.fillStyle = '#2ecc71';
-			ctx.fillText(buffStr, statX + 130, statY);
+			ctx.fillText(buffStr, 290, statY);
 		}
 		else {
 			ctx.fillStyle = '#ffffff';
 			ctx.textAlign = 'right';
-			ctx.fillText(stat.value.toString(), statX + 130, statY);
+			ctx.fillText(stat.value.toString(), 290, statY);
 		}
 	});
 
