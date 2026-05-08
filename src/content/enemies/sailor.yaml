@@ -21,8 +21,8 @@ enemies:
     attack:
       - id: cutlass_swing
         name: Cutlass Swing
-        base_damage: 14
-        accuracy: 10
+        base_damage: 12
+        accuracy: 9
         critical_chance: 5
         cooldown: 100
     reward:
@@ -47,8 +47,8 @@ enemies:
     attack:
       - id: knife_slash
         name: Knife Slash
-        base_damage: 10
-        accuracy: 14
+        base_damage: 9
+        accuracy: 12
         critical_chance: 18
         cooldown: 60
     reward:
@@ -160,12 +160,12 @@ enemies:
       - id: sword_strike
         name: Sword Strike
         base_damage: 12
-        accuracy: 16
+        accuracy: 14
         critical_chance: 20
         cooldown: 80
       - id: buckler
         name: Buckler
-        base_damage: 10
+        base_damage: 6
         accuracy: 0
         critical_chance: 0
         cooldown: 200
@@ -184,7 +184,7 @@ enemies:
     status: active
     stat:
       health: 70
-      defense: 4
+      defense: 3
       defense_percent: 0
       crit_resistance: 5
       evade: 14
@@ -192,7 +192,7 @@ enemies:
     attack:
       - id: cutlass_slash_vet
         name: Cutlass Slash
-        base_damage: 18
+        base_damage: 15
         accuracy: 12
         critical_chance: 8
         cooldown: 100

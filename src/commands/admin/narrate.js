@@ -124,6 +124,16 @@ module.exports = {
 		}
 
 		const embed = buildNarrationEmbed(preset);
+		const presetPerms = channel.permissionsFor(interaction.client.user);
+		const missingPresetPerm = !presetPerms?.has(PermissionFlagsBits.SendMessages)
+			? 'SendMessages'
+			: !presetPerms?.has(PermissionFlagsBits.EmbedLinks)
+				? 'EmbedLinks'
+				: null;
+		if (missingPresetPerm) {
+			await interaction.editReply({ content: `Missing permission to post narration: \`${missingPresetPerm}\` is not granted in that channel.` });
+			return;
+		}
 		await channel.send({ embeds: [embed] });
 
 		const locationLabel = source === 'current' ? 'the current channel' : `configured channel \`${source}\``;
@@ -167,6 +177,16 @@ module.exports = {
 			return;
 		}
 
+		const modalPerms = interaction.channel.permissionsFor(interaction.client.user);
+		const missingModalPerm = !modalPerms?.has(PermissionFlagsBits.SendMessages)
+			? 'SendMessages'
+			: !modalPerms?.has(PermissionFlagsBits.EmbedLinks)
+				? 'EmbedLinks'
+				: null;
+		if (missingModalPerm) {
+			await interaction.editReply({ content: `Missing permission to post narration: \`${missingModalPerm}\` is not granted in this channel.` });
+			return;
+		}
 		await interaction.channel.send({ embeds: [embed] });
 		await interaction.deleteReply();
 	},
