@@ -373,11 +373,15 @@ async function handleStat(interaction, userId) {
 	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
 	const _minFrac = 0.5 + 0.5 * _t;
 	const attackFields = allAttacks.length > 0
-		? allAttacks.map(atk => {
-			if (atk.isShield) return `**${atk.itemName}**: (shield) | acc ${atk.accuracy ?? '-'}`;
+		? allAttacks.flatMap(atk => {
+			if (atk.isShield) return [`${atk.itemName}: (shield)`];
 			const minAtk = Math.floor(atk.attack * _minFrac);
 			const maxAtk = atk.attack;
-			return `**${atk.itemName}**: ${minAtk}-${maxAtk}${foodNote('attack')} | acc ${atk.accuracy ?? '-'}${foodNote('accuracy')} | crit ${atk.critical ?? '-'}${foodNote('critical')}`;
+			return [
+				`${atk.itemName}: ${minAtk}-${maxAtk}${foodNote('attack')}`,
+				`Accuracy: ${atk.accuracy ?? '-'}${foodNote('accuracy')}`,
+				`Critical: ${atk.critical ?? '-'}${foodNote('critical')}`,
+			];
 		})
 		: ['None'];
 	const equipList = equipment.length > 0 ? equipment.map(eq => `- ${eq.itemName}`).join('\n') : 'None';

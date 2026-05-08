@@ -431,7 +431,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	}
 	
 	const width = 650;
-	const height = 430;
+	// Pre-compute weapon rows for dynamic height
+	const _weaponRowsPre = Array.isArray(attackStats) ? attackStats : (attackStats ? [attackStats] : []);
+	const _weaponLinesPre = _weaponRowsPre.length === 0 ? 1 : _weaponRowsPre.reduce((sum, atk) => sum + (atk.isShield ? 1 : 3), 0);
+	const _combatH = _weaponLinesPre * 20 + 6 + 2 * 24 + 6 + 24 + 20;
+	const height = Math.max(430, 290 + _combatH);
 	const canvas = createCanvas(width, height);
 	console.log('[Canvas] Canvas created successfully, size:', width, 'x', height);
 	const ctx = canvas.getContext('2d');
@@ -592,7 +596,7 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	const weaponRows = Array.isArray(attackStats) ? attackStats : (attackStats ? [{ itemName: 'Weapon', isShield: false, attack: attackStats.attack ?? 0, accuracy: attackStats.accuracy ?? 0, critical: attackStats.critical ?? 0 }] : []);
 
 	// Compute food buff gains for annotation (+X in green)
-	const FOOD_LABEL_KEY = { Defense: 'defense', Evade: 'evade', Speed: 'speed', Critical: 'critical' };
+	const FOOD_LABEL_KEY = { Defense: 'defense', Evade: 'evade', Speed: 'speed' };
 	const FOOD_STAT_MULT_IMG = { attack: 1 / 3, defense: 1 / 5, accuracy: 1 / 3, evade: 1 / 3, speed: 1 / 3, critical: 2 };
 	const foodGainMap = {};
 	if (foodBuffRows && foodBuffRows.length > 0) {
@@ -606,56 +610,51 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	}
 	const foodAttackGain = foodGainMap['attack'] || 0;
 
-	// Draw per-weapon rows (each on its own full-width line)
+	// Draw per-weapon stats, one line per stat (matches plain-text embed format)
 	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
 	let weaponRowsDrawn = 0;
-	if (weaponRows.length === 0) {
-		const rowY = 290;
-		ctx.fillStyle = '#aaaaaa';
+
+	const drawStatRow = (label, value, labelColor, valueColor) => {
+		const rowY = 290 + weaponRowsDrawn * 20;
+		ctx.fillStyle = labelColor ?? '#aaaaaa';
 		ctx.textAlign = 'left';
-		ctx.fillText('Attack:', 30, rowY);
-		ctx.fillStyle = '#ffffff';
+		ctx.fillText(`${label}:`, 30, rowY);
+		ctx.fillStyle = valueColor ?? '#ffffff';
 		ctx.textAlign = 'right';
-		ctx.fillText('\u2014', 290, rowY);
-		weaponRowsDrawn = 1;
+		ctx.fillText(String(value), 290, rowY);
+		weaponRowsDrawn++;
+	};
+
+	if (weaponRows.length === 0) {
+		drawStatRow('Attack', '\u2014');
 	}
 	else {
 		for (const atk of weaponRows) {
-			const rowY = 290 + weaponRowsDrawn * 20;
-			// Weapon name (truncated to fit ~120px)
-			ctx.fillStyle = '#aaaaaa';
-			ctx.textAlign = 'left';
+			// Truncate weapon name label
 			let labelText = atk.itemName || 'Unarmed';
-			while (ctx.measureText(labelText + ':').width > 120 && labelText.length > 3) {
+			while (ctx.measureText(labelText + ':').width > 160 && labelText.length > 3) {
 				labelText = labelText.slice(0, -4) + '...';
 			}
-			ctx.fillText(`${labelText}:`, 30, rowY);
-			// Right side value
 			if (atk.isShield) {
-				ctx.fillStyle = '#7289da';
-				ctx.textAlign = 'right';
-				ctx.fillText('(shield)', 290, rowY);
+				drawStatRow(labelText, '(shield)', '#aaaaaa', '#7289da');
 			}
 			else {
 				const minAtk = Math.floor(atk.attack * _minFrac);
 				const maxAtk = atk.attack;
 				const foodBuff = foodAttackGain > 0 ? ` (+${foodAttackGain})` : '';
-				const valueText = `${minAtk}-${maxAtk}${foodBuff}  acc ${atk.accuracy ?? 0}`;
-				ctx.fillStyle = '#ffffff';
-				ctx.textAlign = 'right';
-				ctx.fillText(valueText, 290, rowY);
+				drawStatRow(labelText, `${minAtk}-${maxAtk}${foodBuff}`);
+				drawStatRow('Accuracy', (atk.accuracy ?? 0));
+				drawStatRow('Critical', (atk.critical ?? 0));
 			}
-			weaponRowsDrawn++;
 		}
 	}
 
-	// 2-column grid for remaining combat stats, positioned below weapon rows
+	// 2-column grid for remaining combat stats (Defense/Evade/Speed), below weapon rows
 	const gridStartY = 290 + weaponRowsDrawn * 20 + 6;
 	const gridData = [
 		{ label: 'Defense', value: combatStats?.defense ?? 0 },
 		{ label: 'Evade', value: combatStats?.evade ?? 0 },
 		{ label: 'Speed', value: combatStats?.speed ?? 0 },
-		{ label: 'Critical', value: weaponRows.length > 0 ? (weaponRows.find(w => !w.isShield)?.critical ?? 0) : 0 },
 	];
 
 	gridData.forEach((stat, index) => {
