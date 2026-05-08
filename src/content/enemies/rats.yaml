@@ -128,10 +128,10 @@ enemies:
     reward:
       gold: 0
       exp: 200
-    drop:
-      - id: ratsbane
-        chance: 1.0
-        quantity: 1
+      item:
+        - id: ratsbane
+          chance: 1.0
+          quantity: 1
 
   - id: rat_king_enraged
     name: Rat King
@@ -163,10 +163,10 @@ enemies:
     reward:
       gold: 0
       exp: 200
-    drop:
-      - id: ratsbane
-        chance: 1.0
-        quantity: 1
+      item:
+        - id: ratsbane
+          chance: 1.0
+          quantity: 1
 
   # -----------------------------------------------
   # UNDEAD RATS — twice as strong as their living counterparts

@@ -45,15 +45,17 @@ function buildItemEmbed(item, inventoryEntry = null) {
 			{ name: 'Cooldown', value: String(item.weapon.cooldown || 0), inline: true },
 			{ name: 'Weight', value: String(item.weight || 0), inline: true },
 		);
-		if (item.weapon.special) {
-			embed.fields.push(
-				{ name: 'Special', value: `${item.weapon.special} (${item.weapon.special_value || 0})`, inline: false },
-			);
-		}
-		if (item.weapon.parry_rating) {
-			embed.fields.push(
-				{ name: 'Parry Rating', value: String(item.weapon.parry_rating), inline: true },
-			);
+		if (item.weapon.special && typeof item.weapon.special === 'object') {
+			if (item.weapon.special.parry_rating != null) {
+				embed.fields.push(
+					{ name: 'Parry Rating', value: String(item.weapon.special.parry_rating), inline: true },
+				);
+			}
+			if (item.weapon.special.speed_cap != null) {
+				embed.fields.push(
+					{ name: 'Speed Cap', value: String(item.weapon.special.speed_cap), inline: true },
+				);
+			}
 		}
 	}
 	// Add armor-specific stats

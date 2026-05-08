@@ -502,6 +502,38 @@ let getCharacterAttackStat = async (characterId) => {
 };
 
 /**
+ * Get all character attack stats with item names resolved, for display purposes.
+ * @param {string} characterId - The character ID
+ * @returns {Promise<Array>} Array of { item_id, itemName, isShield, attack, accuracy, critical, critical_damage, cooldown }
+ */
+let getAllCharacterAttackStats = async (characterId) => {
+	const { CharacterAttackStat } = getDbModels();
+	const allStats = await CharacterAttackStat.findAll({ where: { character_id: characterId } });
+	if (!allStats || allStats.length === 0) return [];
+	const result = [];
+	for (const stat of allStats) {
+		let itemName = 'Unarmed';
+		let isShield = false;
+		if (stat.item_id) {
+			const item = await itemUtility.getItemWithDetails(stat.item_id);
+			itemName = item?.name ?? 'Unknown';
+			isShield = item?.weapon?.subtype === 'shield';
+		}
+		result.push({
+			item_id: stat.item_id,
+			itemName,
+			isShield,
+			attack: stat.attack,
+			accuracy: stat.accuracy,
+			critical: stat.critical,
+			critical_damage: stat.critical_damage,
+			cooldown: stat.cooldown,
+		});
+	}
+	return result;
+};
+
+/**
  * Get a character setting value
  * @param {string} characterId - The character ID
  * @param {string} settingName - The setting name (e.g., 'avatar')
@@ -980,6 +1012,7 @@ module.exports = {
 	getCharacterStat,
 	getCharacterCombatStat,
 	getCharacterAttackStat,
+	getAllCharacterAttackStats,
 	getCharacterSetting,
 	checkCharacterInventory,
 	checkCharacterSkill,

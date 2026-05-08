@@ -583,23 +583,16 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 	// === COMBAT STATS SECTION ===
 	drawSectionHeader(ctx, 'COMBAT', 25, 270, 290);
 
-	const _atkMax = attackStats?.attack ?? 0;
 	const _str = character?.str || 1;
 	const _dex = character?.dex || 0;
 	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
 	const _minFrac = 0.5 + 0.5 * _t;
-	const _avgAtk = Math.round(_atkMax * (1 + _minFrac) / 2);
-	const combatData = [
-		{ label: 'Attack', value: _avgAtk },
-		{ label: 'Defense', value: combatStats?.defense ?? 0 },
-		{ label: 'Accuracy', value: attackStats?.accuracy ?? 0 },
-		{ label: 'Evade', value: combatStats?.evade ?? 0 },
-		{ label: 'Speed', value: combatStats?.speed ?? 0 },
-		{ label: 'Critical', value: attackStats?.critical ?? 0 },
-	];
+
+	// Normalise: attackStats may be an array (new) or a single object / null (legacy)
+	const weaponRows = Array.isArray(attackStats) ? attackStats : (attackStats ? [{ itemName: 'Weapon', isShield: false, attack: attackStats.attack ?? 0, accuracy: attackStats.accuracy ?? 0, critical: attackStats.critical ?? 0 }] : []);
 
 	// Compute food buff gains for annotation (+X in green)
-	const FOOD_LABEL_KEY = { Attack: 'attack', Defense: 'defense', Accuracy: 'accuracy', Evade: 'evade', Speed: 'speed', Critical: 'critical' };
+	const FOOD_LABEL_KEY = { Defense: 'defense', Evade: 'evade', Speed: 'speed', Critical: 'critical' };
 	const FOOD_STAT_MULT_IMG = { attack: 1 / 3, defense: 1 / 5, accuracy: 1 / 3, evade: 1 / 3, speed: 1 / 3, critical: 2 };
 	const foodGainMap = {};
 	if (foodBuffRows && foodBuffRows.length > 0) {
@@ -611,13 +604,65 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 			}
 		}
 	}
+	const foodAttackGain = foodGainMap['attack'] || 0;
 
+	// Draw per-weapon rows (each on its own full-width line)
 	ctx.font = '13px "Liberation Sans", Arial, sans-serif';
-	combatData.forEach((stat, index) => {
+	let weaponRowsDrawn = 0;
+	if (weaponRows.length === 0) {
+		const rowY = 290;
+		ctx.fillStyle = '#aaaaaa';
+		ctx.textAlign = 'left';
+		ctx.fillText('Attack:', 30, rowY);
+		ctx.fillStyle = '#ffffff';
+		ctx.textAlign = 'right';
+		ctx.fillText('\u2014', 290, rowY);
+		weaponRowsDrawn = 1;
+	}
+	else {
+		for (const atk of weaponRows) {
+			const rowY = 290 + weaponRowsDrawn * 20;
+			// Weapon name (truncated to fit ~120px)
+			ctx.fillStyle = '#aaaaaa';
+			ctx.textAlign = 'left';
+			let labelText = atk.itemName || 'Unarmed';
+			while (ctx.measureText(labelText + ':').width > 120 && labelText.length > 3) {
+				labelText = labelText.slice(0, -4) + '...';
+			}
+			ctx.fillText(`${labelText}:`, 30, rowY);
+			// Right side value
+			if (atk.isShield) {
+				ctx.fillStyle = '#7289da';
+				ctx.textAlign = 'right';
+				ctx.fillText('(shield)', 290, rowY);
+			}
+			else {
+				const minAtk = Math.floor(atk.attack * _minFrac);
+				const maxAtk = atk.attack;
+				const foodBuff = foodAttackGain > 0 ? ` (+${foodAttackGain})` : '';
+				const valueText = `${minAtk}-${maxAtk}${foodBuff}  acc ${atk.accuracy ?? 0}`;
+				ctx.fillStyle = '#ffffff';
+				ctx.textAlign = 'right';
+				ctx.fillText(valueText, 290, rowY);
+			}
+			weaponRowsDrawn++;
+		}
+	}
+
+	// 2-column grid for remaining combat stats, positioned below weapon rows
+	const gridStartY = 290 + weaponRowsDrawn * 20 + 6;
+	const gridData = [
+		{ label: 'Defense', value: combatStats?.defense ?? 0 },
+		{ label: 'Evade', value: combatStats?.evade ?? 0 },
+		{ label: 'Speed', value: combatStats?.speed ?? 0 },
+		{ label: 'Critical', value: weaponRows.length > 0 ? (weaponRows.find(w => !w.isShield)?.critical ?? 0) : 0 },
+	];
+
+	gridData.forEach((stat, index) => {
 		const col = index % 2;
 		const row = Math.floor(index / 2);
 		const statX = 30 + col * 145;
-		const statY = 290 + row * 24;
+		const statY = gridStartY + row * 24;
 
 		ctx.fillStyle = '#aaaaaa';
 		ctx.textAlign = 'left';
@@ -710,10 +755,11 @@ async function generateStatCard(character, combatStats, attackStats, equipment, 
 
 	// === WEIGHT SECTION ===
 	if (combatStats) {
+		const weightY = gridStartY + 2 * 24 + 6;
 		ctx.fillStyle = '#888888';
 		ctx.font = '12px "Liberation Sans", Arial, sans-serif';
 		ctx.textAlign = 'left';
-		ctx.fillText(`Weight: ${combatStats.currentWeight ?? 0}/${combatStats.maxWeight ?? 0}`, 30, 370);
+		ctx.fillText(`Weight: ${combatStats.currentWeight ?? 0}/${combatStats.maxWeight ?? 0}`, 30, weightY);
 	}
 
 	// Watermark/footer

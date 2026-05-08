@@ -902,7 +902,14 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 	if (!playerBase) throw new Error('Player not found');
 	if ((playerBase.currentHp ?? 0) <= 0) throw new Error('Character is knocked out and cannot fight.');
 
-	const rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	let rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	for (const atk of playerAttacks) {
+		if (atk.item_id) {
+			const atkItem = contentStore.items.findByPk(String(atk.item_id));
+			const speedCap = atkItem?.weapon?.special?.speed_cap;
+			if (speedCap != null) { rawPlayerSpeed = Math.min(rawPlayerSpeed, speedCap); }
+		}
+	}
 	const playerSpeed = rawPlayerSpeed * speedMultiplier;
 
 	// === Load rapier parry perk data ===
@@ -966,16 +973,13 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 					}
 					else if (subtype === 'rapier') {
 						isRapier = true;
-						parryRating = itemDetails.weapon.parry_rating || 0;
+						parryRating = itemDetails.weapon.special?.parry_rating || 0;
 					}
 					else if (subtype === 'spear') {
 						isSpear = true;
 					}
 					else if (subtype === 'shortbow') {
 						isShortbow = true;
-					}
-					else if (subtype === 'mace') {
-						isMace = true;
 					}
 				}
 			}
@@ -1249,7 +1253,14 @@ async function mainCombat(playerId, enemyId, options = {}) {
 
 	// Get player's agility/speed from combat stats
 	// options.playerSpeedMultiplier halves speed when the fighter couldn't pay stamina
-	const rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	let rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
+	for (const atk of playerAttacks) {
+		if (atk.item_id) {
+			const atkItem = contentStore.items.findByPk(String(atk.item_id));
+			const speedCap = atkItem?.weapon?.special?.speed_cap;
+			if (speedCap != null) { rawPlayerSpeed = Math.min(rawPlayerSpeed, speedCap); }
+		}
+	}
 	const playerSpeed = rawPlayerSpeed * (options.playerSpeedMultiplier ?? 1);
 
 	// === Load rapier parry perk data ===
@@ -1320,7 +1331,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 					// Check if weapon is a rapier
 					else if (subtype === 'rapier') {
 						isRapier = true;
-						parryRating = itemDetails.weapon.parry_rating || 0;
+						parryRating = itemDetails.weapon.special?.parry_rating || 0;
 					}
 					// Check if weapon is a spear
 					else if (subtype === 'spear') {
@@ -1999,11 +2010,8 @@ async function handleCombatEnd(playerId, enemyId, actors, combatLog = [], player
 		lootResults.remainingXp = expResult.remainingXp;
 	}
 
-	// Handle item drops 窶・support both reward.item and top-level drop field
-	const itemDropList = [
-		...(reward.item && Array.isArray(reward.item) ? reward.item : []),
-		...(enemyBase.drop && Array.isArray(enemyBase.drop) ? enemyBase.drop : []),
-	];
+	// Handle item drops
+	const itemDropList = reward.item && Array.isArray(reward.item) ? reward.item : [];
 	if (itemDropList.length > 0) {
 		for (const itemDrop of itemDropList) {
 			// Check drop chance (0-1 probability)

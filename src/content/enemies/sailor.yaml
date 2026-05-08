@@ -287,6 +287,10 @@ enemies:
         cooldown: 300
     reward:
       exp: 200
+      item:
+        - id: matchlock
+          chance: 1.0
+          quantity: 1
 
   - id: enemy_first_mate
     name: First Mate
@@ -322,6 +326,10 @@ enemies:
         cooldown: 300
     reward:
       exp: 200
+      item:
+        - id: naval_crossbow
+          chance: 1.0
+          quantity: 1
 
   - id: enemy_captain
     name: Ship's Captain

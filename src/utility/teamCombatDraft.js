@@ -203,7 +203,7 @@ async function buildPlayerAttackEntries(playerId, playerBase, playerCombatStats,
 				}
 				else if (subtype === 'rapier') {
 					isRapier = true;
-					parryRating = itemDetails.weapon.parry_rating || 0;
+					parryRating = itemDetails.weapon.special?.parry_rating || 0;
 				}
 			}
 		}

@@ -316,6 +316,7 @@ async function handleStat(interaction, userId) {
 
 	const combat = await characterUtil.getCharacterCombatStat(targetId);
 	const attack = await characterUtil.getCharacterAttackStat(targetId);
+	const allAttacks = await characterUtil.getAllCharacterAttackStats(targetId);
 	const equipment = await characterUtil.getCharacterEquippedItems(targetId);
 	const settingsAvatar = await getCharacterSetting(targetId, 'avatar');
 	const rawAvatar = settingsAvatar || character.avatar || null;
@@ -344,7 +345,7 @@ async function handleStat(interaction, userId) {
 	if (!isPlain) {
 		try {
 			console.log(`[Stat] Canvas attempt for ${targetId}: avatar=${canvasAvatarUrl}, combat=${!!combat}, attack=${!!attack}, equip=${equipment?.length}, food=${foodBuffRows?.length}, hp=${character.currentHp}/${character.maxHp}, stamina=${character.currentStamina}/${character.maxStamina}, str=${character.str}, dex=${character.dex}, agi=${character.agi}, con=${character.con}`);
-			const imageBuffer = await generateStatCard(character, combat, attack, equipment, canvasAvatarUrl, foodBuffRows);
+			const imageBuffer = await generateStatCard(character, combat, allAttacks, equipment, canvasAvatarUrl, foodBuffRows);
 			const attachment = new AttachmentBuilder(imageBuffer, { name: 'stat-card.png' });
 			return await interaction.editReply({ files: [attachment] });
 		}
@@ -367,18 +368,18 @@ async function handleStat(interaction, userId) {
 		`Current Weight: ${combat.currentWeight ?? '-'}`,
 		`Max Weight: ${combat.maxWeight ?? '-'}`,
 	] : ['None'];
-	const _atkMax = attack?.attack ?? 0;
 	const _str = character.str || 1;
 	const _dex = character.dex || 0;
 	const _t = Math.min(1, Math.max(0, (_dex / _str - 0.5) / 1.5));
 	const _minFrac = 0.5 + 0.5 * _t;
-	const _avgAtk = attack ? Math.round(_atkMax * (1 + _minFrac) / 2) : null;
-	const attackFields = attack ? [
-		`Attack: ${_avgAtk ?? '-'} (max ${_atkMax})${foodNote('attack')}`,
-		// (displayed as average; actual rolls vary per DEX/STR ratio)
-		`Accuracy: ${attack.accuracy ?? '-'}${foodNote('accuracy')}`,
-		`Critical: ${attack.critical ?? '-'}${foodNote('critical')}`,
-	] : ['None'];
+	const attackFields = allAttacks.length > 0
+		? allAttacks.map(atk => {
+			if (atk.isShield) return `**${atk.itemName}**: (shield) | acc ${atk.accuracy ?? '-'}`;
+			const minAtk = Math.floor(atk.attack * _minFrac);
+			const maxAtk = atk.attack;
+			return `**${atk.itemName}**: ${minAtk}-${maxAtk}${foodNote('attack')} | acc ${atk.accuracy ?? '-'}${foodNote('accuracy')} | crit ${atk.critical ?? '-'}${foodNote('critical')}`;
+		})
+		: ['None'];
 	const equipList = equipment.length > 0 ? equipment.map(eq => `- ${eq.itemName}`).join('\n') : 'None';
 	const hpBar = createColorBar(character.currentHp, character.maxHp, 'hp');
 	const staminaBar = createColorBar(character.currentStamina, character.maxStamina, 'stamina');

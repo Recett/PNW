@@ -134,7 +134,8 @@ weapons:
       scaling: 0.35
       hit_mod: 0.65
       cooldown: 85
-      parry_rating: 0.5
+      special:
+        parry_rating: 0.5
 
   - id: rapier_2
     name: Side Rapier
@@ -151,7 +152,8 @@ weapons:
       scaling: 0.35
       hit_mod: 0.65
       cooldown: 85
-      parry_rating: 0.5
+      special:
+        parry_rating: 0.5
 
   - id: "5"
     name: Plain Shortsword
@@ -385,7 +387,8 @@ weapons:
       scaling: 0.3
       hit_mod: 0.7
       cooldown: 85
-      parry_rating: 0.5
+      special:
+        parry_rating: 0.5
 
   - id: claw-company-greatsword
     name: "Claw Company Greatsword"
@@ -439,3 +442,35 @@ weapons:
       scaling: 0.9
       hit_mod: 0.75
       cooldown: 600
+
+  - id: naval_crossbow
+    name: "Naval Crossbow"
+    description: "A compact crossbow built for shipboard fighting. Pre-loaded and ready to fire at a moment's notice."
+    item_type: weapon
+    value: 100
+    weight: 5
+    weapon:
+      slot: twohand
+      subtype: crossbow
+      base_damage: 35
+      scaling: 0
+      hit_mod: 0.5
+      cooldown: 300
+    special:
+        speed_cap: 14  
+
+  - id: matchlock
+    name: "Matchlock"
+    description: "A heavy hand cannon loaded with powder and shot. Slow to ready, devastating when it fires."
+    item_type: weapon
+    value: 120
+    weight: 6
+    weapon:
+      slot: twohand
+      subtype: matchlock
+      base_damage: 58
+      scaling: 0
+      hit_mod: 0.4
+      cooldown: 300
+      special:
+        speed_cap: 14
