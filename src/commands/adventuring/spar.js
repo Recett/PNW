@@ -41,11 +41,13 @@ async function buildPlayerActor(playerId, actorId) {
 			let isShield = false;
 			let isGreatshield = false;
 			let isMace = false;
+			let readiness = null;
 
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
 					attackName = itemDetails.name;
+					readiness = itemDetails.weapon?.special?.readiness ?? null;
 					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
 					if (subtype === 'shield') {
 						isShield = true;
@@ -71,6 +73,7 @@ async function buildPlayerActor(playerId, actorId) {
 				isShield,
 				isGreatshield,
 				isMace,
+				readiness,
 			};
 		})),
 	};

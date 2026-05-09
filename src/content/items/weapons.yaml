@@ -442,6 +442,8 @@ weapons:
       scaling: 0.9
       hit_mod: 0.75
       cooldown: 600
+      special:
+        readiness: 0.5
 
   - id: naval_crossbow
     name: "Naval Crossbow"

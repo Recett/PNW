@@ -314,7 +314,7 @@ enemies:
     attack:
       - id: first_mate_cutlass
         name: Rapier Thrust
-        base_damage: 14
+        base_damage: 12
         accuracy: 12
         critical_chance: 20
         cooldown: 80
@@ -351,7 +351,7 @@ enemies:
     attack:
       - id: captain_cutlass
         name: Cutlass Slash
-        base_damage: 22
+        base_damage: 20
         accuracy: 12
         critical_chance: 12
         cooldown: 110
@@ -361,6 +361,7 @@ enemies:
         accuracy: 0
         critical_chance: 0
         cooldown: 600
+        readiness: 0.5
         tags: [greatshield]
     reward:
       exp: 200
@@ -388,7 +389,7 @@ enemies:
       defense_percent: 0
       crit_resistance: 8
       evade: 4
-      speed: 7
+      speed: 10
     attack:
       - id: head_guard_poleaxe
         name: Poleaxe Strike
@@ -398,6 +399,10 @@ enemies:
         cooldown: 150
     reward:
       exp: 280
+      item:
+        - id: "18"
+          quantity: 1
+          chance: 1
 
   - id: quartermaster
     name: Quartermaster
@@ -416,21 +421,14 @@ enemies:
       defense: 4
       defense_percent: 0
       crit_resistance: 5
-      evade: 18
-      speed: 18
+      evade: 15
+      speed: 15
     attack:
       - id: boarding_axe_qm
-        name: Royal Rapier
-        base_damage: 15
-        accuracy: 20
-        critical_chance: 10
-        cooldown: 80
-      - id: captain_kite_shield
-        name: Shield
+        name: Long Spear
         base_damage: 20
-        accuracy: 0
-        critical_chance: 0
-        cooldown: 300
-        tags: [greatshield]  
+        accuracy: 16
+        critical_chance: 20
+        cooldown: 120
     reward:
       exp: 200

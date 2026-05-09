@@ -449,8 +449,16 @@ async function runInitTracker(actors, options = {}) {
 				speed: attack.speed,
 				cooldown: attack.cooldown,
 				// Add small random starting initiative to stagger attacks
-				// initBonus (e.g. longbow: 8ﾃ優ex) is added on top for a head-start
-				initiative: Math.floor(Math.random() * (attack.speed || 10)) + (attack.initBonus || 0),
+				// initBonus (e.g. longbow: 8*dex) is added on top for a head-start
+				// readiness > 1: flat bonus added to random start
+				// readiness <= 1 (and > 0): starting init set to readiness * cooldown
+				initiative: (() => {
+					const readiness = attack.readiness;
+					const base = Math.floor(Math.random() * (attack.speed || 10)) + (attack.initBonus || 0);
+					if (readiness != null && readiness > 1) return base + Math.floor(readiness);
+					if (readiness != null && readiness > 0) return Math.floor(readiness * (attack.cooldown || 80));
+					return base;
+				})(),
 				attack: attack.attack,
 				accuracy: attack.accuracy,
 				crit: attack.crit,
@@ -875,6 +883,7 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 					crit: atk.critical_chance || 0,
 					isShield: atkIsShield,
 					isGreatshield: atkIsGreatshield,
+					readiness: atk.readiness ?? null,
 				};
 			}),
 		};
@@ -956,10 +965,12 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 			let isShortbow = false;
 			let isMace = false;
 			let parryRating = 0;
+			let readiness = null;
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
 					attackName = itemDetails.name;
+					readiness = itemDetails.weapon?.special?.readiness ?? null;
 					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
 					if (subtype === 'shield') {
 						isShield = true;
@@ -1003,6 +1014,7 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 				parryRating,
 				baseSbowSpeed: isShortbow ? playerSpeed : 0,
 				initBonus: isLongbow ? 8 * (playerBase.dex || 0) : 0,
+				readiness,
 			};
 		})),
 	};
@@ -1107,6 +1119,7 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 				crit: atk.critical_chance || 0,
 				isShield: atkIsShield,
 				isGreatshield: atkIsGreatshield,
+				readiness: atk.readiness ?? null,
 			};
 		}),
 	};
@@ -1484,6 +1497,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				crit: atk.critical_chance || 0,
 				isShield: atkIsShield,
 				isGreatshield: atkIsGreatshield,
+				readiness: atk.readiness ?? null,
 			};
 		}),
 	};
