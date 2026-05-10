@@ -172,7 +172,7 @@ Cron schedule: `'0 */8 * * *'` (every 8 hours) in `cronUtility.js`.
   3. Session cleared from Map.
   4. Already-defeated officers are skipped (reads `captain.defeatFlag`, `first_mate.defeatFlag`, `head_guard.defeatFlag`).
   5. Stamina: deduct 5 per fighter; if insufficient, apply `speedMultiplier: 0.7` penalty.
-  6. All three fighters and all three enemies share **one initiative tracker** via `combatUtil.teamCombat(teamPairs)`. Fixed pairings: captain↔enemy_captain, first_mate↔enemy_first_mate, head_guard↔quartermaster. Combat ends when all actors on one team reach 0 HP.
+  6. All three fighters and all three enemies share **one initiative tracker** via `combatUtil.teamCombat(teamPairs)`. Fixed pairings: captain↔enemy_captain, first_mate↔enemy_first_mate, head_guard↔enemy_head_guard. Combat ends when all actors on one team reach 0 HP.
   7. One combined battle report posted to channel (colour: green if all won, amber if partial, red if all lost).
   8. Win → `updateMorale(+10)` + `setFlag(def.defeatFlag, 1)` + `setFlag('hms_divine_drain_reduction', cur+2)`.
   9. Loss → `updateMorale(-3)`.

@@ -177,7 +177,7 @@ async function getBattleState() {
 		hmsSunk, hmsSupplyLoss,
 		mustering, readyCount,
 		armorySecured, armoryWins,
-		armoryBudget: ARMORY_WAVE_BUDGETS[Math.min(armoryWaveCounter, ARMORY_WAVE_BUDGETS.length - 1)],
+		armoryBudget: ARMORY_WAVE_BUDGETS[Math.min(Math.max(0, armoryWaveCounter - 1), ARMORY_WAVE_BUDGETS.length - 1)],
 		armoryWaveCounter,
 		armoryWaveEncounters: activeWaveEncounters,
 	};
@@ -1234,7 +1234,7 @@ const ARMORY_ENCOUNTER_TTL_MS = 1 * 60 * 60 * 1000;
 const ARMORY_WAVE_INTERVAL_MS = 2 * 60 * 60 * 1000;
 // Preset budget for each wave by wave number (index 0 = wave 1, index 9 = wave 10).
 // Wave 10 keeps the same budget as wave 9; the quartermaster is added on top.
-const ARMORY_WAVE_BUDGETS = [1.0, 2.0, 3.0, 4.5, 6.0, 7.5, 9.5, 11.5, 13.5, 13.5];
+const ARMORY_WAVE_BUDGETS = [1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 6.5, 8.0, 9.5, 9.5];
 // 90% enemy encounter, 10% hazard
 const ENCOUNTER_ENEMY_CHANCE = 0.9;
 
