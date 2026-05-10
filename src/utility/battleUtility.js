@@ -2263,6 +2263,7 @@ module.exports = {
 	resetArmoryState,
 	stopArmoryWave,
 	unstickEncounters,
+	forceArmoryVictory,
 	// Officer Cabin
 	OFFICER_QUARTERS_SECURED_FLAG,
 	OFFICER_ROLES,
@@ -2317,99 +2318,113 @@ async function stopArmoryWave() {
  * @returns {Promise<{reset: number, retargeted: number, cancelled: number, details: string[]}>}
  */
 async function unstickEncounters(client) {
-	const { EMOJI } = require('../enums');
-	const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-	const results = { reset: 0, retargeted: 0, cancelled: 0, details: [] };
+	const results = { reset: 0, cancelled: 0, details: [] };
 
-	// ── Step 1: reset encounters stuck mid-combat (pre-marked resolved, never finished) ──
+	// ── Step 1: reset armory wave encounters stuck mid-combat (pre-marked resolved, never finished) ──
+	// These happen when the bot crashes between the "lock" write and the win/loss handler.
 	const midCombatStuck = await PendingEncounter.findAll({
-		where: { status: 'resolved', outcome: null },
+		where: { status: 'resolved', outcome: null, wave_id: { [Op.ne]: null } },
 	});
 	for (const enc of midCombatStuck) {
 		await enc.update({ status: 'pending', fighter_id: null });
-		// Repost a fresh embed so the encounter is actionable again
-		try {
-			const channel = await client.channels.fetch(String(enc.channel_id)).catch(() => null);
-			if (channel) {
-				const enemyData = contentStore.enemies.findByPk(String(enc.enemy_id));
-				const enemyLabel = enemyData?.name || enc.enemy_id.replace(/-/g, ' ');
-				const enemyMaxHp = enemyData?.stat?.health || 100;
-				const hpText = enc.enemy_current_hp != null ? `HP: ${enc.enemy_current_hp}/${enemyMaxHp} \u2022 ` : '';
-				const waveText = enc.wave_id != null ? `Wave ${enc.wave_id} \u2022 ` : '';
-				const embed = new EmbedBuilder()
-					.setTitle(`${EMOJI.SWORD} Under Attack!`)
-					.setDescription(`A **${enemyLabel}** has engaged <@${enc.target_player_id}>.`)
-					.setFooter({ text: `${waveText}${hpText}Encounter #${enc.id} (unstuck)` });
-				const row = new ActionRowBuilder().addComponents(
-					new ButtonBuilder()
-						.setCustomId(`encounter_fight|${enc.id}`)
-						.setLabel('Fight')
-						.setStyle(ButtonStyle.Danger),
-				);
-				const msg = await channel.send({ content: `<@${enc.target_player_id}>`, embeds: [embed], components: [row] });
-				await enc.update({ message_id: msg.id });
-			}
-		}
-		catch (e) {
-			console.error('[Unstick] Failed to repost reset encounter:', e);
-		}
 		results.reset++;
 		results.details.push(`Reset mid-combat enc #${enc.id} (enemy: ${enc.enemy_id}, target: <@${enc.target_player_id}>)`);
 	}
 
-	// ── Step 2: retarget/cancel pending encounters with absent target ──
-	const pendingEncs = await PendingEncounter.findAll({ where: { status: 'pending' } });
+	// ── Step 2: cancel orphaned pending encounters from non-armory zones ──
+	// Non-armory zones have no retarget mechanism; orphaned encounters just accumulate.
+	// Armory encounters (wave_id != null) are handled by stop-armory / reset-armory.
+	const pendingEncs = await PendingEncounter.findAll({ where: { status: 'pending', wave_id: null } });
 	for (const enc of pendingEncs) {
 		const targetInZone = await CharacterBase.findOne({
 			where: { id: enc.target_player_id, location_id: enc.location_id },
 		});
-		if (targetInZone) continue; // target is present, not stuck
+		if (targetInZone) continue; // target is still present — not stuck
 
-		// Delete the stale message
+		// Delete the stale Discord message silently
 		try {
 			const channel = await client.channels.fetch(String(enc.channel_id)).catch(() => null);
 			if (channel && enc.message_id) {
 				const msg = await channel.messages.fetch(enc.message_id).catch(() => null);
 				if (msg) await msg.delete().catch(() => {});
 			}
+		}
+		catch (e) {
+			console.error('[Unstick] Failed to delete stale encounter message:', e);
+		}
 
-			const others = await CharacterBase.findAll({ where: { location_id: enc.location_id } });
-			if (others.length > 0) {
-				const newTarget = others[Math.floor(Math.random() * others.length)];
-				await enc.update({ target_player_id: newTarget.id });
-				// Repost to new target
-				if (channel) {
-					const enemyData = contentStore.enemies.findByPk(String(enc.enemy_id));
-					const enemyLabel = enemyData?.name || enc.enemy_id.replace(/-/g, ' ');
-					const enemyMaxHp = enemyData?.stat?.health || 100;
-					const hpText = enc.enemy_current_hp != null ? `HP: ${enc.enemy_current_hp}/${enemyMaxHp} \u2022 ` : '';
-					const waveText = enc.wave_id != null ? `Wave ${enc.wave_id} \u2022 ` : '';
-					const embed = new EmbedBuilder()
-						.setTitle(`${EMOJI.SWORD} Under Attack!`)
-						.setDescription(`A **${enemyLabel}** has engaged <@${newTarget.id}>.`)
-						.setFooter({ text: `${waveText}${hpText}Encounter #${enc.id} (retargeted)` });
-					const row = new ActionRowBuilder().addComponents(
-						new ButtonBuilder()
-							.setCustomId(`encounter_fight|${enc.id}`)
-							.setLabel('Fight')
-							.setStyle(ButtonStyle.Danger),
-					);
-					const msg = await channel.send({ content: `<@${newTarget.id}>`, embeds: [embed], components: [row] });
-					await enc.update({ message_id: msg.id });
-				}
-				results.retargeted++;
-				results.details.push(`Retargeted enc #${enc.id} (enemy: ${enc.enemy_id}) \u2192 <@${newTarget.id}>`);
-			}
-			else {
-				await enc.update({ status: 'cancelled' });
-				results.cancelled++;
-				results.details.push(`Cancelled enc #${enc.id} (enemy: ${enc.enemy_id}) — zone empty`);
+		await enc.destroy();
+		results.cancelled++;
+		results.details.push(`Cancelled enc #${enc.id} (enemy: ${enc.enemy_id}) — target <@${enc.target_player_id}> left zone`);
+	}
+
+	return results;
+}
+
+/**
+ * Emergency command: wipe all pending encounters (delete Discord messages) and grant an
+ * immediate armory victory — sets arb_armory_secured=1, posts the secured announcement,
+ * and runs the arb-armory-secured event narration.
+ * @param {import('discord.js').Client} client
+ * @returns {Promise<{deleted: number}>}
+ */
+async function forceArmoryVictory(client) {
+	const results = { deleted: 0 };
+
+	// Step 1: wipe ALL pending encounters across every zone and remove their Discord messages
+	const allPending = await PendingEncounter.findAll({ where: { status: 'pending' } });
+	for (const enc of allPending) {
+		try {
+			const channel = await client.channels.fetch(String(enc.channel_id)).catch(() => null);
+			if (channel && enc.message_id) {
+				const msg = await channel.messages.fetch(enc.message_id).catch(() => null);
+				if (msg) await msg.delete().catch(() => {});
 			}
 		}
 		catch (e) {
-			console.error('[Unstick] Failed to process stuck pending encounter:', e);
+			console.error('[ForceArmoryVictory] Failed to delete encounter message:', e);
 		}
+		await enc.destroy();
+		results.deleted++;
 	}
 
+	// Step 2: stop the armory wave timer
+	clearTimeout(_armoryWaveTimer);
+	_armoryWaveTimer = null;
+
+	// Step 3: set armory secured flags
+	await setFlag('global.arb_armory_wins', 10);
+	await setFlag('global.arb_armory_secured', 1);
+
+	// Step 4: post armory channel announcement
+	try {
+		const armory = await LocationBase.findByPk(ARB_ARMORY_ID);
+		if (armory && armory.channel) {
+			const { EMOJI } = require('../enums');
+			const { EmbedBuilder } = require('discord.js');
+			const channel = await client.channels.fetch(String(armory.channel)).catch(() => null);
+			if (channel) {
+				const embed = new EmbedBuilder()
+					.setTitle(`${EMOJI.SUCCESS} Armory Secured!`)
+					.setDescription('The armory is now under control!\n\nEnemy units permanently deal **30% less damage**.')
+					.setColor(0xf1c40f);
+				await channel.send({ embeds: [embed] });
+			}
+		}
+	}
+	catch (e) {
+		console.error('[ForceArmoryVictory] Failed to post armory announcement:', e);
+	}
+
+	// Step 5: run the armory-secured event narration
+	try {
+		const { runActionsOnly } = require('@utility/eventUtility.js');
+		await runActionsOnly('arb-armory-secured', '0', client);
+	}
+	catch (e) {
+		console.error('[ForceArmoryVictory] Failed to run arb-armory-secured event:', e);
+	}
+
+	console.log(`[ForceArmoryVictory] Deleted ${results.deleted} encounters, armory secured.`);
 	return results;
 }

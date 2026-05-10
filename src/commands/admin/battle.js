@@ -61,7 +61,11 @@ module.exports = {
 				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).'))
 		.addSubcommand(sub =>
 			sub.setName('unstick-encounters')
-				.setDescription('Unstick pending encounters: reset mid-combat crashes, retarget orphaned encounters.')),
+				.setDescription('Unstick pending encounters: reset mid-combat crashes, retarget orphaned encounters.'))
+		.addSubcommand(sub =>
+			sub.setName('force-armory-win')
+				.setDescription('Emergency: delete all pending encounters and grant immediate armory victory.')),
+
 
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand();
@@ -298,20 +302,31 @@ module.exports = {
 			else if (sub === 'unstick-encounters') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				const res = await battleUtil.unstickEncounters(interaction.client);
-				const total = res.reset + res.retargeted + res.cancelled;
+				const total = res.reset + res.cancelled;
 				if (total === 0) {
-					return await interaction.editReply({ content: `${EMOJI.SUCCESS} No stuck encounters found.` });
+					return await interaction.editReply({ content: `${EMOJI.SUCCESS} No stuck armory encounters found.` });
 				}
 				const summary = [
-					`${EMOJI.SUCCESS} Unstuck **${total}** encounter(s):`,
+					`${EMOJI.SUCCESS} Unstuck **${total}** armory encounter(s):`,
 					`Reset (mid-combat crash): **${res.reset}**`,
-					`Retargeted (absent target): **${res.retargeted}**`,
-					`Cancelled (empty zone): **${res.cancelled}**`,
+					`Cancelled (orphaned): **${res.cancelled}**`,
 				];
 				if (res.details.length > 0) {
 					summary.push('', ...res.details);
 				}
 				await interaction.editReply({ content: summary.join('\n') });
+			}
+			else if (sub === 'force-armory-win') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const res = await battleUtil.forceArmoryVictory(interaction.client);
+				await interaction.editReply({
+					content: [
+						`${EMOJI.SUCCESS} Armory victory granted.`,
+						`Deleted **${res.deleted}** pending encounter(s).`,
+						'Flags set: arb_armory_secured=1, arb_armory_wins=10.',
+						'Secured announcement and event narration posted.',
+					].join('\n'),
+				});
 			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
