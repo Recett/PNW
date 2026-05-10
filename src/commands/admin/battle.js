@@ -308,7 +308,7 @@ module.exports = {
 				}
 				const summary = [
 					`${EMOJI.SUCCESS} Unstuck **${total}** armory encounter(s):`,
-					`Reset (mid-combat crash): **${res.reset}**`,
+					`Deleted (stale mid-combat): **${res.reset}**`,
 					`Cancelled (orphaned): **${res.cancelled}**`,
 				];
 				if (res.details.length > 0) {
@@ -322,7 +322,7 @@ module.exports = {
 				await interaction.editReply({
 					content: [
 						`${EMOJI.SUCCESS} Armory victory granted.`,
-						`Deleted **${res.deleted}** pending encounter(s).`,
+						`Deleted **${res.deleted}** encounter(s) (all statuses).`,
 						'Flags set: arb_armory_secured=1, arb_armory_wins=10.',
 						'Secured announcement and event narration posted.',
 					].join('\n'),

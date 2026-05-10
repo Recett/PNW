@@ -2320,15 +2320,16 @@ async function stopArmoryWave() {
 async function unstickEncounters(client) {
 	const results = { reset: 0, cancelled: 0, details: [] };
 
-	// ── Step 1: reset armory wave encounters stuck mid-combat (pre-marked resolved, never finished) ──
-	// These happen when the bot crashes between the "lock" write and the win/loss handler.
+	// ── Step 1: destroy armory wave encounters stuck mid-combat (pre-marked resolved, never finished) ──
+	// These are stale rows from crashes — resetting them to pending would reactivate them and force
+	// players into combat via the expiry cron. Nuke them instead.
 	const midCombatStuck = await PendingEncounter.findAll({
 		where: { status: 'resolved', outcome: null, wave_id: { [Op.ne]: null } },
 	});
 	for (const enc of midCombatStuck) {
-		await enc.update({ status: 'pending', fighter_id: null });
+		await enc.destroy();
 		results.reset++;
-		results.details.push(`Reset mid-combat enc #${enc.id} (enemy: ${enc.enemy_id}, target: <@${enc.target_player_id}>)`);
+		results.details.push(`Deleted stale enc #${enc.id} (enemy: ${enc.enemy_id}, target: <@${enc.target_player_id}>)`);
 	}
 
 	// ── Step 2: cancel orphaned pending encounters from non-armory zones ──
@@ -2371,8 +2372,8 @@ async function unstickEncounters(client) {
 async function forceArmoryVictory(client) {
 	const results = { deleted: 0 };
 
-	// Step 1: wipe ALL pending encounters across every zone and remove their Discord messages
-	const allPending = await PendingEncounter.findAll({ where: { status: 'pending' } });
+	// Step 1: wipe ALL encounters regardless of status and remove their Discord messages
+	const allPending = await PendingEncounter.findAll();
 	for (const enc of allPending) {
 		try {
 			const channel = await client.channels.fetch(String(enc.channel_id)).catch(() => null);
