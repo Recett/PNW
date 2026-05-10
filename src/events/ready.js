@@ -1,4 +1,5 @@
 const { Events } = require('discord.js');
+const { recoverArmoryTimer } = require('@utility/cronUtility.js');
 
 module.exports = {
 	name: Events.ClientReady,
@@ -18,6 +19,9 @@ module.exports = {
 
 		// Restart spawn timers for any active raids
 		await restartActiveRaidTimers(client);
+
+		// Restore armory wave timer (must run after login so channels.fetch works)
+		await recoverArmoryTimer(client).catch(e => console.error('[Armory] recoverArmoryTimer failed:', e));
 	},
 };
 

@@ -935,29 +935,7 @@ async function startCronJob(client) {
 	const { loadLocationActivityMessages } = require('@utility/locationUtility.js');
 	loadLocationActivityMessages().catch(e => console.error('[LocationActivity] Startup restore failed:', e));
 
-	// Armory wave restart recovery: if next_run is past, fire immediately; otherwise restore setTimeout
-	(async () => {
-		try {
-			const waveLog = await CronLog.findOne({ where: { job_name: 'armory_wave_spawn' } });
-			if (waveLog && waveLog.status === 'running' && waveLog.next_run) {
-				const guild = _discordClient && _discordClient.guilds.cache.first();
-				if (guild) {
-					const remaining = new Date(waveLog.next_run).getTime() - Date.now();
-					if (remaining <= 0) {
-						console.log('[Armory] Restart catch-up: wave overdue, firing spawnArmoryWave now.');
-						await battleUtil.spawnArmoryWave(_discordClient);
-					}
-					else {
-						battleUtil.scheduleArmoryWave(_discordClient, remaining);
-						console.log(`[Armory] Restart recovery: next wave in ${Math.round(remaining / 60000)}m, setTimeout restored.`);
-					}
-				}
-			}
-		}
-		catch (e) {
-			console.error('[Armory] Restart recovery failed:', e);
-		}
-	})();
+	// Armory wave restart recovery runs in ready.js (after the client is connected).
 
 }
 
@@ -1052,6 +1030,32 @@ async function performBattleHourlyTasks() {
 	}
 }
 
+/**
+ * Restore the armory wave timer after a bot restart.
+ * Must be called from the ClientReady event (after the client is fully connected),
+ * not from startCronJob — guilds.cache is empty before login completes.
+ * @param {import('discord.js').Client} client
+ */
+async function recoverArmoryTimer(client) {
+	try {
+		const waveLog = await CronLog.findOne({ where: { job_name: 'armory_wave_spawn' } });
+		if (waveLog && waveLog.status === 'running' && waveLog.next_run) {
+			const remaining = new Date(waveLog.next_run).getTime() - Date.now();
+			if (remaining <= 0) {
+				console.log('[Armory] Restart catch-up: wave overdue, firing spawnArmoryWave now.');
+				await battleUtil.spawnArmoryWave(client);
+			}
+			else {
+				battleUtil.scheduleArmoryWave(client, remaining);
+				console.log(`[Armory] Restart recovery: next wave in ${Math.round(remaining / 60000)}m, setTimeout restored.`);
+			}
+		}
+	}
+	catch (e) {
+		console.error('[Armory] Restart recovery failed:', e);
+	}
+}
+
 module.exports = {
 	job,
 	hourlyJob,
@@ -1068,4 +1072,5 @@ module.exports = {
 	performHealthCheck,
 	performHMSDivineBattleCycle,
 	performBattleHourlyTasks,
+	recoverArmoryTimer,
 };
