@@ -58,9 +58,10 @@ module.exports = {
 				.setDescription('Reset armory wave state: cancel timer, clear flags, destroy pending wave encounters.'))
 		.addSubcommand(sub =>
 			sub.setName('stop-armory')
-				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).')),
-
-
+				.setDescription('Stop the armory wave timer and destroy pending wave encounters (does not reset progress flags).'))
+		.addSubcommand(sub =>
+			sub.setName('unstick-encounters')
+				.setDescription('Unstick pending encounters: reset mid-combat crashes, retarget orphaned encounters.')),
 
 	async execute(interaction) {
 		const sub = interaction.options.getSubcommand();
@@ -293,6 +294,24 @@ module.exports = {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 				await battleUtil.stopArmoryWave();
 				await interaction.editReply({ content: `${EMOJI.SUCCESS} Armory wave stopped: timer cancelled, pending wave encounters removed. Progress flags preserved.` });
+			}
+			else if (sub === 'unstick-encounters') {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+				const res = await battleUtil.unstickEncounters(interaction.client);
+				const total = res.reset + res.retargeted + res.cancelled;
+				if (total === 0) {
+					return await interaction.editReply({ content: `${EMOJI.SUCCESS} No stuck encounters found.` });
+				}
+				const summary = [
+					`${EMOJI.SUCCESS} Unstuck **${total}** encounter(s):`,
+					`Reset (mid-combat crash): **${res.reset}**`,
+					`Retargeted (absent target): **${res.retargeted}**`,
+					`Cancelled (empty zone): **${res.cancelled}**`,
+				];
+				if (res.details.length > 0) {
+					summary.push('', ...res.details);
+				}
+				await interaction.editReply({ content: summary.join('\n') });
 			}
 			else if (sub === 'end') {
 				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
