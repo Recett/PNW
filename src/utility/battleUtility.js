@@ -1358,7 +1358,8 @@ async function spawnArmoryWave(client) {
 	if (waveId >= 10) waveEnemies.push('quartermaster');
 	if (!waveEnemies.length) return null;
 
-	const target = players[Math.floor(Math.random() * players.length)];
+	// Shuffle players so enemies are distributed round-robin across everyone present
+	const shuffledPlayers = [...players].sort(() => Math.random() - 0.5);
 	const expiresAt = new Date(Date.now() + ARMORY_ENCOUNTER_TTL_MS);
 
 	const { EMOJI } = require('../enums');
@@ -1368,6 +1369,7 @@ async function spawnArmoryWave(client) {
 	if (!channel) return null;
 
 	for (let i = 0; i < waveEnemies.length; i++) {
+		const target = shuffledPlayers[i % shuffledPlayers.length];
 		const enemyId = waveEnemies[i];
 		const record = await PendingEncounter.create({
 			target_player_id: target.id,

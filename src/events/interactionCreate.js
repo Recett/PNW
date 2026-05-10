@@ -564,8 +564,31 @@ async function handleEncounterFightInteraction(interaction) {
 		const playerHp = result?.finalState?.player?.hp ?? 1;
 		await record.update({ status: 'pending', fighter_id: null, enemy_current_hp: enemyHpLeft });
 
-		if (playerHp > 0) {
-			// Not knocked out — repost weakened encounter targeting same player
+		// Try to retarget the weakened enemy to another player in the same zone
+		const { CharacterBase: CharBase } = require('@root/dbObject.js');
+		const { Op } = require('sequelize');
+		let newTarget = null;
+		try {
+			const otherPlayers = await CharBase.findAll({
+				where: {
+					location_id: record.location_id,
+					id: { [Op.ne]: fighterId },
+				},
+			});
+			if (otherPlayers.length > 0) {
+				newTarget = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
+				await record.update({ target_player_id: newTarget.id });
+			}
+		}
+		catch (e) {
+			console.error('[Encounter] Failed to find other players for retarget:', e);
+		}
+
+		// Repost weakened encounter: to the new target if retargeted, same player if alone and not KO'd
+		// Skip repost if KO'd with no one to retarget (encounter will cancel on departure)
+		const effectiveTargetId = newTarget ? newTarget.id : record.target_player_id;
+		const shouldRepost = newTarget !== null || playerHp > 0;
+		if (shouldRepost) {
 			try {
 				const channel = interaction.guild?.channels.cache.get(record.channel_id);
 				if (channel) {
@@ -574,7 +597,7 @@ async function handleEncounterFightInteraction(interaction) {
 
 					const weakenedEmbed = new EmbedBuilder()
 						.setTitle(`${EMOJI.SWORD} Under Attack!`)
-						.setDescription(`A **${enemyLabel}** (weakened) has engaged <@${record.target_player_id}>.`)
+						.setDescription(`A **${enemyLabel}** (weakened) has engaged <@${effectiveTargetId}>.`)
 						.setFooter({ text: `HP: ${enemyHpLeft}/${enemyMaxHp} \u2022 Encounter #${record.id}` });
 
 					const row = new ActionRowBuilder().addComponents(
@@ -584,7 +607,7 @@ async function handleEncounterFightInteraction(interaction) {
 							.setStyle(ButtonStyle.Danger),
 					);
 
-					const msg = await channel.send({ embeds: [weakenedEmbed], components: [row] });
+					const msg = await channel.send({ content: `<@${effectiveTargetId}>`, embeds: [weakenedEmbed], components: [row] });
 					await record.update({ message_id: msg.id });
 				}
 			}
@@ -602,6 +625,7 @@ async function handleEncounterFightInteraction(interaction) {
 		}
 
 		// Knocked out — move to living quarters
+		// If already retargeted, the encounter now targets a different player and will not be cancelled on departure
 		if (playerHp <= 0) {
 			try {
 				const battleActive = await battleUtil.getFlag('global.hms_divine_battle_active');
