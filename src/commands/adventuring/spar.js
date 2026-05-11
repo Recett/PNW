@@ -1,8 +1,7 @@
 const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
-const { CharacterBase, CharacterPerk } = require('@root/dbObject.js');
+const { CharacterBase } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const combatUtil = require('@utility/combatUtility.js');
-const itemUtility = require('@utility/itemUtility.js');
 const { getCharacterSetting } = require('@utility/characterSettingUtility.js');
 const { EMOJI } = require('../../enums');
 const contentStore = require('@root/contentStore.js');
@@ -10,88 +9,6 @@ const contentStore = require('@root/contentStore.js');
 const STAMINA_COST = 2;
 const CHALLENGE_TIMEOUT_MS = 60000;
 const SPAR_CHANNEL_ID = '1503334930564776086';
-
-/**
- * Build a combat actor object from a player's current stats.
- * Uses maxHp so the spar starts at full health without modifying the character.
- * @param {string} playerId - Discord user ID of the player
- * @param {string} actorId - Unique ID string used internally by runInitTracker
- * @returns {Object} Actor object for runInitTracker
- */
-async function buildPlayerActor(playerId, actorId) {
-	const [attacks, combatStats, base] = await Promise.all([
-		combatUtil.getAttackStat(playerId),
-		combatUtil.getDefenseStat(playerId),
-		characterUtil.getCharacterBase(playerId),
-	]);
-
-	if (!base) throw new Error(`Character not found for player ${playerId}`);
-
-	const speed = combatStats ? (combatStats.agi || combatStats.agility || 15) : 15;
-
-	const actor = {
-		id: actorId,
-		name: base.name || 'Unknown',
-		hp: base.maxHp ?? 100,
-		defense: combatStats?.defense || 0,
-		evade: combatStats?.evade || 0,
-		critResistance: combatStats?.crit_resistance || 0,
-		shieldStrength: 0,
-		shieldIsGreatshield: false,
-		attacks: await Promise.all((attacks || []).map(async (atk) => {
-			let attackName = 'Unarmed';
-			let isShield = false;
-			let isGreatshield = false;
-			let isMace = false;
-			let readiness = null;
-
-			if (atk.item_id) {
-				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
-				if (itemDetails) {
-					attackName = itemDetails.name;
-					readiness = itemDetails.weapon?.special?.readiness ?? null;
-					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
-					if (subtype === 'shield') {
-						isShield = true;
-						if (itemDetails.tag) {
-							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
-							isGreatshield = tags.some(t => t?.toLowerCase().includes('greatshield'));
-						}
-					}
-					else if (subtype === 'mace') {
-						isMace = true;
-					}
-				}
-			}
-
-			return {
-				id: atk.item_id || atk.id,
-				name: attackName,
-				speed,
-				cooldown: atk.cooldown || 80,
-				attack: atk.attack || 0,
-				accuracy: atk.accuracy || 0,
-				crit: atk.critical || 0,
-				isShield,
-				isGreatshield,
-				isMace,
-				readiness,
-			};
-		})),
-	};
-
-	// === Mace Reverberation setup ===
-	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
-	const macePerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('mace-')).map(p => p.perk_id));
-	const maceProfile = combatUtil.resolveMaceProfile(macePerkIds);
-	const hasMaceEquipped = actor.attacks.some(a => a.isMace);
-	actor.reverberationEnabled = maceProfile.enabled && hasMaceEquipped;
-	actor.reverberationCap = actor.reverberationEnabled ? maceProfile.cap : 0;
-	actor.reverberationRate = actor.reverberationEnabled ? maceProfile.rate : 0;
-	actor.reverberationTotalAccumulated = 0;
-
-	return actor;
-}
 
 /**
  * Build a combat actor object from a YAML enemy definition.
@@ -153,13 +70,19 @@ async function runEnemySpar(interaction, challengerChar, challengerId, enemyBase
 	});
 
 	try {
-		const playerActor = await buildPlayerActor(challengerId, 'challenger');
+		const playerActor = await combatUtil.buildPlayerCombatActor(challengerId, 'player', true);
 		const enemyActor = buildEnemyActor(enemyBase);
 
+		await combatUtil.handleCombatBeginSkills([playerActor, enemyActor]);
 		const { combatLog, actors } = await combatUtil.runInitTracker(
 			[playerActor, enemyActor],
-			{ maxTicks: 400 },
+			{
+				maxTicks: 400,
+				handleBeforeAttackSkills: combatUtil.handleBeforeAttackSkills,
+				handleAfterAttackSkills: combatUtil.handleAfterAttackSkills,
+			},
 		);
+		await combatUtil.handleCombatEndSkills(Object.values(actors));
 
 		const combatLogSetting = await getCharacterSetting(challengerId, 'combat_log') || 'short';
 		const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
@@ -263,7 +186,7 @@ module.exports = {
 
 					if (matches.length === 0) {
 						return await interaction.editReply({
-							content: `No enemy found matching \"${enemyInput}\". Check the name and try again.`,
+							content: `No enemy found matching "${enemyInput}". Check the name and try again.`,
 						});
 					}
 
@@ -284,7 +207,7 @@ module.exports = {
 						const row = new ActionRowBuilder().addComponents(select);
 
 						await interaction.editReply({
-							content: `Multiple enemies match \"${enemyInput}\". Which one?`,
+							content: `Multiple enemies match "${enemyInput}". Which one?`,
 							components: [row],
 						});
 
@@ -310,7 +233,7 @@ module.exports = {
 								await interaction.editReply({
 									content: `${EMOJI.WARNING} Enemy selection timed out.`,
 									components: [],
-								}).catch(() => {});
+								}).catch((editErr) => { console.error('[Spar] Edit failed on timeout:', editErr); });
 							}
 						});
 
@@ -451,27 +374,32 @@ module.exports = {
 
 				try {
 					const [actor1, actor2] = await Promise.all([
-						buildPlayerActor(challengerId, 'challenger'),
-						buildPlayerActor(target.id, 'opponent'),
+						combatUtil.buildPlayerCombatActor(challengerId, 'challenger', true),
+						combatUtil.buildPlayerCombatActor(target.id, 'opponent', true),
 					]);
 
+					await combatUtil.handleCombatBeginSkills([actor1, actor2]);
 					const { combatLog, actors } = await combatUtil.runInitTracker(
 						[actor1, actor2],
-						{ maxTicks: 400 },
+						{
+							maxTicks: 400,
+							handleBeforeAttackSkills: combatUtil.handleBeforeAttackSkills,
+							handleAfterAttackSkills: combatUtil.handleAfterAttackSkills,
+						},
 					);
-
+					await combatUtil.handleCombatEndSkills(Object.values(actors));
 					// Use the challenger's combat_log display setting
 					const combatLogSetting = await getCharacterSetting(challengerId, 'combat_log') || 'short';
 					const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
 
-						const pages = reportResult.pages || [reportResult];
-						for (let i = 0; i < pages.length; i++) {
-							const embed = new EmbedBuilder()
-								.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${i + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
-								.setColor(0x5865F2)
-								.setDescription(pages[i]);
-							await interaction.followUp({ embeds: [embed], ...(hide ? { flags: MessageFlags.Ephemeral } : {}) });
-						}
+					const pages = reportResult.pages || [reportResult];
+					for (let p = 0; p < pages.length; p++) {
+						const embed = new EmbedBuilder()
+							.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${p + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
+							.setColor(0x5865F2)
+							.setDescription(pages[p]);
+						await interaction.followUp({ embeds: [embed], ...(hide ? { flags: MessageFlags.Ephemeral } : {}) });
+					}
 				}
 				catch (combatErr) {
 					console.error('[Spar] Combat error:', combatErr);

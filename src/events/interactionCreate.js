@@ -763,7 +763,8 @@ async function handleOfficerCabinInteraction(interaction) {
 	}));
 
 	// Run all fights on a single shared initiative tracker
-	const teamResult = await combatUtil.teamCombat(teamPairs);
+	const enemyDamageMultiplier = await battleUtil.getArmoryDamageMultiplier(battleUtil.ARB_OFFICER_QUARTERS_ID);
+	const teamResult = await combatUtil.teamCombat(teamPairs, { enemyDamageMultiplier });
 
 	// Map outcomes back to role metadata; empty slots are marked isEmptySlot
 	const fightResults = allRoles.map((f, i) => {

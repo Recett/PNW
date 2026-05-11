@@ -284,10 +284,10 @@ function applySpearCounter(target, attacker, tracker, damage) {
  * @param {Object} tracker - The attack tracker
  * @returns {{ focusStacksLost: number }}
  */
-function beforeAttack(attacker, target, tracker) {
+function beforeAttack(attacker, target) {
 	let focusStacksLost = 0;
 	// Shortbow: wipe player stacks when enemy fires (any attack, hit or miss)
-	if (tracker.actorId !== 'player' && target.sbowActive) {
+	if (!attacker.userId && target.sbowActive) {
 		focusStacksLost = target.focusStacks || 0;
 		target.focusStacks = 0;
 		target.evade = target.baseEvade;
@@ -304,11 +304,11 @@ function beforeAttack(attacker, target, tracker) {
  */
 function afterAttack(attacker, target, tracker) {
 	// Increment spear counter charge when player lands any hit
-	if (tracker.actorId === 'player' && attacker.spearCounterCharge != null) {
+	if (attacker.userId && attacker.spearCounterCharge != null) {
 		attacker.spearCounterCharge = Math.min(3, attacker.spearCounterCharge + 1);
 	}
 	// Shortbow: build one evasion/momentum stack when player lands a hit with a shortbow
-	if (tracker.actorId === 'player' && attacker.sbowActive && tracker.isShortbow) {
+	if (attacker.userId && attacker.sbowActive && tracker.isShortbow) {
 		attacker.focusStacks = (attacker.focusStacks || 0) + 1;
 	}
 }
@@ -672,7 +672,7 @@ async function runInitTracker(actors, options = {}) {
 					parryReduced,
 					attackerShield: attacker.shieldStrength || 0,
 					targetShield: target.shieldStrength || 0,
-					focusStacks: tracker.actorId === 'player' ? (attacker.focusStacks || 0) : 0,
+					focusStacks: attacker.userId ? (attacker.focusStacks || 0) : 0,
 					focusStacksLost,
 					reverberationBefore,
 					reverberationAfter,
@@ -878,7 +878,7 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 					name: atk.name || 'Attack',
 					speed: enemyBaseStat.speed || 12,
 					cooldown: Math.max(10, atk.cooldown || 90),
-					attack: atk.base_damage || 0,
+					attack: Math.round((atk.base_damage || 0) * (opts.enemyDamageMultiplier ?? 1)),
 					accuracy: atk.accuracy || 0,
 					crit: atk.critical_chance || 0,
 					isShield: atkIsShield,
@@ -1143,7 +1143,9 @@ async function teamCombat(pairs, options = {}) {
 	// runInitTracker's retarget logic routes that unpaired enemy to a living player.
 	const builtPairs = await Promise.all(
 		pairs.map((pair, i) =>
-			buildCombatActors(pair.playerId || null, pair.enemyId, i, pair.speedMultiplier ?? 1, {}),
+			buildCombatActors(pair.playerId || null, pair.enemyId, i, pair.speedMultiplier ?? 1, {
+				enemyDamageMultiplier: options.enemyDamageMultiplier ?? 1,
+			}),
 		),
 	);
 
@@ -1226,46 +1228,23 @@ async function teamCombat(pairs, options = {}) {
 	};
 }
 
-async function mainCombat(playerId, enemyId, options = {}) {
-	if (!playerId) throw new Error('Player ID is required for combat');
-	if (!enemyId) throw new Error('Enemy ID is required for combat');
-
-	// Calculate defense/weight first so overweight penalty is current when attack stats are computed
-	const playerCombatStats = await getDefenseStat(playerId);
-
-	const playerAttacks = await getAttackStat(playerId);
-	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
-
-	// Get Enemy base info and stats from YAML content store
-	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
-	if (!enemyBase) throw new Error('Enemy not found');
-
-	const enemyBaseStat = enemyBase.stat;
-	if (!enemyBaseStat) throw new Error('Enemy stats not found');
-
-	// Get Enemy attacks from embedded YAML data
-	let enemyAttacks = enemyBase.attack;
-	if (!enemyAttacks || enemyAttacks.length === 0) {
-		throw new Error('Enemy has no attacks');
-	}
-
-	// If enemy has "pick_one" tag, randomly select a single attack at combat start
-	const enemyTags = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
-	if (enemyTags.includes('pick_one') && enemyAttacks.length > 1) {
-		const pickedIndex = Math.floor(Math.random() * enemyAttacks.length);
-		enemyAttacks = [enemyAttacks[pickedIndex]];
-	}
-
-	const playerBase = await characterUtility.getCharacterBase(playerId);
+/**
+ * Build a fully-configured combat actor for a player character.
+ * Extracted directly from mainCombat's player-building block so spar stays in sync.
+ * @param {string} playerId - Discord user ID
+ * @param {string} [actorId='player'] - ID to assign to the actor in the combat tracker
+ * @param {boolean} [useMaxHp=false] - If true, start at max HP (for sparring)
+ * @returns {Promise<Object>} Actor object ready for runInitTracker
+ */
+async function buildPlayerCombatActor(playerId, actorId = 'player', useMaxHp = false, speedMultiplier = 1, accuracyMultiplier = 1) {
+	const { CharacterPerk, CharacterSkill } = require('@root/dbObject.js');
+	const [playerCombatStats, playerAttacks, playerBase] = await Promise.all([
+		getDefenseStat(playerId),
+		getAttackStat(playerId),
+		characterUtility.getCharacterBase(playerId),
+	]);
 	if (!playerBase) throw new Error('Player not found');
 
-	// Prevent already-knocked-out players from entering combat (would refresh the KO timer)
-	if ((playerBase.currentHp ?? 0) <= 0) {
-		throw new Error('Character is knocked out and cannot fight.');
-	}
-
-	// Get player's agility/speed from combat stats
-	// options.playerSpeedMultiplier halves speed when the fighter couldn't pay stamina
 	let rawPlayerSpeed = playerCombatStats ? (playerCombatStats.speed || 15) : 15;
 	for (const atk of playerAttacks) {
 		if (atk.item_id) {
@@ -1274,10 +1253,9 @@ async function mainCombat(playerId, enemyId, options = {}) {
 			if (speedCap != null) { rawPlayerSpeed = Math.min(rawPlayerSpeed, speedCap); }
 		}
 	}
-	const playerSpeed = rawPlayerSpeed * (options.playerSpeedMultiplier ?? 1);
+	const playerSpeed = rawPlayerSpeed * speedMultiplier;
 
 	// === Load rapier parry perk data ===
-	const { CharacterPerk, CharacterSkill, CharacterFlag } = require('@root/dbObject.js');
 	const allEquippedPerks = await CharacterPerk.findAll({ where: { character_id: playerId, status: 'equipped' } });
 	const rapierPerkIds = new Set(allEquippedPerks.filter(p => p.perk_id.startsWith('rapier-')).map(p => p.perk_id));
 	const rapierSkillDef = contentStore.skills.findOne({ where: { subtype: 'rapier' } });
@@ -1286,22 +1264,22 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		: null;
 	const rapierSkillLevel = rapierSkillRow ? (rapierSkillRow.lv || 0) : 0;
 	const hasEnGarde = rapierPerkIds.has('rapier-prise-de-fer');
-	// Resolve Pmax from parry tree 窶・highest tier equipped wins
+	// Resolve Pmax from parry tree — highest tier equipped wins
 	let parryPmax = 0;
 	for (const [id, pmax] of Object.entries(PARRY_PMAX_BY_PERK)) {
 		if (rapierPerkIds.has(id) && pmax > parryPmax) parryPmax = pmax;
 	}
-	// Resolve riposte multiplier 窶・highest tier equipped wins
+	// Resolve riposte multiplier — highest tier equipped wins
 	let riposteMultiplier = 0;
 	for (const [id, mult] of Object.entries(RIPOSTE_MULT_BY_PERK)) {
 		if (rapierPerkIds.has(id) && mult > riposteMultiplier) riposteMultiplier = mult;
 	}
 
 	const player = {
-		id: 'player',
+		id: actorId,
 		name: playerBase.name || 'Player',
 		userId: playerId,
-		hp: playerBase.currentHp ?? playerBase.maxHp ?? 100,
+		hp: useMaxHp ? (playerBase.maxHp ?? 100) : (playerBase.currentHp ?? playerBase.maxHp ?? 100),
 		defense: playerCombatStats?.defense || 0,
 		evade: playerCombatStats?.evade || 0,
 		critResistance: playerCombatStats?.crit_resistance || 0,
@@ -1311,7 +1289,7 @@ async function mainCombat(playerId, enemyId, options = {}) {
 		str: playerBase.str || 0,
 		dex: playerBase.dex || 0,
 		maxHp: playerBase.maxHp || 100,
-		miasmaStacks: 0,     // populated below from DB flag if ambient effect is active
+		miasmaStacks: 0,
 		attacks: await Promise.all(playerAttacks.map(async (atk) => {
 			// Get weapon name and type info from ItemLib if item_id exists
 			let attackName = 'Attack';
@@ -1323,10 +1301,12 @@ async function mainCombat(playerId, enemyId, options = {}) {
 			let isShortbow = false;
 			let isMace = false;
 			let parryRating = 0;
+			let readiness = null;
 			if (atk.item_id) {
 				const itemDetails = await itemUtility.getItemWithDetails(atk.item_id);
 				if (itemDetails) {
 					attackName = itemDetails.name;
+					readiness = itemDetails.weapon?.special?.readiness ?? null;
 					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
 					// Check if weapon is a shield type
 					if (subtype === 'shield') {
@@ -1366,12 +1346,10 @@ async function mainCombat(playerId, enemyId, options = {}) {
 			return {
 				id: atk.item_id || atk.id,
 				name: attackName,
-				// Use player's agility for speed, weapon speed as modifier
 				speed: playerSpeed,
-				// Use cooldown from database
 				cooldown: atk.cooldown || 80,
 				attack: atk.attack || 0,
-				accuracy: (atk.accuracy || 0) * (options.playerAccuracyMultiplier ?? 1),
+				accuracy: (atk.accuracy || 0) * accuracyMultiplier,
 				crit: atk.critical || 0,
 				isShield: isShield,
 				isGreatshield: isGreatshield,
@@ -1382,8 +1360,9 @@ async function mainCombat(playerId, enemyId, options = {}) {
 				parryRating: parryRating,
 				// Shortbow: store base speed for per-stack momentum recalculation
 				baseSbowSpeed: isShortbow ? playerSpeed : 0,
-				// Longbow: 8ﾃ・Dex added to starting initiative (fires First Strike before normal rhythm)
+				// Longbow: 8x Dex added to starting initiative (fires First Strike before normal rhythm)
 				initBonus: isLongbow ? 8 * (playerBase.dex || 0) : 0,
+				readiness,
 			};
 		})),
 	};
@@ -1434,7 +1413,10 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	player.spearCounterCharge = 3;
 	let spearCounterPerkName = 'Counter';
 	for (const [id, name] of Object.entries(SPEAR_STEADY_NAME_BY_PERK)) {
-		if (spearPerkIds.has(id)) { spearCounterPerkName = name; break; }
+		if (spearPerkIds.has(id)) {
+			spearCounterPerkName = name;
+			break;
+		}
 	}
 	player.spearCounterPerkName = spearCounterPerkName;
 
@@ -1471,6 +1453,46 @@ async function mainCombat(playerId, enemyId, options = {}) {
 	player.reverberationCap = player.reverberationEnabled ? maceProfile.cap : 0;
 	player.reverberationRate = player.reverberationEnabled ? maceProfile.rate : 0;
 	player.reverberationTotalAccumulated = 0;
+
+	return player;
+}
+
+async function mainCombat(playerId, enemyId, options = {}) {
+	if (!playerId) throw new Error('Player ID is required for combat');
+	if (!enemyId) throw new Error('Enemy ID is required for combat');
+
+	const playerAttacks = await getAttackStat(playerId);
+	if (!playerAttacks || playerAttacks.length === 0) throw new Error('Player has no attacks');
+
+	// Get Enemy base info and stats from YAML content store
+	const enemyBase = contentStore.enemies.findByPk(String(enemyId));
+	if (!enemyBase) throw new Error('Enemy not found');
+
+	const enemyBaseStat = enemyBase.stat;
+	if (!enemyBaseStat) throw new Error('Enemy stats not found');
+
+	// Get Enemy attacks from embedded YAML data
+	let enemyAttacks = enemyBase.attack;
+	if (!enemyAttacks || enemyAttacks.length === 0) {
+		throw new Error('Enemy has no attacks');
+	}
+
+	// If enemy has "pick_one" tag, randomly select a single attack at combat start
+	const enemyTags = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
+	if (enemyTags.includes('pick_one') && enemyAttacks.length > 1) {
+		const pickedIndex = Math.floor(Math.random() * enemyAttacks.length);
+		enemyAttacks = [enemyAttacks[pickedIndex]];
+	}
+
+	const playerBase = await characterUtility.getCharacterBase(playerId);
+	if (!playerBase) throw new Error('Player not found');
+
+	// Prevent already-knocked-out players from entering combat (would refresh the KO timer)
+	if ((playerBase.currentHp ?? 0) <= 0) {
+		throw new Error('Character is knocked out and cannot fight.');
+	}
+
+	const player = await buildPlayerCombatActor(playerId, 'player', false, options.playerSpeedMultiplier ?? 1, options.playerAccuracyMultiplier ?? 1);
 
 	const enemy = {
 		id: 'enemy',
@@ -1824,15 +1846,27 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 	const { CharacterSkill } = require('@root/dbObject.js');
 	const contentStore = require('@root/contentStore.js');
 	const skillXpGained = {};
-	
-	// Total damage value for XP calculation (dodged + reduced + crit resisted)
-	const totalDamageValue = armorDamageStats.damageDodged + armorDamageStats.damageReduced + (armorDamageStats.critResistedTotal || 0);
-	
-	if (totalDamageValue <= 0) {
-		return skillXpGained;
-	}
-	
-	for (const [, armorData] of Object.entries(armorTypeCount)) {
+
+	// Mitigation weights per armor subtype:
+	// light  - double dodge, half reduction, normal crit resist
+	// medium - equal dodge/reduction, double crit resist
+	// heavy  - normal dodge, double reduction, normal crit resist
+	const ARMOR_WEIGHTS = {
+		light:  { dodge: 2.0, reduced: 0.5, critResist: 1.0 },
+		medium: { dodge: 1.0, reduced: 1.0, critResist: 2.0 },
+		heavy:  { dodge: 0.5, reduced: 2.0, critResist: 1.0 },
+	};
+
+	const { damageDodged, damageReduced, critResistedTotal = 0 } = armorDamageStats;
+
+	for (const [subtype, armorData] of Object.entries(armorTypeCount)) {
+		const weights = ARMOR_WEIGHTS[subtype] || { dodge: 1.0, reduced: 1.0, critResist: 1.0 };
+		const weightedMitigation = (damageDodged * weights.dodge)
+			+ (damageReduced * weights.reduced)
+			+ (critResistedTotal * weights.critResist);
+
+		if (weightedMitigation <= 0) continue;
+
 		// Find skill by armor subtype
 		const skill = contentStore.skills.findOne({
 			where: { subtype: armorData.skillName },
@@ -1848,8 +1882,8 @@ async function applyArmorSkillXp(playerId, armorDamageStats, armorTypeCount) {
 		
 		const currentLevel = skillRecord.lv || 0;
 		
-		// Formula: floor(damage * 5 / ((level+1) * 1.05^level)) * armorPieceCount
-		const baseXp = Math.floor((totalDamageValue * 5) / ((currentLevel + 1) * Math.pow(1.05, currentLevel)));
+		// Formula: floor(weightedMitigation * 5 / ((level+1) * 1.05^level)) * armorPieceCount
+		const baseXp = Math.floor((weightedMitigation * 5) / ((currentLevel + 1) * Math.pow(1.05, currentLevel)));
 		const xpGained = baseXp * armorData.count;
 		
 		if (xpGained > 0) {
@@ -2741,6 +2775,7 @@ module.exports = {
 	performAttack,
 	calculateDamage,
 	runInitTracker,
+	buildPlayerCombatActor,
 	mainCombat,
 	teamCombat,
 	writeBattleReport,
