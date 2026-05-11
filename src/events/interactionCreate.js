@@ -1088,15 +1088,15 @@ module.exports = {
 		// let [subcommand, subgroup] = [ia.options.getSubcommand(false), ia.options.getSubcommandGroup(false)];
 		const command = interaction.client.commands.get(interaction.commandName);
 
-		// Check permissions
-		if (!checkUserPermission(interaction, command)) return interaction.reply({ content: 'Permission denied.' });
-		if (!checkBotPermission(interaction)) return;
-		// interaction.client.log("COMMAND", commandLog(interaction, subcommand, subgroup), 2, 0);
-
 		if (!command) {
 			console.error(`No command matching ${interaction.commandName} was found.`);
 			return;
 		}
+
+		// Check permissions
+		if (!checkUserPermission(interaction, command)) return interaction.reply({ content: 'Permission denied.' });
+		if (!checkBotPermission(interaction)) return;
+		// interaction.client.log("COMMAND", commandLog(interaction, subcommand, subgroup), 2, 0);
 
 
 		const { cooldowns } = interaction.client;
