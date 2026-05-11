@@ -1,13 +1,15 @@
-const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, InteractionContextType, MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, StringSelectMenuBuilder } = require('discord.js');
 const { CharacterBase, CharacterPerk } = require('@root/dbObject.js');
 const characterUtil = require('@utility/characterUtility.js');
 const combatUtil = require('@utility/combatUtility.js');
 const itemUtility = require('@utility/itemUtility.js');
 const { getCharacterSetting } = require('@utility/characterSettingUtility.js');
 const { EMOJI } = require('../../enums');
+const contentStore = require('@root/contentStore.js');
 
 const STAMINA_COST = 2;
 const CHALLENGE_TIMEOUT_MS = 60000;
+const SPAR_CHANNEL_ID = '1503334930564776086';
 
 /**
  * Build a combat actor object from a player's current stats.
@@ -91,20 +93,251 @@ async function buildPlayerActor(playerId, actorId) {
 	return actor;
 }
 
+/**
+ * Build a combat actor object from a YAML enemy definition.
+ * @param {Object} enemyBase - Enemy record from contentStore.enemies
+ * @returns {Object} Actor object for runInitTracker
+ */
+function buildEnemyActor(enemyBase) {
+	const stat = enemyBase.stat || {};
+	let attacks = Array.isArray(enemyBase.attack) ? [...enemyBase.attack] : [];
+
+	// pick_one tag: randomly select one attack
+	const tags = Array.isArray(enemyBase.tag) ? enemyBase.tag : [];
+	if (tags.includes('pick_one') && attacks.length > 1) {
+		attacks = [attacks[Math.floor(Math.random() * attacks.length)]];
+	}
+
+	return {
+		id: 'enemy',
+		name: enemyBase.name || 'Unknown Enemy',
+		hp: stat.health || 100,
+		defense: stat.defense || 0,
+		evade: stat.evade || 0,
+		critResistance: stat.crit_resistance || 0,
+		shieldStrength: 0,
+		shieldIsGreatshield: false,
+		attacks: attacks.map(atk => {
+			const atkTags = Array.isArray(atk.tags) ? atk.tags.map(t => String(t).toLowerCase()) : [];
+			const atkIsShield = atkTags.includes('shield') || atkTags.includes('greatshield');
+			const atkIsGreatshield = atkTags.includes('greatshield');
+			return {
+				id: atk.id,
+				name: atk.name || 'Attack',
+				speed: stat.speed || 12,
+				cooldown: Math.max(10, atk.cooldown || 90),
+				attack: atk.base_damage || 0,
+				accuracy: atk.accuracy || 0,
+				crit: atk.critical_chance || 0,
+				isShield: atkIsShield,
+				isGreatshield: atkIsGreatshield,
+				readiness: atk.readiness ?? null,
+			};
+		}),
+	};
+}
+
+/**
+ * Deduct stamina, run combat against an enemy, and post the battle report.
+ * @param {import('discord.js').ChatInputCommandInteraction} interaction
+ * @param {Object} challengerChar - CharacterBase row
+ * @param {string} challengerId
+ * @param {Object} enemyBase - Enemy record from contentStore
+ */
+async function runEnemySpar(interaction, challengerChar, challengerId, enemyBase, hide = false) {
+	await challengerChar.update({ currentStamina: challengerChar.currentStamina - STAMINA_COST });
+
+	await interaction.editReply({
+		content: `${EMOJI.SWORD} **${challengerChar.name}** spars against **${enemyBase.name}**!`,
+		components: [],
+	});
+
+	try {
+		const playerActor = await buildPlayerActor(challengerId, 'challenger');
+		const enemyActor = buildEnemyActor(enemyBase);
+
+		const { combatLog, actors } = await combatUtil.runInitTracker(
+			[playerActor, enemyActor],
+			{ maxTicks: 400 },
+		);
+
+		const combatLogSetting = await getCharacterSetting(challengerId, 'combat_log') || 'short';
+		const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
+
+		const pages = reportResult.pages || [reportResult];
+		for (let p = 0; p < pages.length; p++) {
+			const embed = new EmbedBuilder()
+				.setTitle(pages.length > 1
+					? `${EMOJI.SWORD} Spar Report (${p + 1}/${pages.length})`
+					: `${EMOJI.SWORD} Spar Report`)
+				.setColor(0x5865F2)
+				.setDescription(pages[p]);
+			await interaction.followUp({ embeds: [embed], ...(hide ? { flags: MessageFlags.Ephemeral } : {}) });
+		}
+	}
+	catch (combatErr) {
+		console.error('[Spar/Enemy] Combat error:', combatErr);
+		await interaction.followUp({ content: `${EMOJI.FAILURE} An error occurred during the sparring match.`, flags: MessageFlags.Ephemeral });
+	}
+}
+
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('spar')
-		.setDescription('Challenge another player to a friendly sparring match.')
+		.setDescription('Challenge another player or a creature to a friendly sparring match.')
 		.setContexts(InteractionContextType.Guild)
 		.addUserOption(option =>
 			option.setName('target')
 				.setDescription('The player to challenge.')
-				.setRequired(true)),
+				.setRequired(false))
+		.addStringOption(option =>
+			option.setName('enemy')
+				.setDescription('Name of an enemy creature to spar against.')
+				.setRequired(false))
+		.addBooleanOption(option =>
+			option.setName('hide')
+				.setDescription('Hide the result so only you can see it. (default: false)')
+				.setRequired(false)),
+
 
 	async execute(interaction) {
 		const challengerId = interaction.user.id;
 		const target = interaction.options.getUser('target');
+		const enemyInput = interaction.options.getString('enemy');
+		const hide = interaction.options.getBoolean('hide') ?? false;
 
+		// ── Channel guard ────────────────────────────────────────────────────────
+		if (interaction.channelId !== SPAR_CHANNEL_ID) {
+			return await interaction.reply({
+				content: `This command can only be used in <#${SPAR_CHANNEL_ID}>.`,
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+
+		// ── Validate mutual exclusivity ──────────────────────────────────────────
+		if (!target && !enemyInput) {
+			return await interaction.reply({
+				content: 'You must provide either a player to challenge or an enemy creature name.',
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+		if (target && enemyInput) {
+			return await interaction.reply({
+				content: 'Provide either a player target or an enemy name \u2014 not both.',
+				flags: MessageFlags.Ephemeral,
+			});
+		}
+
+		// ═══════════════════════════════════════════════════════════════════════
+		// ENEMY SPAR PATH
+		// ═══════════════════════════════════════════════════════════════════════
+		if (enemyInput) {
+			try {
+				await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+				// Challenger checks
+				const challengerUnreg = await characterUtil.getCharacterFlag(challengerId, 'unregistered');
+				if (challengerUnreg === 1) {
+					return await interaction.editReply({ content: 'You must complete registration before sparring.' });
+				}
+				const challengerChar = await CharacterBase.findOne({ where: { id: challengerId } });
+				if (!challengerChar) {
+					return await interaction.editReply({ content: 'Character not found.' });
+				}
+				if ((challengerChar.currentStamina || 0) < STAMINA_COST) {
+					return await interaction.editReply({
+						content: `Not enough stamina. You need ${STAMINA_COST} stamina to spar (you have ${challengerChar.currentStamina || 0}).`,
+					});
+				}
+
+				// ── Enemy lookup ─────────────────────────────────────────────────
+				const allEnemies = contentStore.enemies.findAll({ where: { status: 'active' } });
+				const lowerInput = enemyInput.toLowerCase();
+
+				// Exact name match first
+				let resolvedEnemy = allEnemies.find(e => e.name.toLowerCase() === lowerInput) || null;
+
+				if (!resolvedEnemy) {
+					// Partial match
+					const matches = allEnemies.filter(e => e.name.toLowerCase().includes(lowerInput));
+
+					if (matches.length === 0) {
+						return await interaction.editReply({
+							content: `No enemy found matching \"${enemyInput}\". Check the name and try again.`,
+						});
+					}
+
+					if (matches.length === 1) {
+						resolvedEnemy = matches[0];
+					}
+					else {
+						// Show selection menu (cap at 25 for Discord limit)
+						const options = matches.slice(0, 25).map(e => ({
+							label: e.name.length > 100 ? e.name.slice(0, 97) + '...' : e.name,
+							value: String(e.id),
+							description: e.description ? e.description.slice(0, 100) : undefined,
+						}));
+						const select = new StringSelectMenuBuilder()
+							.setCustomId('spar_enemy_select')
+							.setPlaceholder('Select an enemy to spar')
+							.addOptions(options);
+						const row = new ActionRowBuilder().addComponents(select);
+
+						await interaction.editReply({
+							content: `Multiple enemies match \"${enemyInput}\". Which one?`,
+							components: [row],
+						});
+
+						const selectCollector = interaction.channel.createMessageComponentCollector({
+							componentType: ComponentType.StringSelect,
+							time: 30_000,
+							filter: i => i.user.id === challengerId && i.customId === 'spar_enemy_select',
+							max: 1,
+						});
+
+						selectCollector.on('collect', async (sel) => {
+							await sel.deferUpdate();
+							const picked = contentStore.enemies.findByPk(sel.values[0]);
+							if (!picked) {
+								await interaction.editReply({ content: `${EMOJI.FAILURE} Enemy not found.`, components: [] });
+								return;
+							}
+							await runEnemySpar(interaction, challengerChar, challengerId, picked, hide);
+						});
+
+						selectCollector.on('end', async (collected) => {
+							if (collected.size === 0) {
+								await interaction.editReply({
+									content: `${EMOJI.WARNING} Enemy selection timed out.`,
+									components: [],
+								}).catch(() => {});
+							}
+						});
+
+						return;
+					}
+				}
+
+				await runEnemySpar(interaction, challengerChar, challengerId, resolvedEnemy, hide);
+			}
+			catch (err) {
+				console.error('[Spar/Enemy] Error:', err);
+				try {
+					if (interaction.deferred || interaction.replied) {
+						await interaction.editReply({ content: `${EMOJI.FAILURE} An error occurred.`, components: [] });
+					}
+					else {
+						await interaction.reply({ content: `${EMOJI.FAILURE} An error occurred.`, flags: MessageFlags.Ephemeral });
+					}
+				}
+				catch (replyErr) { console.error('[Spar/Enemy] Reply error:', replyErr); }
+			}
+			return;
+		}
+
+		// ═══════════════════════════════════════════════════════════════════════
+		// PLAYER SPAR PATH (original)
+		// ═══════════════════════════════════════════════════════════════════════
 		try {
 			// Self-challenge guard
 			if (target.id === challengerId) {
@@ -231,14 +464,14 @@ module.exports = {
 					const combatLogSetting = await getCharacterSetting(challengerId, 'combat_log') || 'short';
 					const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
 
-					const pages = reportResult.pages || [reportResult];
-					for (let i = 0; i < pages.length; i++) {
-						const embed = new EmbedBuilder()
-							.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${i + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
-							.setColor(0x5865F2)
-							.setDescription(pages[i]);
-						await interaction.followUp({ embeds: [embed] });
-					}
+						const pages = reportResult.pages || [reportResult];
+						for (let i = 0; i < pages.length; i++) {
+							const embed = new EmbedBuilder()
+								.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${i + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
+								.setColor(0x5865F2)
+								.setDescription(pages[i]);
+							await interaction.followUp({ embeds: [embed], ...(hide ? { flags: MessageFlags.Ephemeral } : {}) });
+						}
 				}
 				catch (combatErr) {
 					console.error('[Spar] Combat error:', combatErr);

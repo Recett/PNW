@@ -2374,7 +2374,10 @@ async function forceArmoryVictory(client) {
 
 	// Step 1: wipe ALL encounters regardless of status and remove their Discord messages
 	const allPending = await PendingEncounter.findAll();
-	for (const enc of allPending) {
+	results.deleted = allPending.length;
+
+	// Delete Discord messages in parallel, then bulk-destroy all rows
+	await Promise.all(allPending.map(async enc => {
 		try {
 			const channel = await client.channels.fetch(String(enc.channel_id)).catch(() => null);
 			if (channel && enc.message_id) {
@@ -2385,9 +2388,8 @@ async function forceArmoryVictory(client) {
 		catch (e) {
 			console.error('[ForceArmoryVictory] Failed to delete encounter message:', e);
 		}
-		await enc.destroy();
-		results.deleted++;
-	}
+	}));
+	await PendingEncounter.destroy({ where: {} });
 
 	// Step 2: stop the armory wave timer
 	clearTimeout(_armoryWaveTimer);
