@@ -6,7 +6,6 @@ const { getCharacterSetting } = require('@utility/characterSettingUtility.js');
 const { EMOJI } = require('../../enums');
 const contentStore = require('@root/contentStore.js');
 
-const STAMINA_COST = 2;
 const CHALLENGE_TIMEOUT_MS = 60000;
 const SPAR_CHANNEL_ID = '1503334930564776086';
 
@@ -62,8 +61,6 @@ function buildEnemyActor(enemyBase) {
  * @param {Object} enemyBase - Enemy record from contentStore
  */
 async function runEnemySpar(interaction, challengerChar, challengerId, enemyBase, hide = false) {
-	await challengerChar.update({ currentStamina: challengerChar.currentStamina - STAMINA_COST });
-
 	await interaction.editReply({
 		content: `${EMOJI.SWORD} **${challengerChar.name}** spars against **${enemyBase.name}**!`,
 		components: [],
@@ -167,12 +164,6 @@ module.exports = {
 				if (!challengerChar) {
 					return await interaction.editReply({ content: 'Character not found.' });
 				}
-				if ((challengerChar.currentStamina || 0) < STAMINA_COST) {
-					return await interaction.editReply({
-						content: `Not enough stamina. You need ${STAMINA_COST} stamina to spar (you have ${challengerChar.currentStamina || 0}).`,
-					});
-				}
-
 				// ── Enemy lookup ─────────────────────────────────────────────────
 				const allEnemies = contentStore.enemies.findAll({ where: { status: 'active' } });
 				const lowerInput = enemyInput.toLowerCase();
@@ -295,14 +286,6 @@ module.exports = {
 				});
 			}
 
-			// Stamina check (upfront)
-			if ((challengerChar.currentStamina || 0) < STAMINA_COST) {
-				return await interaction.reply({
-					content: `Not enough stamina. You need ${STAMINA_COST} stamina to spar (you have ${challengerChar.currentStamina || 0}).`,
-					flags: MessageFlags.Ephemeral,
-				});
-			}
-
 			// Target: character + registration
 			const targetChar = await CharacterBase.findOne({ where: { id: target.id } });
 			if (!targetChar) {
@@ -370,8 +353,6 @@ module.exports = {
 					components: [],
 				});
 
-				await challengerChar.update({ currentStamina: challengerChar.currentStamina - STAMINA_COST });
-
 				try {
 					const [actor1, actor2] = await Promise.all([
 						combatUtil.buildPlayerCombatActor(challengerId, 'challenger', true),
@@ -393,11 +374,11 @@ module.exports = {
 					const reportResult = combatUtil.writeBattleReport(combatLog, actors, null, combatLogSetting);
 
 					const pages = reportResult.pages || [reportResult];
-					for (let p = 0; p < pages.length; p++) {
+					for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
 						const embed = new EmbedBuilder()
-							.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${p + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
+							.setTitle(pages.length > 1 ? `${EMOJI.SWORD} Spar Report (${pageIdx + 1}/${pages.length})` : `${EMOJI.SWORD} Spar Report`)
 							.setColor(0x5865F2)
-							.setDescription(pages[p]);
+							.setDescription(pages[pageIdx]);
 						await interaction.followUp({ embeds: [embed], ...(hide ? { flags: MessageFlags.Ephemeral } : {}) });
 					}
 				}

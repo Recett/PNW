@@ -403,6 +403,9 @@ enemies:
         - id: "18"
           quantity: 1
           chance: 1
+        - id: "17"
+          quantity: 1
+          chance: 1
 
   - id: quartermaster
     name: Quartermaster
