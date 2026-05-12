@@ -32,10 +32,13 @@ function buildItemEmbed(item, inventoryEntry = null) {
 
 	// Add weapon-specific stats
 	if (item.item_type === 'weapon' && item.weapon) {
+		const weaponTypeDisplay = (item.weapon.special?.greatshield)
+			? 'Greatshield'
+			: capitalizeFirst(item.weapon.subtype);
 		// Text fields first
 		embed.fields.push(
 			{ name: 'Slot', value: capitalizeFirst(item.weapon.slot), inline: true },
-			{ name: 'Weapon Type', value: capitalizeFirst(item.weapon.subtype), inline: true },
+			{ name: 'Weapon Type', value: weaponTypeDisplay, inline: true },
 		);
 		// Numeric fields on next line
 		embed.fields.push(
@@ -54,6 +57,12 @@ function buildItemEmbed(item, inventoryEntry = null) {
 			if (item.weapon.special.speed_cap != null) {
 				embed.fields.push(
 					{ name: 'Speed Cap', value: String(item.weapon.special.speed_cap), inline: true },
+				);
+			}
+			if (item.weapon.special.readiness != null) {
+				const r = item.weapon.special.readiness;
+				embed.fields.push(
+					{ name: 'Readiness', value: r <= 1 ? `${Math.round(r * 100)}%` : String(r), inline: true },
 				);
 			}
 		}

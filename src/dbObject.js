@@ -13,6 +13,21 @@ const sequelize = new Sequelize({
 	dialect: 'sqlite',
 	logging: false,
 	storage: databasePath,
+	dialectOptions: {
+		busyTimeout: 10000,
+	},
+	pool: {
+		max: 1,
+		min: 0,
+		acquire: 30000,
+		idle: 10000,
+	},
+});
+
+// Enable WAL mode and enforce busy timeout at the connection level
+sequelize.afterConnect(async (connection) => {
+	await connection.run('PRAGMA journal_mode=WAL;');
+	await connection.run('PRAGMA busy_timeout=10000;');
 });
 
 const characterModels = require('./models/character/characterModel.js');

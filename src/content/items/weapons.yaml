@@ -433,7 +433,6 @@ weapons:
     weight: 8
     tag:
       - shield
-      - greatshield
       - unique
     weapon:
       slot: offhand
@@ -444,6 +443,7 @@ weapons:
       cooldown: 600
       special:
         readiness: 0.5
+        greatshield: true
 
   - id: naval_crossbow
     name: "Naval Crossbow"

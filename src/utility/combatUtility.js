@@ -974,10 +974,7 @@ async function buildCombatActors(playerId, enemyId, pairIndex, speedMultiplier =
 					const subtype = itemDetails.weapon?.subtype?.toLowerCase();
 					if (subtype === 'shield') {
 						isShield = true;
-						if (itemDetails.tag) {
-							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
-							isGreatshield = tags.some(t => t && t.toLowerCase().includes('greatshield'));
-						}
+						isGreatshield = itemDetails.weapon?.special?.greatshield === true;
 					}
 					else if (subtype === 'longbow') {
 						isLongbow = true;
@@ -1194,7 +1191,10 @@ async function teamCombat(pairs, options = {}) {
 	// Rewards are only distributed if the entire team wins
 	const teamVictory = pairStates.every(s => s.playerWon);
 
-	const pairOutcomes = await Promise.all(pairStates.map(async ({ player, finalPlayer, finalEnemy, playerWon, playerId, enemyId, isEmptySlot }) => {
+	// Sequential (not Promise.all) to avoid concurrent SQLite writes from simultaneous
+	// addCharacterItem / modifyCharacterStat calls across multiple reward handlers.
+	const pairOutcomes = [];
+	for (const { player, finalPlayer, finalEnemy, playerWon, playerId, enemyId, isEmptySlot } of pairStates) {
 		if (finalPlayer && playerId) {
 			await characterUtility.setCharacterStat(playerId, 'currentHp', finalPlayer.hp);
 		}
@@ -1207,8 +1207,8 @@ async function teamCombat(pairs, options = {}) {
 				combatLog, player.attacks,
 			);
 		}
-		return { playerId, enemyId, playerWon, finalPlayer, finalEnemy, lootResults, isEmptySlot };
-	}));
+		pairOutcomes.push({ playerId, enemyId, playerWon, finalPlayer, finalEnemy, lootResults, isEmptySlot });
+	}
 
 	// Use first occupied player's combat log setting for report format
 	const firstOccupiedPair = pairs.find(p => p.playerId);
@@ -1311,11 +1311,7 @@ async function buildPlayerCombatActor(playerId, actorId = 'player', useMaxHp = f
 					// Check if weapon is a shield type
 					if (subtype === 'shield') {
 						isShield = true;
-						// Check for greatshield tag in item tags
-						if (itemDetails.tag) {
-							const tags = Array.isArray(itemDetails.tag) ? itemDetails.tag : [itemDetails.tag];
-							isGreatshield = tags.some(t => t && t.toLowerCase().includes('greatshield'));
-						}
+						isGreatshield = itemDetails.weapon?.special?.greatshield === true;
 					}
 					// Check if weapon is a longbow
 					else if (subtype === 'longbow') {
